@@ -1,0 +1,15 @@
+[package]
+name = "alpaca"
+version = "0.0.0"
+edition = "2018"
+authors = ["Daniel Mueller <deso@posteo.net>"]
+license = "GPL-3.0-or-later"
+description = """
+A create for interacting with the Alpaca API.
+"""
+
+[dependencies]
+hyper = "0.12"
+hyper-tls = "0.3"
+serde = {version = "1.0", features = ["derive"]}
+serde_json = "1.0"
