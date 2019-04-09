@@ -3,6 +3,10 @@
 
 //! A create for interacting with the Alpaca API.
 
+/// A module comprising the functionality backing interactions with the
+/// API.
+pub mod api;
+
 mod error;
 
 use std::borrow::Cow;
