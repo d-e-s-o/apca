@@ -10,8 +10,13 @@ A create for interacting with the Alpaca API.
 
 [dependencies]
 futures = "0.1"
+num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 hyper = "0.12"
 hyper-tls = "0.3"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 url = "1.0"
+uuid = {version = "0.7", features = ["serde", "v4"]}
+
+[dev-dependencies]
+tokio = {version = "0.1", default-features = false}
