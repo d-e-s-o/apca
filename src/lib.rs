@@ -11,7 +11,16 @@ mod macros;
 pub mod api;
 
 mod error;
+mod requestor;
 
 use std::borrow::Cow;
 
+pub use crate::error::Error;
+pub use crate::requestor::Requestor;
+
 type Str = Cow<'static, str>;
+
+/// The environment variable representing the key ID.
+const ENV_KEY_ID: &str = "APCA_API_KEY_ID";
+/// The environment variable representing the secret key.
+const ENV_SECRET: &str = "APCA_API_SECRET_KEY";

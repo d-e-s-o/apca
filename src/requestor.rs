@@ -1,6 +1,9 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::env::var_os;
+use std::os::unix::ffi::OsStrExt;
+
 use futures::future::Future;
 use futures::stream::Stream;
 
@@ -21,6 +24,8 @@ use url::Url;
 use crate::api::API_BASE_URL;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
+use crate::ENV_KEY_ID;
+use crate::ENV_SECRET;
 use crate::Error;
 use crate::Str;
 
@@ -123,6 +128,18 @@ impl Requestor {
       secret: secret.into(),
       client: client,
     })
+  }
+
+  /// Create a new `Requestor` with information from the environment.
+  pub fn from_env() -> Result<Self, Error> {
+    let key_id = var_os(ENV_KEY_ID)
+      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?;
+    let secret = var_os(ENV_SECRET)
+      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_SECRET).into()))?;
+
+    let key_id = key_id.as_os_str().as_bytes();
+    let secret = secret.as_os_str().as_bytes();
+    Self::new(key_id, secret)
   }
 
   /// Create and issue a request and decode the response.
