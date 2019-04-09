@@ -8,6 +8,7 @@ use std::fmt::Result as FmtResult;
 
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
+use hyper::http::StatusCode as HttpStatusCode;
 use hyper_tls::Error as TlsError;
 use serde_json::Error as JsonError;
 use url::ParseError;
@@ -30,6 +31,9 @@ fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
 pub enum Error {
   /// An HTTP related error.
   Http(HttpError),
+  /// We encountered an HTTP that either represents a failure or is not
+  /// supported.
+  HttpStatus(HttpStatusCode),
   /// An error reported by the `hyper` crate.
   Hyper(HyperError),
   /// A JSON conversion error.
@@ -46,6 +50,7 @@ impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
       Error::Http(err) => fmt_err(err, fmt),
+      Error::HttpStatus(status) => write!(fmt, "Received HTTP status: {}", status),
       Error::Hyper(err) => fmt_err(err, fmt),
       Error::Json(err) => fmt_err(err, fmt),
       Error::Str(err) => fmt.write_str(err),
@@ -58,6 +63,12 @@ impl Display for Error {
 impl From<HttpError> for Error {
   fn from(e: HttpError) -> Self {
     Error::Http(e)
+  }
+}
+
+impl From<HttpStatusCode> for Error {
+  fn from(e: HttpStatusCode) -> Self {
+    Error::HttpStatus(e)
   }
 }
 

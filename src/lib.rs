@@ -3,6 +3,9 @@
 
 //! A create for interacting with the Alpaca API.
 
+#[macro_use]
+mod macros;
+
 /// A module comprising the functionality backing interactions with the
 /// API.
 pub mod api;
