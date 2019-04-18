@@ -271,12 +271,52 @@ impl Endpoint for Post {
 }
 
 
+/// The representation of a DELETE request to the /v1/orders/<order-id>
+/// endpoint.
+#[derive(Clone, Copy, Debug)]
+pub struct Delete {}
+
+EndpointDef! {
+  Delete,
+  Ok => (), DeleteOk, [
+    /* 204 */ NO_CONTENT,
+  ],
+  Err => DeleteError, [
+    /* 404 */ NOT_FOUND => NotFound,
+    /* 422 */ UNPROCESSABLE_ENTITY => NotCancelable,
+  ]
+}
+
+impl Endpoint for Delete {
+  type Input = Id;
+  type Output = DeleteOk;
+  type Error = DeleteError;
+
+  fn path(input: &Self::Input) -> Str {
+    format!("/v1/orders/{}", input.to_simple()).into()
+  }
+
+  fn builder(url: &str, _input: &Self::Input) -> Builder {
+    Request::delete(url)
+  }
+
+  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
+    debug_assert_eq!(body, b"");
+    Ok(DeleteOk(()))
+  }
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
+
+  use tokio::runtime::current_thread::Runtime;
+
+  use crate::Requestor;
 
 
   #[test]
@@ -327,5 +367,75 @@ mod tests {
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from_int(107)));
     assert_eq!(order.stop_price, Some(Num::from_int(106)));
+  }
+
+  #[test]
+  fn submit_limit_order() -> Result<(), Error> {
+    let reqtor = Requestor::from_env()?;
+    let request = OrderReq {
+      symbol: "AAPL:NASDAQ:us_equity".to_string(),
+      quantity: 1,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(1)),
+      stop_price: None,
+    };
+    let future = reqtor.issue::<Post>(request)?;
+    let mut rt = Runtime::new().unwrap();
+    let order = rt.block_on(future)?;
+
+    let future = reqtor.issue::<Delete>(order.id)?;
+    let _ = rt.block_on(future)?;
+
+    // Just a few sanity checks to verify that we did receive something
+    // meaningful from the correct API endpoint.
+    assert_eq!(order.symbol, "AAPL");
+    assert_eq!(order.quantity, Num::from_int(1));
+    assert_eq!(order.side, Side::Buy);
+    assert_eq!(order.type_, Type::Limit);
+    assert_eq!(order.time_in_force, TimeInForce::Day);
+    assert_eq!(order.limit_price, Some(Num::from_int(1)));
+    assert_eq!(order.stop_price, None);
+    Ok(())
+  }
+
+  #[test]
+  fn submit_unsatisfiable_order() -> Result<(), Error> {
+    let reqtor = Requestor::from_env()?;
+    let request = OrderReq {
+      symbol: "AAPL:NASDAQ:us_equity".to_string(),
+      quantity: 100000,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(1000)),
+      stop_price: None,
+    };
+    let future = reqtor.issue::<Post>(request)?;
+    let mut rt = Runtime::new().unwrap();
+    let err = rt.block_on(future).unwrap_err();
+
+    match err {
+      PostError::InsufficientFunds => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
+  }
+
+  #[test]
+  fn cancel_invalid_order() -> Result<(), Error> {
+    let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
+    let reqtor = Requestor::from_env()?;
+    let future = reqtor.issue::<Delete>(id)?;
+
+    let mut rt = Runtime::new().unwrap();
+    let err = rt.block_on(future).unwrap_err();
+
+    match err {
+      DeleteError::NotFound => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
   }
 }
