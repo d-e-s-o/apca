@@ -100,7 +100,7 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
-  use tokio::runtime::current_thread::Runtime;
+  use tokio::runtime::current_thread::block_on_all;
 
   use crate::Error;
   use crate::Requestor;
@@ -137,7 +137,7 @@ mod tests {
   fn request_account() -> Result<(), Error> {
     let reqtor = Requestor::from_env()?;
     let future = reqtor.issue::<Get>(())?;
-    let account = Runtime::new().unwrap().block_on(future)?;
+    let account = block_on_all(future)?;
 
     // Just a few sanity checks to verify that we did receive something
     // meaningful from the correct API endpoint.
