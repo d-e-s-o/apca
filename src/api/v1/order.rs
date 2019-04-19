@@ -311,10 +311,14 @@ impl Endpoint for Delete {
 mod tests {
   use super::*;
 
+  use futures::future::Future;
+  use futures::future::ok;
+
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
-  use tokio::runtime::current_thread::Runtime;
+  use tokio::runtime::current_thread::block_on_all;
+  use tokio::runtime::current_thread::spawn;
 
   use crate::Requestor;
 
@@ -381,13 +385,13 @@ mod tests {
       limit_price: Some(Num::from_int(1)),
       stop_price: None,
     };
-    let future = reqtor.issue::<Post>(request)?;
-    let mut rt = Runtime::new().unwrap();
-    let order = rt.block_on(future)?;
 
-    let future = reqtor.issue::<Delete>(order.id)?;
-    let _ = rt.block_on(future)?;
+    let future = reqtor.issue::<Post>(request)?.and_then(|order| {
+      spawn({ reqtor.issue::<Delete>(order.id).unwrap().then(|_| ok(())) });
+      ok(order)
+    });
 
+    let order = block_on_all(future)?;
     // Just a few sanity checks to verify that we did receive something
     // meaningful from the correct API endpoint.
     assert_eq!(order.symbol, "AAPL");
@@ -413,8 +417,7 @@ mod tests {
       stop_price: None,
     };
     let future = reqtor.issue::<Post>(request)?;
-    let mut rt = Runtime::new().unwrap();
-    let err = rt.block_on(future).unwrap_err();
+    let err = block_on_all(future).unwrap_err();
 
     match err {
       PostError::InsufficientFunds => (),
@@ -428,9 +431,7 @@ mod tests {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
     let reqtor = Requestor::from_env()?;
     let future = reqtor.issue::<Delete>(id)?;
-
-    let mut rt = Runtime::new().unwrap();
-    let err = rt.block_on(future).unwrap_err();
+    let err = block_on_all(future).unwrap_err();
 
     match err {
       DeleteError::NotFound => (),
