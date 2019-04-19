@@ -120,13 +120,33 @@ impl Requestor {
     I: Into<Vec<u8>>,
     S: Into<Vec<u8>>,
   {
-    let https = HttpsConnector::new(4)?;
-    let client = Client::builder().build::<_, Body>(https);
+    // So here is the deal. In tests we use the block_on_all function to
+    // wait for futures. This function waits until *all* spawned futures
+    // completed. Now, by virtue of keeping idle connections around --
+    // which effectively map to spawned tasks -- we will block until
+    // those connections die. We can't have that happen for tests, so we
+    // disable idle connections for them.
+    // While at it, also use the minimum number of threads for the
+    // `HttpsConnector`.
+    #[cfg(test)]
+    fn client() -> Result<Client<HttpsConnector<HttpConnector>, Body>, Error> {
+      let https = HttpsConnector::new(1)?;
+      let client = Client::builder()
+        .max_idle_per_host(0)
+        .build::<_, Body>(https);
+      Ok(client)
+    }
+    #[cfg(not(test))]
+    fn client() -> Result<Client<HttpsConnector<HttpConnector>, Body>, Error> {
+      let https = HttpsConnector::new(4)?;
+      let client = Client::builder().build::<_, Body>(https);
+      Ok(client)
+    }
 
     Ok(Self {
       key_id: key_id.into(),
       secret: secret.into(),
-      client: client,
+      client: client()?,
     })
   }
 
