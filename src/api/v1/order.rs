@@ -16,6 +16,7 @@ use serde_json::to_string as to_json;
 
 use uuid::Uuid;
 
+use crate::api::v1::asset;
 use crate::Error;
 use crate::requestor::Endpoint;
 use crate::Str;
@@ -204,10 +205,10 @@ pub struct Order {
   pub canceled_at: Option<String>,
   /// The order's asset class.
   #[serde(rename = "asset_class")]
-  pub asset_class: String,
+  pub asset_class: asset::Class,
   /// The ID of the asset represented by the order.
   #[serde(rename = "asset_id")]
-  pub asset_id: String,
+  pub asset_id: asset::Id,
   /// The symbol of the asset being traded.
   #[serde(rename = "symbol")]
   pub symbol: String,
