@@ -5,6 +5,8 @@
 pub mod account;
 /// Definitions surrounding orders.
 pub mod order;
+/// Functionality for listing orders.
+pub mod orders;
 
 #[cfg(test)]
 mod order_util;
