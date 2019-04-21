@@ -3,6 +3,8 @@
 
 /// Definitions pertaining the user's account.
 pub mod account;
+/// Definitions surrounding assets.
+pub mod asset;
 /// Definitions surrounding orders.
 pub mod order;
 /// Functionality for listing orders.
