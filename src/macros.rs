@@ -42,6 +42,13 @@ macro_rules! EndpointDefImpl {
 
     #[allow(unused)]
     #[allow(unused_qualifications)]
+    impl ::std::convert::Into<$out> for $ok {
+      fn into(self) -> $out {
+        self.0
+      }
+    }
+
+    #[allow(unused_qualifications)]
     impl ::std::convert::From<(::hyper::http::StatusCode, ::std::vec::Vec<u8>)>
       for crate::requestor::ConvertResult<$ok, $err> {
 
