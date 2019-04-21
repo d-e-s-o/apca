@@ -235,6 +235,32 @@ pub struct Order {
 }
 
 
+/// The representation of a GET request to the /v1/orders/<order-id>
+/// endpoint.
+#[derive(Debug)]
+struct Get {}
+
+EndpointDef! {
+  Get,
+  Ok => Order, GetOk, [
+    /* 200 */ OK,
+  ],
+  Err => GetError, [
+    /* 404 */ NOT_FOUND => NotFound,
+  ]
+}
+
+impl Endpoint for Get {
+  type Input = Id;
+  type Output = GetOk;
+  type Error = GetError;
+
+  fn path(input: &Self::Input) -> Str {
+    format!("/v1/orders/{}", input.to_simple()).into()
+  }
+}
+
+
 /// The representation of a POST request to the /v1/orders endpoint.
 #[derive(Clone, Copy, Debug)]
 pub struct Post {}
@@ -435,6 +461,60 @@ mod tests {
 
     match err {
       DeleteError::NotFound => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
+  }
+
+  #[test]
+  fn retrieve_order_by_id() -> Result<(), Error> {
+    let reqtor = Requestor::from_env()?;
+    let request = OrderReq {
+      symbol: "AAPL:NASDAQ:us_equity".to_string(),
+      quantity: 1,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(10000)),
+      stop_price: None,
+    };
+    let future = reqtor
+      .issue::<Post>(request)?
+      .map_err(Error::from)
+      .and_then(|order| {
+        let id = order.id;
+        ok(order)
+          .join({ reqtor.issue::<Get>(id).unwrap().map_err(Error::from) })
+          .then(move |res| {
+            spawn({ reqtor.issue::<Delete>(id).unwrap().then(|_| ok(())) });
+            res
+          })
+      });
+
+    let (posted, gotten) = block_on_all(future)?;
+    // We can't simply compare the two orders for equality, because some
+    // time stamps may differ.
+    assert_eq!(posted.id, gotten.id);
+    assert_eq!(posted.status, gotten.status);
+    assert_eq!(posted.asset_class, gotten.asset_class);
+    assert_eq!(posted.asset_id, gotten.asset_id);
+    assert_eq!(posted.symbol, gotten.symbol);
+    assert_eq!(posted.quantity, gotten.quantity);
+    assert_eq!(posted.type_, gotten.type_);
+    assert_eq!(posted.side, gotten.side);
+    assert_eq!(posted.time_in_force, gotten.time_in_force);
+    Ok(())
+  }
+
+  #[test]
+  fn retrieve_non_existent_order() -> Result<(), Error> {
+    let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
+    let reqtor = Requestor::from_env()?;
+    let future = reqtor.issue::<Get>(id)?;
+    let err = block_on_all(future).unwrap_err();
+
+    match err {
+      GetError::NotFound => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
     Ok(())
