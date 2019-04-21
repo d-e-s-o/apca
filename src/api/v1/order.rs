@@ -346,6 +346,7 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
   use tokio::runtime::current_thread::spawn;
 
+  use crate::api::v1::order_util::RequestorExt;
   use crate::Requestor;
 
 
@@ -402,17 +403,7 @@ mod tests {
   #[test]
   fn submit_limit_order() -> Result<(), Error> {
     let reqtor = Requestor::from_env()?;
-    let request = OrderReq {
-      symbol: "AAPL:NASDAQ:us_equity".to_string(),
-      quantity: 1,
-      side: Side::Buy,
-      type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1)),
-      stop_price: None,
-    };
-
-    let future = reqtor.issue::<Post>(request)?.and_then(|order| {
+    let future = reqtor.order_aapl()?.and_then(|order| {
       spawn({ reqtor.issue::<Delete>(order.id).unwrap().then(|_| ok(())) });
       ok(order)
     });
@@ -469,27 +460,15 @@ mod tests {
   #[test]
   fn retrieve_order_by_id() -> Result<(), Error> {
     let reqtor = Requestor::from_env()?;
-    let request = OrderReq {
-      symbol: "AAPL:NASDAQ:us_equity".to_string(),
-      quantity: 1,
-      side: Side::Buy,
-      type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(10000)),
-      stop_price: None,
-    };
-    let future = reqtor
-      .issue::<Post>(request)?
-      .map_err(Error::from)
-      .and_then(|order| {
-        let id = order.id;
-        ok(order)
-          .join({ reqtor.issue::<Get>(id).unwrap().map_err(Error::from) })
-          .then(move |res| {
-            spawn({ reqtor.issue::<Delete>(id).unwrap().then(|_| ok(())) });
-            res
-          })
-      });
+    let future = reqtor.order_aapl()?.map_err(Error::from).and_then(|order| {
+      let id = order.id;
+      ok(order)
+        .join({ reqtor.issue::<Get>(id).unwrap().map_err(Error::from) })
+        .then(move |res| {
+          spawn({ reqtor.issue::<Delete>(id).unwrap().then(|_| ok(())) });
+          res
+        })
+    });
 
     let (posted, gotten) = block_on_all(future)?;
     // We can't simply compare the two orders for equality, because some
