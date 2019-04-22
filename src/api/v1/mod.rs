@@ -5,6 +5,8 @@
 pub mod account;
 /// Definitions surrounding assets.
 pub mod asset;
+/// Functionality for listing available assets.
+pub mod assets;
 /// Definitions surrounding orders.
 pub mod order;
 /// Functionality for listing orders.
