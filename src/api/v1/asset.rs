@@ -32,6 +32,14 @@ pub enum Class {
   UsEquity,
 }
 
+impl AsRef<str> for Class {
+  fn as_ref(&self) -> &'static str {
+    match *self {
+      Class::UsEquity => "us_equity",
+    }
+  }
+}
+
 
 /// The status an asset can have.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -42,6 +50,15 @@ pub enum Status {
   /// The asset is inactive.
   #[serde(rename = "inactive")]
   Inactive,
+}
+
+impl AsRef<str> for Status {
+  fn as_ref(&self) -> &'static str {
+    match *self {
+      Status::Active => "active",
+      Status::Inactive => "inactive",
+    }
+  }
 }
 
 
