@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::env::var_os;
+use std::ffi::OsString;
 use std::os::unix::ffi::OsStrExt;
 
 use futures::future::Future;
@@ -24,6 +25,7 @@ use url::Url;
 use crate::api::API_BASE_URL;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
+use crate::ENV_API;
 use crate::ENV_KEY_ID;
 use crate::ENV_SECRET;
 use crate::Error;
@@ -107,6 +109,7 @@ pub trait Endpoint {
 /// services.
 #[derive(Debug)]
 pub struct Requestor {
+  api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
   client: Client<HttpsConnector<HttpConnector>, Body>,
@@ -115,7 +118,7 @@ pub struct Requestor {
 impl Requestor {
   /// Create a new `Requestor` using the given key ID and secret for
   /// connecting to the API.
-  fn new<I, S>(key_id: I, secret: S) -> Result<Self, Error>
+  fn new<I, S>(api_base: Url, key_id: I, secret: S) -> Result<Self, Error>
   where
     I: Into<Vec<u8>>,
     S: Into<Vec<u8>>,
@@ -144,6 +147,7 @@ impl Requestor {
     }
 
     Ok(Self {
+      api_base,
       key_id: key_id.into(),
       secret: secret.into(),
       client: client()?,
@@ -152,6 +156,14 @@ impl Requestor {
 
   /// Create a new `Requestor` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
+    let api_base = var_os(ENV_API)
+      .unwrap_or_else(|| OsString::from(API_BASE_URL))
+      .into_string()
+      .map_err(|_| {
+        Error::Str(format!("{} environment variable is not a valid string", ENV_API).into())
+      })?;
+    let api_base = Url::parse(&api_base)?;
+
     let key_id = var_os(ENV_KEY_ID)
       .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?;
     let secret = var_os(ENV_SECRET)
@@ -159,7 +171,7 @@ impl Requestor {
 
     let key_id = key_id.as_os_str().as_bytes();
     let secret = secret.as_os_str().as_bytes();
-    Self::new(key_id, secret)
+    Self::new(api_base, key_id, secret)
   }
 
   /// Create and issue a request and decode the response.
@@ -173,7 +185,7 @@ impl Requestor {
     R::Error: From<hyper::Error> + Send + 'static,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
-    let mut url = Url::parse(API_BASE_URL)?;
+    let mut url = self.api_base.clone();
     url.set_path(&R::path(&input));
     url.set_query(R::query(&input).as_ref().map(AsRef::as_ref));
 

@@ -20,6 +20,8 @@ pub use crate::requestor::Requestor;
 
 type Str = Cow<'static, str>;
 
+/// The base URL to the API to use.
+const ENV_API: &str = "APCA_API_BASE_URL";
 /// The environment variable representing the key ID.
 const ENV_KEY_ID: &str = "APCA_API_KEY_ID";
 /// The environment variable representing the secret key.
