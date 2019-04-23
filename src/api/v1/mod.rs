@@ -11,6 +11,8 @@ pub mod assets;
 pub mod order;
 /// Functionality for listing orders.
 pub mod orders;
+/// Definitions surrounding open positions.
+pub mod position;
 
 #[cfg(test)]
 mod order_util;
