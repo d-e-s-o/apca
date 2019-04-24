@@ -60,6 +60,8 @@ mod tests {
   use futures::future::Future;
   use futures::future::ok;
 
+  use test_env_log::test;
+
   use tokio::runtime::current_thread::block_on_all;
 
   use crate::api::v1::order;
