@@ -13,6 +13,8 @@ pub mod order;
 pub mod orders;
 /// Definitions surrounding open positions.
 pub mod position;
+/// Functionality for listing open positions.
+pub mod positions;
 
 #[cfg(test)]
 mod order_util;
