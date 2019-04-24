@@ -344,6 +344,8 @@ mod tests {
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
+  use test_env_log::test;
+
   use tokio::runtime::current_thread::block_on_all;
   use tokio::runtime::current_thread::spawn;
 
