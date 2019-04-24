@@ -1,10 +1,6 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::env::var_os;
-use std::ffi::OsString;
-use std::os::unix::ffi::OsStrExt;
-
 use futures::future::Future;
 use futures::stream::Stream;
 
@@ -22,12 +18,9 @@ use serde_json::from_slice;
 
 use url::Url;
 
-use crate::api::API_BASE_URL;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
-use crate::ENV_API;
-use crate::ENV_KEY_ID;
-use crate::ENV_SECRET;
+use crate::env::api_info;
 use crate::Error;
 use crate::Str;
 
@@ -118,11 +111,7 @@ pub struct Requestor {
 impl Requestor {
   /// Create a new `Requestor` using the given key ID and secret for
   /// connecting to the API.
-  fn new<I, S>(api_base: Url, key_id: I, secret: S) -> Result<Self, Error>
-  where
-    I: Into<Vec<u8>>,
-    S: Into<Vec<u8>>,
-  {
+  fn new(api_base: Url, key_id: Vec<u8>, secret: Vec<u8>) -> Result<Self, Error> {
     // So here is the deal. In tests we use the block_on_all function to
     // wait for futures. This function waits until *all* spawned futures
     // completed. Now, by virtue of keeping idle connections around --
@@ -148,29 +137,15 @@ impl Requestor {
 
     Ok(Self {
       api_base,
-      key_id: key_id.into(),
-      secret: secret.into(),
+      key_id,
+      secret,
       client: client()?,
     })
   }
 
   /// Create a new `Requestor` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
-    let api_base = var_os(ENV_API)
-      .unwrap_or_else(|| OsString::from(API_BASE_URL))
-      .into_string()
-      .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_API).into())
-      })?;
-    let api_base = Url::parse(&api_base)?;
-
-    let key_id = var_os(ENV_KEY_ID)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?;
-    let secret = var_os(ENV_SECRET)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_SECRET).into()))?;
-
-    let key_id = key_id.as_os_str().as_bytes();
-    let secret = secret.as_os_str().as_bytes();
+    let (api_base, key_id, secret) = api_info()?;
     Self::new(api_base, key_id, secret)
   }
 
