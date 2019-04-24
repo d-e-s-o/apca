@@ -199,3 +199,47 @@ impl Requestor {
     Ok(Box::new(fut))
   }
 }
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use tokio::runtime::current_thread::block_on_all;
+
+
+  #[derive(Debug)]
+  pub struct GetNotFound {}
+
+  EndpointDef! {
+    GetNotFound,
+    Ok => (), GetNotFoundOk, [],
+    Err => GetNotFoundError, []
+  }
+
+  impl Endpoint for GetNotFound {
+    type Input = ();
+    type Output = GetNotFoundOk;
+    type Error = GetNotFoundError;
+
+    fn path(_input: &Self::Input) -> Str {
+      "/v1/foobarbaz".into()
+    }
+  }
+
+
+  #[test]
+  fn unexpected_status_code_return() -> Result<(), Error> {
+    let reqtor = Requestor::from_env()?;
+    let future = reqtor.issue::<GetNotFound>(())?;
+    let err = block_on_all(future).unwrap_err();
+
+    match err {
+      GetNotFoundError::UnexpectedStatus(status) => {
+        assert_eq!(status, StatusCode::NOT_FOUND);
+      },
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
+  }
+}
