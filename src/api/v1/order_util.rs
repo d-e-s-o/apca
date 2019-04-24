@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use futures::future::Future;
+use futures::future::ok;
 
 use num_decimal::Num;
 
@@ -19,6 +20,9 @@ type BoxFut<T, E> = Box<dyn Future<Item = T, Error = E>>;
 pub trait RequestorExt {
   /// Submit an unsatisfiable limit order for one share of AAPL.
   fn order_aapl(&self) -> Result<BoxFut<order::PostOk, order::PostError>, Error>;
+
+  /// Safely cancel an order, panicking on error.
+  fn cancel_order(&self, id: order::Id) -> BoxFut<(), ()>;
 }
 
 impl RequestorExt for Requestor {
@@ -33,5 +37,13 @@ impl RequestorExt for Requestor {
       stop_price: None,
     };
     self.issue::<order::Post>(request).map(|x| Box::new(x) as _)
+  }
+
+  fn cancel_order(&self, id: order::Id) -> BoxFut<(), ()> {
+    let fut = self.issue::<order::Delete>(id).unwrap().then(|x| {
+      let _ = x.unwrap();
+      ok(())
+    });
+    Box::new(fut)
   }
 }

@@ -405,7 +405,7 @@ mod tests {
   fn submit_limit_order() -> Result<(), Error> {
     let reqtor = Requestor::from_env()?;
     let future = reqtor.order_aapl()?.and_then(|order| {
-      spawn({ reqtor.issue::<Delete>(order.id).unwrap().then(|_| ok(())) });
+      spawn(reqtor.cancel_order(order.id));
       ok(order)
     });
 
@@ -466,7 +466,7 @@ mod tests {
       ok(order)
         .join({ reqtor.issue::<Get>(id).unwrap().map_err(Error::from) })
         .then(move |res| {
-          spawn({ reqtor.issue::<Delete>(id).unwrap().then(|_| ok(())) });
+          spawn(reqtor.cancel_order(id));
           res
         })
     });
