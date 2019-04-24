@@ -33,6 +33,8 @@ impl Endpoint for Get {
 mod tests {
   use super::*;
 
+  use test_env_log::test;
+
   use tokio::runtime::current_thread::block_on_all;
 
   use crate::Error;
