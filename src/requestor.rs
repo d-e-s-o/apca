@@ -1,6 +1,8 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::str;
+
 use futures::future::Future;
 use futures::stream::Stream;
 
@@ -11,6 +13,11 @@ use hyper::http::request::Builder;
 use hyper::http::StatusCode;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
+
+use log::debug;
+use log::info;
+use log::Level::Debug;
+use log::log_enabled;
 
 use serde::de::DeserializeOwned;
 use serde_json::Error as JsonError;
@@ -172,6 +179,12 @@ impl Requestor {
 
     // Now build and issue the actual request.
     let req = R::request(bldr, &input)?;
+    if log_enabled!(Debug) {
+      debug!("HTTP request: {:?}", req);
+    } else {
+      info!("HTTP request: {} to {}", req.method(), req.uri());
+    }
+
     let fut = self
       .client
       .request(req)
@@ -192,6 +205,15 @@ impl Requestor {
       .and_then(|(status, body)| {
         let bytes = body.into_bytes();
         let body = Vec::from(bytes.as_ref());
+
+        info!("HTTP status: {}", status);
+        if log_enabled!(Debug) {
+          match str::from_utf8(&body) {
+            Ok(s) => debug!("HTTP body: {}", s),
+            Err(b) => debug!("HTTP body: {}", b),
+          }
+        }
+
         let res = ConvertResult::<R::Output, R::Error>::from((status, body));
         Into::<Result<_, _>>::into(res)
       });
@@ -206,6 +228,8 @@ mod tests {
   use super::*;
 
   use tokio::runtime::current_thread::block_on_all;
+
+  use test_env_log::test;
 
 
   #[derive(Debug)]
