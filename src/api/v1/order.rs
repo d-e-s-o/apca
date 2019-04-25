@@ -5,8 +5,7 @@ use std::ops::Deref;
 
 use hyper::Body;
 use hyper::Chunk;
-use hyper::http::request::Builder;
-use hyper::Request;
+use hyper::Method;
 
 use num_decimal::Num;
 
@@ -282,18 +281,18 @@ impl Endpoint for Post {
   type Output = PostOk;
   type Error = PostError;
 
+  fn method() -> Method {
+    Method::POST
+  }
+
   fn path(_input: &Self::Input) -> Str {
     "/v1/orders".into()
   }
 
-  fn builder(url: &str, _input: &Self::Input) -> Builder {
-    Request::post(url)
-  }
-
-  fn request(builder: &mut Builder, input: &Self::Input) -> Result<Request<Body>, Error> {
+  fn body(input: &Self::Input) -> Result<Body, Error> {
     let json = to_json(input)?;
     let body = Body::from(Chunk::from(json));
-    builder.body(body).map_err(Error::from)
+    Ok(body)
   }
 }
 
@@ -319,12 +318,12 @@ impl Endpoint for Delete {
   type Output = DeleteOk;
   type Error = DeleteError;
 
-  fn path(input: &Self::Input) -> Str {
-    format!("/v1/orders/{}", input.to_simple()).into()
+  fn method() -> Method {
+    Method::DELETE
   }
 
-  fn builder(url: &str, _input: &Self::Input) -> Builder {
-    Request::delete(url)
+  fn path(input: &Self::Input) -> Str {
+    format!("/v1/orders/{}", input.to_simple()).into()
   }
 
   fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
