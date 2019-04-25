@@ -11,6 +11,7 @@ use hyper::Client;
 use hyper::client::HttpConnector;
 use hyper::http::request::Builder;
 use hyper::http::StatusCode;
+use hyper::Method;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 
@@ -61,6 +62,13 @@ pub trait Endpoint {
   type Output;
   type Error;
 
+  /// Retrieve the HTTP method to use.
+  ///
+  /// The default method being used is GET.
+  fn method() -> Method {
+    Method::GET
+  }
+
   /// Inquire the path the request should go to.
   fn path(input: &Self::Input) -> Str;
 
@@ -72,21 +80,35 @@ pub trait Endpoint {
     None
   }
 
-  /// Create a request builder.
+  /// Retrieve the request's body.
   ///
-  /// By default this method creates a `Builder` for a GET request.
+  /// By default this method creates an empty body.
   #[allow(unused)]
-  fn builder(url: &str, input: &Self::Input) -> Builder {
-    Request::get(url)
+  fn body(input: &Self::Input) -> Result<Body, Error> {
+    Ok(Body::empty())
   }
 
-  /// Take the previously returned `Builder` and create the final
-  /// `Request` out of it.
+  /// Create a `Request` to the endpoint.
   ///
-  /// By default this method creates a request with an empty body.
-  #[allow(unused)]
-  fn request(builder: &mut Builder, input: &Self::Input) -> Result<Request<Body>, Error> {
-    builder.body(Body::empty()).map_err(Error::from)
+  /// Typically the default implementation is just fine.
+  fn request(
+    api_base: &Url,
+    key_id: &[u8],
+    secret: &[u8],
+    input: &Self::Input,
+  ) -> Result<Request<Body>, Error> {
+    let mut url = api_base.clone();
+    url.set_path(&Self::path(&input));
+    url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
+
+    Builder::new()
+      .method(Self::method())
+      .uri(url.as_str())
+      // Add required authentication information.
+      .header(HDR_KEY_ID, key_id)
+      .header(HDR_SECRET, secret)
+      .body(Self::body(input)?)
+      .map_err(Error::from)
   }
 
   /// Parse the body into the final result.
@@ -167,18 +189,7 @@ impl Requestor {
     R::Error: From<hyper::Error> + Send + 'static,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
-    let mut url = self.api_base.clone();
-    url.set_path(&R::path(&input));
-    url.set_query(R::query(&input).as_ref().map(AsRef::as_ref));
-
-    let mut bldr = R::builder(url.as_str(), &input);
-    // Add required authentication information.
-    let bldr = bldr
-      .header(HDR_KEY_ID, self.key_id.as_slice())
-      .header(HDR_SECRET, self.secret.as_slice());
-
-    // Now build and issue the actual request.
-    let req = R::request(bldr, &input)?;
+    let req = R::request(&self.api_base, &self.key_id, &self.secret, &input)?;
     if log_enabled!(Debug) {
       debug!("HTTP request: {:?}", req);
     } else {
