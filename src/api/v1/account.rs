@@ -9,7 +9,7 @@ use serde::Deserialize;
 
 use uuid::Uuid;
 
-use crate::requestor::Endpoint;
+use crate::endpoint::Endpoint;
 use crate::Str;
 
 

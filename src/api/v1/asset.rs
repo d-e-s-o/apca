@@ -8,7 +8,7 @@ use serde::Serialize;
 
 use uuid::Uuid;
 
-use crate::requestor::Endpoint;
+use crate::endpoint::Endpoint;
 use crate::Str;
 
 /// An ID uniquely identifying an asset.
