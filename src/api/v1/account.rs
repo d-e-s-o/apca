@@ -104,8 +104,8 @@ mod tests {
 
   use tokio::runtime::current_thread::block_on_all;
 
+  use crate::Client;
   use crate::Error;
-  use crate::Requestor;
 
 
   #[test]
@@ -137,8 +137,8 @@ mod tests {
 
   #[test]
   fn request_account() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.issue::<Get>(())?;
+    let client = Client::from_env()?;
+    let future = client.issue::<Get>(())?;
     let account = block_on_all(future)?;
 
     // Just a few sanity checks to verify that we did receive something
