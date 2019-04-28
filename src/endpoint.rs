@@ -98,12 +98,12 @@ pub trait Endpoint {
 
 
 /// A result type used solely for the purpose of communicating
-/// the result of a conversion to the `Requestor`.
+/// the result of a conversion to the `Client`.
 ///
 /// This type is pretty much a `Result`, but given that it is local to
 /// our crate we can implement non-local traits for it. We exploit this
-/// fact in the `Requestor` struct which relies on a From conversion
-/// from an (HTTP status, Body)-pair yielding such a result.
+/// fact in the `Client` struct which relies on a From conversion from
+/// an (HTTP status, Body)-pair yielding such a result.
 #[derive(Debug)]
 pub struct ConvertResult<T, E>(pub Result<T, E>);
 

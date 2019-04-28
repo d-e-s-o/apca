@@ -65,25 +65,25 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
 
   use crate::api::v1::order;
-  use crate::api::v1::order_util::RequestorExt;
+  use crate::api::v1::order_util::ClientExt;
+  use crate::Client;
   use crate::Error;
-  use crate::Requestor;
 
 
   #[test]
   fn list_orders() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
+    let client = Client::from_env()?;
     let request = OrdersReq { limit: 50 };
 
     // Holy fucking shit!! We need to get the order ID passed through to
     // the various futures. We cannot just close over it from the outer
     // scope for lifetime conflicts. We also can't just use move
-    // closures because that moves the requestor object as well. So we
-    // end up with this dance to pass the order ID through the pipeline.
-    let future = reqtor.order_aapl()?.map_err(Error::from).and_then(|order| {
+    // closures because that moves the client object as well. So we end
+    // up with this dance to pass the order ID through the pipeline.
+    let future = client.order_aapl()?.map_err(Error::from).and_then(|order| {
       ok(order.id)
         .join({
-          reqtor
+          client
             .issue::<Get>(request.clone())
             .unwrap()
             .map_err(Error::from)
@@ -91,7 +91,7 @@ mod tests {
         .then(|res| {
           let (id, res) = res.unwrap();
           ok((id, res)).join({
-            reqtor
+            client
               .issue::<order::Delete>(id)
               .unwrap()
               .map_err(Error::from)
@@ -99,7 +99,7 @@ mod tests {
         })
         .and_then(|res| {
           let (id, before) = res;
-          ok((id, before)).join(reqtor.issue::<Get>(request).unwrap().map_err(Error::from))
+          ok((id, before)).join(client.issue::<Get>(request).unwrap().map_err(Error::from))
         })
     });
 
