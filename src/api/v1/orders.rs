@@ -6,7 +6,7 @@ use serde::Serialize;
 use url::form_urlencoded::Serializer;
 
 use crate::api::v1::order::Order;
-use crate::requestor::Endpoint;
+use crate::endpoint::Endpoint;
 use crate::Str;
 
 

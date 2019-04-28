@@ -9,10 +9,7 @@ use futures::stream::Stream;
 use hyper::Body;
 use hyper::Client;
 use hyper::client::HttpConnector;
-use hyper::http::request::Builder;
 use hyper::http::StatusCode;
-use hyper::Method;
-use hyper::Request;
 use hyper_tls::HttpsConnector;
 
 use log::debug;
@@ -20,108 +17,12 @@ use log::info;
 use log::Level::Debug;
 use log::log_enabled;
 
-use serde::de::DeserializeOwned;
-use serde_json::Error as JsonError;
-use serde_json::from_slice;
-
 use url::Url;
 
-use crate::api::HDR_KEY_ID;
-use crate::api::HDR_SECRET;
+use crate::endpoint::ConvertResult;
+use crate::endpoint::Endpoint;
 use crate::env::api_info;
 use crate::Error;
-use crate::Str;
-
-
-/// A result type used solely for the purpose of communicating
-/// the result of a conversion to the `Requestor`.
-///
-/// This type is pretty much a `Result`, but given that it is local to
-/// our crate we can implement non-local traits for it. We exploit this
-/// fact in the `Requestor` struct which relies on a From conversion
-/// from an (HTTP status, Body)-pair yielding such a result.
-#[derive(Debug)]
-pub struct ConvertResult<T, E>(pub Result<T, E>);
-
-impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
-  fn into(self) -> Result<T, E> {
-    self.0
-  }
-}
-
-
-/// A trait describing an HTTP endpoint.
-///
-/// An endpoint for our intents and purposes is basically a path and an
-/// HTTP request method (e.g., GET or POST). The path will be combined
-/// with an "authority" (scheme, host, and port) into a full URL. Query
-/// parameters are supported as well.
-/// An endpoint is used by the `Trader` who invokes the various methods.
-pub trait Endpoint {
-  type Input;
-  type Output;
-  type Error;
-
-  /// Retrieve the HTTP method to use.
-  ///
-  /// The default method being used is GET.
-  fn method() -> Method {
-    Method::GET
-  }
-
-  /// Inquire the path the request should go to.
-  fn path(input: &Self::Input) -> Str;
-
-  /// Inquire the query the request should use.
-  ///
-  /// By default no query is emitted.
-  #[allow(unused)]
-  fn query(input: &Self::Input) -> Option<Str> {
-    None
-  }
-
-  /// Retrieve the request's body.
-  ///
-  /// By default this method creates an empty body.
-  #[allow(unused)]
-  fn body(input: &Self::Input) -> Result<Body, Error> {
-    Ok(Body::empty())
-  }
-
-  /// Create a `Request` to the endpoint.
-  ///
-  /// Typically the default implementation is just fine.
-  fn request(
-    api_base: &Url,
-    key_id: &[u8],
-    secret: &[u8],
-    input: &Self::Input,
-  ) -> Result<Request<Body>, Error> {
-    let mut url = api_base.clone();
-    url.set_path(&Self::path(&input));
-    url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
-
-    Builder::new()
-      .method(Self::method())
-      .uri(url.as_str())
-      // Add required authentication information.
-      .header(HDR_KEY_ID, key_id)
-      .header(HDR_SECRET, secret)
-      .body(Self::body(input)?)
-      .map_err(Error::from)
-  }
-
-  /// Parse the body into the final result.
-  ///
-  /// By default this method directly parses the body as JSON.
-  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error>
-  where
-    Self::Output: DeserializeOwned,
-    Self::Error: From<JsonError>,
-  {
-    from_slice::<Self::Output>(body).map_err(Self::Error::from)
-  }
-}
 
 
 /// A `Requestor` is the entity used by clients of this module for
@@ -241,6 +142,8 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
 
   use test_env_log::test;
+
+  use crate::Str;
 
 
   #[derive(Debug)]
