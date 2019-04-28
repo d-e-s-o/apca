@@ -60,6 +60,7 @@ pub mod api;
 mod client;
 mod env;
 mod error;
+mod events;
 
 use std::borrow::Cow;
 
