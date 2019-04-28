@@ -120,8 +120,8 @@ mod tests {
 
   use tokio::runtime::current_thread::block_on_all;
 
+  use crate::Client;
   use crate::Error;
-  use crate::Requestor;
 
 
   #[test]
@@ -165,11 +165,11 @@ mod tests {
 
   #[test]
   fn retrieve_position() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
+    let client = Client::from_env()?;
     let request = PositionReq {
       symbol: "AAPL".to_string(),
     };
-    let future = reqtor.issue::<Get>(request)?;
+    let future = client.issue::<Get>(request)?;
     let result = block_on_all(future);
 
     // We don't know whether there is an open position and we can't

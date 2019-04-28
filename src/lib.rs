@@ -57,13 +57,13 @@ mod endpoint;
 /// API.
 pub mod api;
 
+mod client;
 mod env;
 mod error;
-mod requestor;
 
 use std::borrow::Cow;
 
+pub use crate::client::Client;
 pub use crate::error::Error;
-pub use crate::requestor::Requestor;
 
 type Str = Cow<'static, str>;
