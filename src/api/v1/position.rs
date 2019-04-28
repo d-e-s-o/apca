@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::api::v1::asset;
-use crate::requestor::Endpoint;
+use crate::endpoint::Endpoint;
 use crate::Str;
 
 

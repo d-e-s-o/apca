@@ -16,8 +16,8 @@ use serde_json::to_string as to_json;
 use uuid::Uuid;
 
 use crate::api::v1::asset;
+use crate::endpoint::Endpoint;
 use crate::Error;
-use crate::requestor::Endpoint;
 use crate::Str;
 
 
