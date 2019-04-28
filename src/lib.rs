@@ -51,7 +51,7 @@
 //! A create for interacting with the Alpaca API.
 
 #[macro_use]
-mod macros;
+mod endpoint;
 
 /// A module comprising the functionality backing interactions with the
 /// API.
