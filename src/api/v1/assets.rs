@@ -65,18 +65,18 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
 
   use crate::api::v1::asset::Exchange;
+  use crate::Client;
   use crate::Error;
-  use crate::Requestor;
 
 
   #[test]
   fn list_assets() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
+    let client = Client::from_env()?;
     let request = AssetsReq {
       status: Status::Active,
       class: Class::UsEquity,
     };
-    let future = reqtor.issue::<Get>(request)?;
+    let future = client.issue::<Get>(request)?;
     let assets = block_on_all(future)?;
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
     assert_eq!(asset.class, Class::UsEquity);

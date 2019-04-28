@@ -348,8 +348,8 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
   use tokio::runtime::current_thread::spawn;
 
-  use crate::api::v1::order_util::RequestorExt;
-  use crate::Requestor;
+  use crate::api::v1::order_util::ClientExt;
+  use crate::Client;
 
 
   #[test]
@@ -404,9 +404,9 @@ mod tests {
 
   #[test]
   fn submit_limit_order() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.order_aapl()?.and_then(|order| {
-      spawn(reqtor.cancel_order(order.id));
+    let client = Client::from_env()?;
+    let future = client.order_aapl()?.and_then(|order| {
+      spawn(client.cancel_order(order.id));
       ok(order)
     });
 
@@ -425,7 +425,7 @@ mod tests {
 
   #[test]
   fn submit_unsatisfiable_order() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
+    let client = Client::from_env()?;
     let request = OrderReq {
       symbol: "AAPL:NASDAQ:us_equity".to_string(),
       quantity: 100000,
@@ -435,7 +435,7 @@ mod tests {
       limit_price: Some(Num::from_int(1000)),
       stop_price: None,
     };
-    let future = reqtor.issue::<Post>(request)?;
+    let future = client.issue::<Post>(request)?;
     let err = block_on_all(future).unwrap_err();
 
     match err {
@@ -448,8 +448,8 @@ mod tests {
   #[test]
   fn cancel_invalid_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.issue::<Delete>(id)?;
+    let client = Client::from_env()?;
+    let future = client.issue::<Delete>(id)?;
     let err = block_on_all(future).unwrap_err();
 
     match err {
@@ -461,13 +461,13 @@ mod tests {
 
   #[test]
   fn retrieve_order_by_id() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.order_aapl()?.map_err(Error::from).and_then(|order| {
+    let client = Client::from_env()?;
+    let future = client.order_aapl()?.map_err(Error::from).and_then(|order| {
       let id = order.id;
       ok(order)
-        .join({ reqtor.issue::<Get>(id).unwrap().map_err(Error::from) })
+        .join({ client.issue::<Get>(id).unwrap().map_err(Error::from) })
         .then(move |res| {
-          spawn(reqtor.cancel_order(id));
+          spawn(client.cancel_order(id));
           res
         })
     });
@@ -490,8 +490,8 @@ mod tests {
   #[test]
   fn retrieve_non_existent_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.issue::<Get>(id)?;
+    let client = Client::from_env()?;
+    let future = client.issue::<Get>(id)?;
     let err = block_on_all(future).unwrap_err();
 
     match err {
