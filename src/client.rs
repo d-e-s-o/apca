@@ -7,7 +7,7 @@ use futures::future::Future;
 use futures::stream::Stream;
 
 use hyper::Body;
-use hyper::Client;
+use hyper::Client as HttpClient;
 use hyper::client::HttpConnector;
 use hyper::http::StatusCode;
 use hyper_tls::HttpsConnector;
@@ -25,21 +25,21 @@ use crate::env::api_info;
 use crate::Error;
 
 
-/// A `Requestor` is the entity used by clients of this module for
+/// A `Client` is the entity used by clients of this module for
 /// interacting with the Alpaca API. It provides the highest-level
 /// primitives and also implements the `Trader` trait, which abstracts
 /// away the trading related functionality common among all supported
 /// services.
 #[derive(Debug)]
-pub struct Requestor {
+pub struct Client {
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-  client: Client<HttpsConnector<HttpConnector>, Body>,
+  client: HttpClient<HttpsConnector<HttpConnector>, Body>,
 }
 
-impl Requestor {
-  /// Create a new `Requestor` using the given key ID and secret for
+impl Client {
+  /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
   fn new(api_base: Url, key_id: Vec<u8>, secret: Vec<u8>) -> Result<Self, Error> {
     // So here is the deal. In tests we use the block_on_all function to
@@ -51,17 +51,17 @@ impl Requestor {
     // While at it, also use the minimum number of threads for the
     // `HttpsConnector`.
     #[cfg(test)]
-    fn client() -> Result<Client<HttpsConnector<HttpConnector>, Body>, Error> {
+    fn client() -> Result<HttpClient<HttpsConnector<HttpConnector>, Body>, Error> {
       let https = HttpsConnector::new(1)?;
-      let client = Client::builder()
+      let client = HttpClient::builder()
         .max_idle_per_host(0)
         .build::<_, Body>(https);
       Ok(client)
     }
     #[cfg(not(test))]
-    fn client() -> Result<Client<HttpsConnector<HttpConnector>, Body>, Error> {
+    fn client() -> Result<HttpClient<HttpsConnector<HttpConnector>, Body>, Error> {
       let https = HttpsConnector::new(4)?;
-      let client = Client::builder().build::<_, Body>(https);
+      let client = HttpClient::builder().build::<_, Body>(https);
       Ok(client)
     }
 
@@ -73,7 +73,7 @@ impl Requestor {
     })
   }
 
-  /// Create a new `Requestor` with information from the environment.
+  /// Create a new `Client` with information from the environment.
   pub fn from_env() -> Result<Self, Error> {
     let (api_base, key_id, secret) = api_info()?;
     Self::new(api_base, key_id, secret)
@@ -168,8 +168,8 @@ mod tests {
 
   #[test]
   fn unexpected_status_code_return() -> Result<(), Error> {
-    let reqtor = Requestor::from_env()?;
-    let future = reqtor.issue::<GetNotFound>(())?;
+    let client = Client::from_env()?;
+    let future = client.issue::<GetNotFound>(())?;
     let err = block_on_all(future).unwrap_err();
 
     match err {
