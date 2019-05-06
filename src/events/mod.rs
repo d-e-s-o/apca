@@ -5,3 +5,5 @@ mod handshake;
 mod stream;
 
 pub use handshake::StreamType;
+pub use stream::EventStream;
+pub use stream::stream;
