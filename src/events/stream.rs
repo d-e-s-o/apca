@@ -29,6 +29,16 @@ use crate::events::handshake::StreamType;
 use crate::events::handshake::subscribe;
 
 
+/// A trait representing a particular event stream.
+pub trait EventStream {
+  /// The events being reported through the stream.
+  type Event: DeserializeOwned;
+
+  /// The actual type of stream.
+  fn stream() -> StreamType;
+}
+
+
 mod stream {
   use super::*;
 
@@ -158,8 +168,7 @@ where
   .filter_map(|op| op.into_decoded())
 }
 
-#[allow(unused)]
-fn stream<I>(
+fn stream_impl<I>(
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
@@ -212,4 +221,16 @@ where
       }
     })
 		.and_then(|c| ok(do_stream::<_, I>(c)))
+}
+
+/// Create a stream for decoded event data.
+pub fn stream<S>(
+  api_base: Url,
+  key_id: Vec<u8>,
+  secret: Vec<u8>,
+) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+where
+  S: EventStream,
+{
+  stream_impl(api_base, key_id, secret, S::stream())
 }

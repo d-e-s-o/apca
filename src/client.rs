@@ -23,6 +23,8 @@ use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
 use crate::env::api_info;
 use crate::Error;
+use crate::events::EventStream;
+use crate::events::stream;
 
 
 /// A `Client` is the entity used by clients of this module for
@@ -132,8 +134,21 @@ impl Client {
 
     Ok(Box::new(fut))
   }
-}
 
+  /// Subscribe to the given stream in order to receive updates.
+  pub fn subscribe<S>(
+    &self,
+  ) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+  where
+    S: EventStream,
+  {
+    stream::<S>(
+      self.api_base.clone(),
+      self.key_id.clone(),
+      self.secret.clone(),
+    )
+  }
+}
 
 #[cfg(test)]
 mod tests {
