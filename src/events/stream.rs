@@ -1,6 +1,8 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use futures::future::done;
+use futures::future::Either;
 use futures::future::err;
 use futures::future::Future;
 use futures::future::ok;
@@ -77,6 +79,8 @@ where
 enum Operation<T> {
   /// A value was decoded.
   Decode(T),
+  /// A ping was received and we are about to issue a pong.
+  Pong(Vec<u8>),
   /// We received a control message that we just ignore.
   Nop,
   /// The connection is supposed to be close.
@@ -119,10 +123,7 @@ where
         let resp = from_json::<stream::Event<I>>(dat.as_slice())?;
         Ok(Operation::Decode(resp.data.0))
       },
-      OwnedMessage::Ping(_dat) => {
-        // TODO: Send back a pong.
-        Ok(Operation::Nop)
-      },
+      OwnedMessage::Ping(dat) => Ok(Operation::Pong(dat)),
       OwnedMessage::Pong(_) => Ok(Operation::Nop),
     },
   }
@@ -141,8 +142,29 @@ where
     .map_err(|(err, _c)| Error::from(err))
     .and_then(|(msg, c)| {
       trace!("received message: {:?}", msg);
-      decode_msg(msg)
-        .map(|op| (op, c))
+      // We have to jump through a shit ton of hoops just to be able to
+      // respond to a ping. In a nutshell, because our code is
+      // (supposed to be) independent of the reactor/event loop/whatever
+      // you may call it, we can't really just "spawn" a task. There is
+      // futures::executor::spawn but really its purpose is unclear,
+      // given that one still has to poll the resulting task to drive it
+      // to completion.
+      // So either way, it appears that we are needlessly blocking the
+      // actual request by waiting for the Pong to be sent, but then
+      // that's only for Ping events, so that should not matter much.
+      done(decode_msg::<I>(msg))
+        .and_then(|op| {
+          match op {
+            Operation::Pong(dat) => {
+              let fut = c
+                .send(OwnedMessage::Pong(dat))
+                .map_err(Error::from)
+                .and_then(|c| ok((Operation::Nop, c)));
+              Either::A(fut)
+            },
+            op @ _ => Either::B(ok((op, c))),
+          }
+        })
     })
 }
 
@@ -432,6 +454,38 @@ mod tests {
       Error::Json(_) => (),
       e @ _ => panic!("received unexpected error: {}", e),
     }
+    Ok(())
+  }
+
+  #[test]
+  fn ping_pong() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
+      // Authentication.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
+        .unwrap();
+
+      // Subscription.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
+        .unwrap();
+
+      // Ping.
+      send.send_message(&OwnedMessage::Ping(Vec::new())).unwrap();
+
+      // Expect Pong.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Pong(Vec::new()));
+
+      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let _ = block_on_all(fut)?;
     Ok(())
   }
 }
