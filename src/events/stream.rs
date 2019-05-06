@@ -17,8 +17,11 @@ use serde_json::from_slice as from_json;
 
 use url::Url;
 
+use websocket::client::r#async::ClientNew;
 use websocket::ClientBuilder;
 use websocket::OwnedMessage;
+use websocket::stream::r#async::AsyncRead;
+use websocket::stream::r#async::AsyncWrite;
 use websocket::WebSocketError;
 
 use crate::Error;
@@ -168,13 +171,16 @@ where
   .filter_map(|op| op.into_decoded())
 }
 
-fn stream_impl<I>(
+fn stream_impl<F, S, I>(
+  connect: F,
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
   stream: StreamType,
 ) -> impl Future<Item = impl Stream<Item = I, Error = Error>, Error = Error>
 where
+  F: FnOnce(Url) -> ClientNew<S>,
+  S: AsyncRead + AsyncWrite,
   I: DeserializeOwned,
 {
   let mut url = api_base;
@@ -185,8 +191,7 @@ where
 
   debug!("connecting to {}", &url);
 
-  ClientBuilder::from_url(&url)
-    .async_connect_secure(None)
+  connect(url)
     // We just ignore the headers that are sent along after the
     // connection is made. Alpaca does not seem to be using them,
     // really.
@@ -223,6 +228,21 @@ where
 		.and_then(|c| ok(do_stream::<_, I>(c)))
 }
 
+/// Testing-only function to connect to a websocket stream in an
+/// insecure manner.
+#[cfg(test)]
+fn stream_insecure<S>(
+  api_base: Url,
+  key_id: Vec<u8>,
+  secret: Vec<u8>,
+) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+where
+  S: EventStream,
+{
+  let connect = |url| ClientBuilder::from_url(&url).async_connect_insecure();
+  stream_impl(connect, api_base, key_id, secret, S::stream())
+}
+
 /// Create a stream for decoded event data.
 pub fn stream<S>(
   api_base: Url,
@@ -232,5 +252,186 @@ pub fn stream<S>(
 where
   S: EventStream,
 {
-  stream_impl(api_base, key_id, secret, S::stream())
+  let connect = |url| ClientBuilder::from_url(&url).async_connect_secure(None);
+  stream_impl(connect, api_base, key_id, secret, S::stream())
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  use std::net::SocketAddr;
+  use std::net::TcpStream;
+  use std::thread::JoinHandle;
+  use std::thread::spawn;
+
+  use test_env_log::test;
+
+  use tokio::runtime::current_thread::block_on_all;
+
+  use websocket::receiver::Reader;
+  use websocket::sender::Writer;
+  use websocket::sync::Server;
+
+
+  const KEY_ID: &str = "USER12345678";
+  const SECRET: &str = "justletmein";
+  const AUTH_REQ: &str = {
+    r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#
+  };
+  const AUTH_RESP: &str = {
+    r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#
+  };
+  const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["account_updates"]}}"#;
+  const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["account_updates"]}}"#;
+
+
+  /// A stream used solely for testing purposes.
+  enum DummyStream {}
+
+  impl EventStream for DummyStream {
+    type Event = ();
+
+    fn stream() -> StreamType {
+      StreamType::AccountUpdates
+    }
+  }
+
+  /// Create a websocket server that handles a customizable set of
+  /// requests and exits.
+  fn mock_server<F>(f: F) -> (SocketAddr, JoinHandle<()>)
+  where
+    F: Copy + FnOnce(Reader<TcpStream>, Writer<TcpStream>) + Send + 'static,
+  {
+    let mut server = Server::bind("localhost:0").unwrap();
+    let addr = server.local_addr().unwrap();
+
+    let handle = spawn(move || match server.accept() {
+      Ok(conn) => {
+        let client = conn.accept().unwrap();
+        let (recv, send) = client.split().unwrap();
+
+        f(recv, send)
+      }
+      Err(_) => panic!("nobody tried to connect"),
+    });
+
+    (addr, handle)
+  }
+
+  fn mock_stream<S, F>(
+    f: F,
+  ) -> (
+    JoinHandle<()>,
+    impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>,
+  )
+  where
+    S: EventStream,
+    F: Copy + FnOnce(Reader<TcpStream>, Writer<TcpStream>) + Send + 'static,
+  {
+    let (addr, thrd) = mock_server(f);
+    let url = Url::parse(&format!("http://{}", addr.to_string())).unwrap();
+    let key_id = KEY_ID.as_bytes().to_vec();
+    let secret = SECRET.as_bytes().to_vec();
+
+    (thrd, stream_insecure::<S>(url, key_id, secret))
+  }
+
+
+  #[test]
+  fn broken_stream() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, _| {
+      // Authentication. We receive the message but never respond.
+      let _ = recv.recv_message().unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let err = block_on_all(fut).unwrap_err();
+    match err {
+      Error::Str(ref e) if e == "no response to authentication request" => (),
+      e @ _ => panic!("received unexpected error: {}", e),
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn early_close() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
+      // Authentication.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
+        .unwrap();
+
+      // Subscription.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
+
+      // Just respond with a Close.
+      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let err = block_on_all(fut).unwrap_err();
+    match err {
+      Error::Str(ref e) if e.starts_with("received unexpected message: Close") => (),
+      e @ _ => panic!("received unexpected error: {}", e),
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn no_messages() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
+      // Authentication.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
+        .unwrap();
+
+      // Subscription.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
+        .unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let err = block_on_all(fut).unwrap_err();
+    match err {
+      Error::Str(ref e) if e.starts_with("connection lost unexpectedly") => (),
+      e @ _ => panic!("received unexpected error: {}", e),
+    }
+    Ok(())
+  }
+
+  #[test]
+  fn decode_error_during_handshake() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
+      // Authentication.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
+        .unwrap();
+
+      // Some unexpected (and invalid) JSON.
+      let update = "{ foobarbaz }";
+      send
+        .send_message(&OwnedMessage::Text(update.to_string()))
+        .unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let err = block_on_all(fut).unwrap_err();
+    match err {
+      Error::Json(_) => (),
+      e @ _ => panic!("received unexpected error: {}", e),
+    }
+    Ok(())
+  }
 }
