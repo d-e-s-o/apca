@@ -1,8 +1,25 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use futures::future::Future;
+use futures::sink::Sink;
+use futures::stream::Stream;
+
+use log::debug;
+use log::error;
+use log::Level::Debug;
+use log::log_enabled;
+
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::from_slice as from_json;
+use serde_json::to_string as to_json;
+
+use websocket::Message;
+use websocket::OwnedMessage;
+use websocket::WebSocketError;
+
+use crate::Error;
 
 
 /// An enumeration of the different event streams.
@@ -76,7 +93,6 @@ mod req {
     A: Default + Serialize,
     T: Serialize,
   {
-    #[allow(unused)]
     pub fn new(data: T) -> Self {
       Self {
         action: Default::default(),
@@ -93,7 +109,6 @@ mod req {
   }
 
   impl AuthData {
-    #[allow(unused)]
     pub fn new(key_id: String, secret_key: String) -> Self {
       Self { key_id, secret_key }
     }
@@ -145,14 +160,111 @@ mod resp {
 }
 
 
-#[allow(unused)]
 type AuthRequest = req::Request<req::Auth, req::AuthData>;
-#[allow(unused)]
 type AuthResponse = resp::Response<resp::Result>;
-#[allow(unused)]
 type StreamRequest = req::Request<req::Listen, Streams>;
-#[allow(unused)]
 type StreamResponse = resp::Response<Streams>;
+
+
+/// Authenticate with the streaming service.
+pub fn auth<C>(
+  client: C,
+  key_id: Vec<u8>,
+  secret: Vec<u8>,
+) -> impl Future<Item = C, Error = WebSocketError>
+where
+  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
+{
+  let key_id = String::from_utf8(key_id).unwrap();
+  let secret = String::from_utf8(secret).unwrap();
+
+  let auth = req::AuthData::new(key_id, secret);
+  let request = AuthRequest::new(auth);
+  let json = to_json(&request).unwrap();
+  debug!("stream auth request: {}", json);
+
+  client.send(Message::text(json).into()).map_err(|e| {
+    error!("failed to send stream auth request: {}", e);
+    e
+  })
+}
+
+
+/// Check the response to an authentication request.
+pub fn check_auth(msg: &[u8]) -> Result<(), Error> {
+  if log_enabled!(Debug) {
+    match String::from_utf8(msg.to_vec()) {
+      Ok(s) => debug!("stream auth response: {}", s),
+      Err(b) => debug!("stream auth response: {}", b),
+    }
+  }
+
+  match from_json::<AuthResponse>(msg) {
+    Ok(resp) => match resp.op {
+      resp::Operation::Authorization => match resp.data.0.status {
+        resp::Status::Authorized => Ok(()),
+        resp::Status::Unauthorized => Err(Error::Str("authentication not successful".into())),
+      },
+      op @ _ => {
+        let e = format!("received unexpected stream operation: {:?}", op);
+        Err(Error::Str(e.into()))
+      }
+    },
+    Err(e) => Err(Error::from(e)),
+  }
+}
+
+/// Subscribe to the given stream.
+pub fn subscribe<C>(client: C, stream: StreamType) -> impl Future<Item = C, Error = WebSocketError>
+where
+  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
+{
+  let request = StreamRequest::new([stream].as_ref().into());
+  let json = to_json(&request).unwrap();
+  debug!("stream subscribe request: {}", json);
+
+  client.send(Message::text(json).into()).map_err(|e| {
+    error!("failed to send stream subscribe request: {}", e);
+    e
+  })
+}
+
+
+/// Check the response to a stream subscription request.
+pub fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
+  if log_enabled!(Debug) {
+    match String::from_utf8(msg.to_vec()) {
+      Ok(s) => debug!("stream subscription response: {}", s),
+      Err(b) => debug!("stream subscription response: {}", b),
+    }
+  }
+
+  match from_json::<StreamResponse>(&msg) {
+    Ok(resp) => match &resp.data.0.streams[..] {
+      &[s] if s == stream => Ok(()),
+      &[] => {
+        let e = format!("failed to subscribe to stream {:?}", stream);
+        Err(Error::Str(e.into()))
+      },
+      s @ _ => {
+        let s = s
+          .iter()
+          .map(|s| format!("{:?}", s))
+          .collect::<Vec<_>>()
+          .as_slice()
+          .join(", ");
+        let e = format!(
+          "got subscription to unexpected stream(s): {} (expected: {:?})",
+          s, stream
+        );
+        Err(Error::Str(e.into()))
+      }
+    },
+    Err(e) => Err(Error::from(e)),
+  }
+}
 
 
 #[cfg(test)]
