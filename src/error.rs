@@ -12,6 +12,7 @@ use hyper::http::StatusCode as HttpStatusCode;
 use hyper_tls::Error as TlsError;
 use serde_json::Error as JsonError;
 use url::ParseError;
+use websocket::WebSocketError;
 
 use crate::Str;
 
@@ -44,6 +45,8 @@ pub enum Error {
   Tls(TlsError),
   /// An URL parsing error.
   Url(ParseError),
+  /// A websocket error.
+  WebSocket(WebSocketError),
 }
 
 impl Display for Error {
@@ -56,6 +59,7 @@ impl Display for Error {
       Error::Str(err) => fmt.write_str(err),
       Error::Tls(err) => fmt_err(err, fmt),
       Error::Url(err) => fmt_err(err, fmt),
+      Error::WebSocket(err) => fmt_err(err, fmt),
     }
   }
 }
@@ -93,5 +97,11 @@ impl From<TlsError> for Error {
 impl From<ParseError> for Error {
   fn from(e: ParseError) -> Self {
     Error::Url(e)
+  }
+}
+
+impl From<WebSocketError> for Error {
+  fn from(e: WebSocketError) -> Self {
+    Error::WebSocket(e)
   }
 }
