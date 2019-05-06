@@ -2,3 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 mod handshake;
+mod stream;
+
+pub use handshake::StreamType;
