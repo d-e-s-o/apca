@@ -173,6 +173,10 @@ mod tests {
       .and_then(|(stream, order)| {
         let id = order.id;
         stream
+          .filter_map(|res| {
+            assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
+            res.ok()
+          })
           // There could be other trades happening concurrently but we
           // are only interested in ones belonging to the order we
           // submitted as part of this test.
