@@ -1,7 +1,6 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::future::done;
 use futures::future::Either;
 use futures::future::err;
 use futures::future::Future;
@@ -105,32 +104,31 @@ impl<T> Operation<T> {
 
 
 /// Convert a message into an `Operation`.
-fn decode_msg<I>(msg: Option<OwnedMessage>) -> Result<Operation<I>, Error>
+fn decode_msg<I>(msg: OwnedMessage) -> Result<Operation<I>, Error>
 where
   I: DeserializeOwned,
 {
   match msg {
-    None => Err(Error::Str("connection lost unexpectedly".into())),
-    Some(msg) => match msg {
-      OwnedMessage::Close(_) => Ok(Operation::Close),
-      OwnedMessage::Text(txt) => {
-        // TODO: Strictly speaking we would need to check that the
-        //       stream is the expected one.
-        let resp = from_json::<stream::Event<I>>(txt.as_bytes())?;
-        Ok(Operation::Decode(resp.data.0))
-      },
-      OwnedMessage::Binary(dat) => {
-        let resp = from_json::<stream::Event<I>>(dat.as_slice())?;
-        Ok(Operation::Decode(resp.data.0))
-      },
-      OwnedMessage::Ping(dat) => Ok(Operation::Pong(dat)),
-      OwnedMessage::Pong(_) => Ok(Operation::Nop),
+    OwnedMessage::Close(_) => Ok(Operation::Close),
+    OwnedMessage::Text(txt) => {
+      // TODO: Strictly speaking we would need to check that the
+      //       stream is the expected one.
+      let resp = from_json::<stream::Event<I>>(txt.as_bytes())?;
+      Ok(Operation::Decode(resp.data.0))
     },
+    OwnedMessage::Binary(dat) => {
+      let resp = from_json::<stream::Event<I>>(dat.as_slice())?;
+      Ok(Operation::Decode(resp.data.0))
+    },
+    OwnedMessage::Ping(dat) => Ok(Operation::Pong(dat)),
+    OwnedMessage::Pong(_) => Ok(Operation::Nop),
   }
 }
 
 /// Decode a single value from the client.
-fn handle_msg<C, I>(client: C) -> impl Future<Item = (Operation<I>, C), Error = Error>
+fn handle_msg<C, I>(
+  client: C,
+) -> impl Future<Item = (Result<Operation<I>, Error>, C), Error = Error>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -140,6 +138,12 @@ where
     // TODO: It is unclear whether a WebSocketError received at this
     //       point could potentially be due to a transient issue.
     .map_err(|(err, _c)| Error::from(err))
+    .and_then(|(msg, c)| {
+      match msg {
+        Some(msg) => ok((msg, c)),
+        None => err(Error::Str("connection lost unexpectedly".into())),
+      }
+    })
     .and_then(|(msg, c)| {
       trace!("received message: {:?}", msg);
       // We have to jump through a shit ton of hoops just to be able to
@@ -152,17 +156,25 @@ where
       // So either way, it appears that we are needlessly blocking the
       // actual request by waiting for the Pong to be sent, but then
       // that's only for Ping events, so that should not matter much.
-      done(decode_msg::<I>(msg))
-        .and_then(|op| {
-          match op {
-            Operation::Pong(dat) => {
-              let fut = c
-                .send(OwnedMessage::Pong(dat))
-                .map_err(Error::from)
-                .and_then(|c| ok((Operation::Nop, c)));
-              Either::A(fut)
+      ok(decode_msg::<I>(msg))
+        .and_then(|res| {
+          match res {
+            Ok(op) => {
+              match op {
+                Operation::Pong(dat) => {
+                  let fut = c
+                    .send(OwnedMessage::Pong(dat))
+                    .map_err(Error::from)
+                    .map(|c| (Ok(Operation::Nop), c));
+                  Either::A(Either::A(fut))
+                },
+                op @ _ => {
+                  let fut = ok((Ok(op), c));
+                  Either::A(Either::B(fut))
+                },
+              }
             },
-            op @ _ => Either::B(ok((op, c))),
+            Err(e) => Either::B(ok((Err(e), c))),
           }
         })
     })
@@ -170,27 +182,25 @@ where
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-fn do_stream<C, I>(client: C) -> impl Stream<Item = I, Error = Error>
+fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, Error>, Error = Error>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
   I: DeserializeOwned,
 {
-  // TODO: It is an open question as to whether errors are handled
-  //       gracefully or whether they actually terminate the stream as
-  //       well. It appears to be the latter, which would be wrong.
   unfold((false, client), |(closed, c)| {
     if closed {
       None
     } else {
-      let fut = handle_msg(c).map(|(op, c)| {
-        let closed = op.is_close();
-        (op, (closed, c))
+      let fut = handle_msg(c).map(|(res, c)| {
+        let closed = res.as_ref().map(|op| op.is_close()).unwrap_or(false);
+
+        (res, (closed, c))
       });
       Some(fut)
     }
   })
-  .filter_map(|op| op.into_decoded())
+  .filter_map(|res| res.map(|op| op.into_decoded()).transpose())
 }
 
 fn stream_impl<F, S, I>(
@@ -199,7 +209,7 @@ fn stream_impl<F, S, I>(
   key_id: Vec<u8>,
   secret: Vec<u8>,
   stream: StreamType,
-) -> impl Future<Item = impl Stream<Item = I, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<I, Error>, Error = Error>, Error = Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -257,7 +267,7 @@ fn stream_insecure<S>(
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
@@ -270,7 +280,7 @@ pub fn stream<S>(
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
@@ -307,6 +317,7 @@ mod tests {
   };
   const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["account_updates"]}}"#;
   const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["account_updates"]}}"#;
+  const UNIT_EVENT: &str = r#"{"stream":"account_updates","data":null}"#;
 
 
   /// A stream used solely for testing purposes.
@@ -346,7 +357,7 @@ mod tests {
     f: F,
   ) -> (
     JoinHandle<()>,
-    impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>,
+    impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>,
   )
   where
     S: EventStream,
@@ -454,6 +465,38 @@ mod tests {
       Error::Json(_) => (),
       e @ _ => panic!("received unexpected error: {}", e),
     }
+    Ok(())
+  }
+
+  #[test]
+  fn decode_error_errors_do_not_terminate() -> Result<(), Error> {
+    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
+      // Authentication.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
+        .unwrap();
+
+      // Subscription.
+      let msg = recv.recv_message().unwrap();
+      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
+      send
+        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
+        .unwrap();
+
+      let update = "{ foobarbaz }";
+      send
+        .send_message(&OwnedMessage::Text(update.to_string()))
+        .unwrap();
+      send
+        .send_message(&OwnedMessage::Text(UNIT_EVENT.to_string()))
+        .unwrap();
+      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    });
+    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+
+    let _ = block_on_all(fut).unwrap();
     Ok(())
   }
 
