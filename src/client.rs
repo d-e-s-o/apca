@@ -138,7 +138,7 @@ impl Client {
   /// Subscribe to the given stream in order to receive updates.
   pub fn subscribe<S>(
     &self,
-  ) -> impl Future<Item = impl Stream<Item = S::Event, Error = Error>, Error = Error>
+  ) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
   where
     S: EventStream,
   {
