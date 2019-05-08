@@ -17,6 +17,8 @@ use log::info;
 use log::Level::Debug;
 use log::log_enabled;
 
+use serde_json::Error as JsonError;
+
 use url::Url;
 
 use crate::endpoint::ConvertResult;
@@ -138,7 +140,7 @@ impl Client {
   /// Subscribe to the given stream in order to receive updates.
   pub fn subscribe<S>(
     &self,
-  ) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
+  ) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
   where
     S: EventStream,
   {
