@@ -14,6 +14,7 @@ use log::trace;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde_json::Error as JsonError;
 use serde_json::from_slice as from_json;
 
 use url::Url;
@@ -104,7 +105,7 @@ impl<T> Operation<T> {
 
 
 /// Convert a message into an `Operation`.
-fn decode_msg<I>(msg: OwnedMessage) -> Result<Operation<I>, Error>
+fn decode_msg<I>(msg: OwnedMessage) -> Result<Operation<I>, JsonError>
 where
   I: DeserializeOwned,
 {
@@ -128,7 +129,7 @@ where
 /// Decode a single value from the client.
 fn handle_msg<C, I>(
   client: C,
-) -> impl Future<Item = (Result<Operation<I>, Error>, C), Error = Error>
+) -> impl Future<Item = (Result<Operation<I>, JsonError>, C), Error = Error>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -182,7 +183,7 @@ where
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, Error>, Error = Error>
+fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, JsonError>, Error = Error>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -209,7 +210,7 @@ fn stream_impl<F, S, I>(
   key_id: Vec<u8>,
   secret: Vec<u8>,
   stream: StreamType,
-) -> impl Future<Item = impl Stream<Item = Result<I, Error>, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<I, JsonError>, Error = Error>, Error = Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -267,7 +268,7 @@ fn stream_insecure<S>(
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
@@ -280,7 +281,7 @@ pub fn stream<S>(
   api_base: Url,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-) -> impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
@@ -357,7 +358,7 @@ mod tests {
     f: F,
   ) -> (
     JoinHandle<()>,
-    impl Future<Item = impl Stream<Item = Result<S::Event, Error>, Error = Error>, Error = Error>,
+    impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>,
   )
   where
     S: EventStream,
