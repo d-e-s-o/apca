@@ -12,7 +12,7 @@ pub struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Vec<Position>, GetOk, [
+  Ok => Vec<Position>, [
     /* 200 */ OK,
   ],
   Err => GetError, [ ]
@@ -20,7 +20,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = ();
-  type Output = GetOk;
+  type Output = Vec<Position>;
   type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {

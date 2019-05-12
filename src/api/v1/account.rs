@@ -77,7 +77,7 @@ pub struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Account, GetOk, [
+  Ok => Account, [
     /* 200 */ OK,
   ],
   Err => GetError, []
@@ -85,7 +85,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = ();
-  type Output = GetOk;
+  type Output = Account;
   type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {

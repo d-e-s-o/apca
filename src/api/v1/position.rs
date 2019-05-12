@@ -91,7 +91,7 @@ pub struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Position, GetOk, [
+  Ok => Position, [
     /* 200 */ OK,
   ],
   Err => GetError, [
@@ -101,7 +101,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = PositionReq;
-  type Output = GetOk;
+  type Output = Position;
   type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {
