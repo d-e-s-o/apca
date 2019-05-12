@@ -118,12 +118,12 @@ impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
   ( $name:ident,
-    Ok => $out:ty, $ok:ident, [$($ok_status:ident,)*],
+    Ok => $out:ty, [$($ok_status:ident,)*],
     Err => $err:ident, [$($err_status:ident => $variant:ident,)*] ) => {
 
     EndpointDefImpl! {
       $name,
-      Ok => $out, $ok, [$($ok_status,)*],
+      Ok => $out, [$($ok_status,)*],
       Err => $err, [
         // Every request can fall prey to the rate limit and so we
         // include this variant into all our error definitions.
@@ -136,34 +136,12 @@ macro_rules! EndpointDef {
 
 macro_rules! EndpointDefImpl {
   ( $name:ident,
-    Ok => $out:ty, $ok:ident, [$($ok_status:ident,)*],
+    Ok => $out:ty, [$($ok_status:ident,)*],
     Err => $err:ident, [$($err_status:ident => $variant:ident,)*] ) => {
-
-    /// A thin wrapper around the output value.
-    #[derive(Clone, Debug, ::serde::Deserialize, PartialEq)]
-    #[allow(missing_copy_implementations)]
-    pub struct $ok($out);
-
-    #[allow(unused_qualifications)]
-    impl ::std::ops::Deref for $ok {
-      type Target = $out;
-
-      fn deref(&self) -> &Self::Target {
-        &self.0
-      }
-    }
-
-    #[allow(unused)]
-    #[allow(unused_qualifications)]
-    impl ::std::convert::Into<$out> for $ok {
-      fn into(self) -> $out {
-        self.0
-      }
-    }
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<(::hyper::http::StatusCode, ::std::vec::Vec<u8>)>
-      for crate::endpoint::ConvertResult<$ok, $err> {
+      for crate::endpoint::ConvertResult<$out, $err> {
 
       #[allow(unused)]
       fn from(data: (::hyper::http::StatusCode, ::std::vec::Vec<u8>)) -> Self {
