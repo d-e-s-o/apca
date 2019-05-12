@@ -30,7 +30,7 @@ pub struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Vec<Asset>, GetOk, [
+  Ok => Vec<Asset>, [
     /* 200 */ OK,
   ],
   Err => GetError, []
@@ -38,7 +38,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = AssetsReq;
-  type Output = GetOk;
+  type Output = Vec<Asset>;
   type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {

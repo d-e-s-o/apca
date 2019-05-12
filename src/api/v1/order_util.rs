@@ -19,14 +19,14 @@ type BoxFut<T, E> = Box<dyn Future<Item = T, Error = E>>;
 /// access to often required functionality for testing purposes.
 pub trait ClientExt {
   /// Submit an unsatisfiable limit order for one share of AAPL.
-  fn order_aapl(&self) -> Result<BoxFut<order::PostOk, order::PostError>, Error>;
+  fn order_aapl(&self) -> Result<BoxFut<order::Order, order::PostError>, Error>;
 
   /// Safely cancel an order, panicking on error.
   fn cancel_order(&self, id: order::Id) -> BoxFut<(), ()>;
 }
 
 impl ClientExt for Client {
-  fn order_aapl(&self) -> Result<BoxFut<order::PostOk, order::PostError>, Error> {
+  fn order_aapl(&self) -> Result<BoxFut<order::Order, order::PostError>, Error> {
     let request = order::OrderReq {
       symbol: "AAPL:NASDAQ:us_equity".to_string(),
       quantity: 1,
