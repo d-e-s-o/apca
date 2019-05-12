@@ -125,8 +125,10 @@ macro_rules! EndpointDef {
       $name,
       Ok => $out, [$($ok_status,)*],
       Err => $err, [
-        // Every request can fall prey to the rate limit and so we
-        // include this variant into all our error definitions.
+        // Every request can result in an authentication failure or fall
+        // prey to the rate limit and so we include these variants into
+        // all our error definitions.
+        /* 401 */ UNAUTHORIZED => AuthenticationFailed,
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($err_status => $variant,)*
       ]
