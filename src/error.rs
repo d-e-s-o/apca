@@ -14,6 +14,7 @@ use serde_json::Error as JsonError;
 use url::ParseError;
 use websocket::WebSocketError;
 
+use crate::endpoint::EndpointError;
 use crate::Str;
 
 
@@ -60,6 +61,15 @@ impl Display for Error {
       Error::Tls(err) => fmt_err(err, fmt),
       Error::Url(err) => fmt_err(err, fmt),
       Error::WebSocket(err) => fmt_err(err, fmt),
+    }
+  }
+}
+
+impl From<EndpointError> for Error {
+  fn from(e: EndpointError) -> Self {
+    match e {
+      EndpointError::Http(e) => Error::Http(e),
+      EndpointError::Json(e) => Error::Json(e),
     }
   }
 }

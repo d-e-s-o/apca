@@ -11,13 +11,13 @@ use num_decimal::Num;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Error as JsonError;
 use serde_json::to_string as to_json;
 
 use uuid::Uuid;
 
 use crate::api::v1::asset;
 use crate::endpoint::Endpoint;
-use crate::Error;
 use crate::Str;
 
 
@@ -289,7 +289,7 @@ impl Endpoint for Post {
     "/v1/orders".into()
   }
 
-  fn body(input: &Self::Input) -> Result<Body, Error> {
+  fn body(input: &Self::Input) -> Result<Body, JsonError> {
     let json = to_json(input)?;
     let body = Body::from(Chunk::from(json));
     Ok(body)
@@ -350,6 +350,7 @@ mod tests {
 
   use crate::api::v1::order_util::ClientExt;
   use crate::Client;
+  use crate::Error;
 
 
   #[test]
