@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use hyper::Body;
+use hyper::http::Error as HttpError;
 use hyper::http::request::Builder;
 use hyper::Method;
 use hyper::Request;
@@ -14,8 +15,29 @@ use url::Url;
 
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
-use crate::Error;
 use crate::Str;
+
+
+/// An error type used by the `Endpoint` trait.
+#[derive(Debug)]
+pub enum EndpointError {
+  /// An HTTP related error.
+  Http(HttpError),
+  /// A JSON conversion error.
+  Json(JsonError),
+}
+
+impl From<HttpError> for EndpointError {
+  fn from(e: HttpError) -> Self {
+    EndpointError::Http(e)
+  }
+}
+
+impl From<JsonError> for EndpointError {
+  fn from(e: JsonError) -> Self {
+    EndpointError::Json(e)
+  }
+}
 
 
 /// A trait describing an HTTP endpoint.
@@ -57,7 +79,7 @@ pub trait Endpoint {
   ///
   /// By default this method creates an empty body.
   #[allow(unused)]
-  fn body(input: &Self::Input) -> Result<Body, Error> {
+  fn body(input: &Self::Input) -> Result<Body, JsonError> {
     Ok(Body::empty())
   }
 
@@ -69,7 +91,7 @@ pub trait Endpoint {
     key_id: &[u8],
     secret: &[u8],
     input: &Self::Input,
-  ) -> Result<Request<Body>, Error> {
+  ) -> Result<Request<Body>, EndpointError> {
     let mut url = api_base.clone();
     url.set_path(&Self::path(&input));
     url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
@@ -81,7 +103,7 @@ pub trait Endpoint {
       .header(HDR_KEY_ID, key_id)
       .header(HDR_SECRET, secret)
       .body(Self::body(input)?)
-      .map_err(Error::from)
+      .map_err(EndpointError::from)
   }
 
   /// Parse the body into the final result.
