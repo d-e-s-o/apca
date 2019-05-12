@@ -45,7 +45,7 @@ pub struct Client {
 impl Client {
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
-  fn new(api_base: Url, key_id: Vec<u8>, secret: Vec<u8>) -> Result<Self, Error> {
+  pub(crate) fn new(api_base: Url, key_id: Vec<u8>, secret: Vec<u8>) -> Result<Self, Error> {
     // So here is the deal. In tests we use the block_on_all function to
     // wait for futures. This function waits until *all* spawned futures
     // completed. Now, by virtue of keeping idle connections around --
