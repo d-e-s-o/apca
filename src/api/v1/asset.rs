@@ -128,7 +128,7 @@ struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Asset, GetOk, [
+  Ok => Asset, [
     /* 200 */ OK,
   ],
   Err => GetError, [
@@ -138,7 +138,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = AssetReq;
-  type Output = GetOk;
+  type Output = Asset;
   type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {

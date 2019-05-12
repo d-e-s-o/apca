@@ -242,7 +242,7 @@ struct Get {}
 
 EndpointDef! {
   Get,
-  Ok => Order, GetOk, [
+  Ok => Order, [
     /* 200 */ OK,
   ],
   Err => GetError, [
@@ -252,7 +252,7 @@ EndpointDef! {
 
 impl Endpoint for Get {
   type Input = Id;
-  type Output = GetOk;
+  type Output = Order;
   type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {
@@ -267,7 +267,7 @@ pub struct Post {}
 
 EndpointDef! {
   Post,
-  Ok => Order, PostOk, [
+  Ok => Order, [
     /* 200 */ OK,
   ],
   Err => PostError, [
@@ -278,7 +278,7 @@ EndpointDef! {
 
 impl Endpoint for Post {
   type Input = OrderReq;
-  type Output = PostOk;
+  type Output = Order;
   type Error = PostError;
 
   fn method() -> Method {
@@ -304,7 +304,7 @@ pub struct Delete {}
 
 EndpointDef! {
   Delete,
-  Ok => (), DeleteOk, [
+  Ok => (), [
     /* 204 */ NO_CONTENT,
   ],
   Err => DeleteError, [
@@ -315,7 +315,7 @@ EndpointDef! {
 
 impl Endpoint for Delete {
   type Input = Id;
-  type Output = DeleteOk;
+  type Output = ();
   type Error = DeleteError;
 
   fn method() -> Method {
@@ -328,7 +328,7 @@ impl Endpoint for Delete {
 
   fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
     debug_assert_eq!(body, b"");
-    Ok(DeleteOk(()))
+    Ok(())
   }
 }
 
