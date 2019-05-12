@@ -148,6 +148,9 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
   use tokio::runtime::current_thread::spawn;
 
+  use url::Url;
+
+  use crate::api::API_BASE_URL;
   use crate::api::v1::order_util::ClientExt;
   use crate::Client;
   use crate::Error;
@@ -201,6 +204,25 @@ mod tests {
     assert_eq!(order.type_, trade.order.type_);
     assert_eq!(order.side, trade.order.side);
     assert_eq!(order.time_in_force, trade.order.time_in_force);
+    Ok(())
+  }
+
+  #[test]
+  fn stream_with_invalid_credentials() -> Result<(), Error> {
+    let api_base = Url::parse(API_BASE_URL)?;
+    let client = Client::new(api_base, b"invalid".to_vec(), b"invalid-too".to_vec())?;
+    let fut = client.subscribe::<TradeUpdates>().and_then(|stream| {
+      stream
+        .into_future()
+        .map_err(|e| e.0)
+        .map(|(update, _)| update)
+    });
+
+    let err = block_on_all(fut).unwrap_err();
+    match err {
+      Error::Str(ref e) if e == "authentication not successful" => (),
+      e @ _ => panic!("received unexpected error: {}", e),
+    }
     Ok(())
   }
 }
