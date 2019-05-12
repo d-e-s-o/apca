@@ -168,13 +168,13 @@ mod tests {
 
   EndpointDef! {
     GetNotFound,
-    Ok => (), GetNotFoundOk, [],
+    Ok => (), [],
     Err => GetNotFoundError, []
   }
 
   impl Endpoint for GetNotFound {
     type Input = ();
-    type Output = GetNotFoundOk;
+    type Output = ();
     type Error = GetNotFoundError;
 
     fn path(_input: &Self::Input) -> Str {
