@@ -104,6 +104,9 @@ mod tests {
 
   use tokio::runtime::current_thread::block_on_all;
 
+  use url::Url;
+
+  use crate::api::API_BASE_URL;
   use crate::Client;
   use crate::Error;
 
@@ -145,6 +148,20 @@ mod tests {
     // meaningful from the correct API endpoint.
     assert_eq!(account.currency, "USD");
     assert!(!account.account_blocked);
+    Ok(())
+  }
+
+  #[test]
+  fn request_account_with_invalid_credentials() -> Result<(), Error> {
+    let api_base = Url::parse(API_BASE_URL)?;
+    let client = Client::new(api_base, b"invalid".to_vec(), b"invalid-too".to_vec())?;
+    let future = client.issue::<Get>(())?;
+
+    let err = block_on_all(future).unwrap_err();
+    match err {
+      GetError::AuthenticationFailed => (),
+      e @ _ => panic!("received unexpected error: {:?}", e),
+    }
     Ok(())
   }
 }
