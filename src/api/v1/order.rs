@@ -440,7 +440,7 @@ mod tests {
     let err = block_on_all(future).unwrap_err();
 
     match err {
-      PostError::InsufficientFunds => (),
+      PostError::InsufficientFunds(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
     Ok(())
@@ -454,7 +454,7 @@ mod tests {
     let err = block_on_all(future).unwrap_err();
 
     match err {
-      DeleteError::NotFound => (),
+      DeleteError::NotFound(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
     Ok(())
@@ -496,7 +496,7 @@ mod tests {
     let err = block_on_all(future).unwrap_err();
 
     match err {
-      GetError::NotFound => (),
+      GetError::NotFound(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
     Ok(())

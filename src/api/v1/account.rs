@@ -159,7 +159,7 @@ mod tests {
 
     let err = block_on_all(future).unwrap_err();
     match err {
-      GetError::AuthenticationFailed => (),
+      GetError::AuthenticationFailed(_) => (),
       e @ _ => panic!("received unexpected error: {:?}", e),
     }
     Ok(())

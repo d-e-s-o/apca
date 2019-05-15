@@ -160,6 +160,7 @@ mod tests {
 
   use test_env_log::test;
 
+  use crate::endpoint::ErrorMessage;
   use crate::Str;
 
 
@@ -190,7 +191,12 @@ mod tests {
     let err = block_on_all(future).unwrap_err();
 
     match err {
-      GetNotFoundError::UnexpectedStatus(status) => {
+      GetNotFoundError::UnexpectedStatus(status, message) => {
+        let expected = ErrorMessage {
+          code: 40410000,
+          message: "endpoint not found".to_string(),
+        };
+        assert_eq!(message, Ok(expected));
         assert_eq!(status, StatusCode::NOT_FOUND);
       },
       _ => panic!("Received unexpected error: {:?}", err),

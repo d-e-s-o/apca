@@ -8,6 +8,7 @@ use hyper::Method;
 use hyper::Request;
 
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_json::from_slice;
 
@@ -37,6 +38,17 @@ impl From<JsonError> for EndpointError {
   fn from(e: JsonError) -> Self {
     EndpointError::Json(e)
   }
+}
+
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct ErrorMessage {
+  /// An error code as provided by Alpaca.
+  #[serde(rename = "code")]
+  pub code: u64,
+  /// A message as provided by Alpaca.
+  #[serde(rename = "message")]
+  pub message: String,
 }
 
 
@@ -179,12 +191,19 @@ macro_rules! EndpointDefImpl {
               }
             },
           )*
-          $(
-            ::hyper::http::StatusCode::$err_status => {
-              crate::endpoint::ConvertResult(Err($err::$variant))
-            },
-          )*
-          _ => crate::endpoint::ConvertResult(Err($err::UnexpectedStatus(status))),
+          status => {
+            let res = serde_json::from_slice::<crate::endpoint::ErrorMessage>(&body)
+              .map_err(|_| body.clone());
+
+            match status {
+              $(
+                ::hyper::http::StatusCode::$err_status => {
+                  crate::endpoint::ConvertResult(Err($err::$variant(res)))
+                },
+              )*
+              _ => crate::endpoint::ConvertResult(Err($err::UnexpectedStatus(status, res))),
+            }
+          },
         }
       }
     }
@@ -198,11 +217,11 @@ macro_rules! EndpointDefImpl {
     #[derive(Debug)]
     pub enum $err {
       $(
-        $variant,
+        $variant(Result<crate::endpoint::ErrorMessage, Vec<u8>>),
       )*
       /// An HTTP status not present in the endpoint's definition was
       /// encountered.
-      UnexpectedStatus(::hyper::http::StatusCode),
+      UnexpectedStatus(::hyper::http::StatusCode, Result<crate::endpoint::ErrorMessage, Vec<u8>>),
       /// An error reported by the `hyper` crate.
       Hyper(::hyper::Error),
       /// A JSON conversion error.
@@ -228,11 +247,11 @@ macro_rules! EndpointDefImpl {
       fn from(src: $err) -> Self {
         match src {
           $(
-            $err::$variant => {
+            $err::$variant(_) => {
               crate::Error::HttpStatus(::hyper::http::StatusCode::$err_status)
             },
           )*
-          $err::UnexpectedStatus(status) => crate::Error::HttpStatus(status),
+          $err::UnexpectedStatus(status, _) => crate::Error::HttpStatus(status),
           $err::Hyper(err) => crate::Error::Hyper(err),
           $err::Json(err) => crate::Error::Json(err),
         }
