@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(pos.asset_class, asset::Class::UsEquity);
       }
       Err(err) => match err {
-        GetError::NotFound => (),
+        GetError::NotFound(_) => (),
         _ => panic!("Received unexpected error: {:?}", err),
       },
     }
