@@ -1,6 +1,11 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::error::Error as StdError;
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+
 use hyper::Body;
 use hyper::http::Error as HttpError;
 use hyper::http::request::Builder;
@@ -16,6 +21,7 @@ use url::Url;
 
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
+use crate::error::fmt_err;
 use crate::Str;
 
 
@@ -27,6 +33,17 @@ pub enum EndpointError {
   /// A JSON conversion error.
   Json(JsonError),
 }
+
+impl Display for EndpointError {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      EndpointError::Http(err) => fmt_err(err, fmt),
+      EndpointError::Json(err) => fmt_err(err, fmt),
+    }
+  }
+}
+
+impl StdError for EndpointError {}
 
 impl From<HttpError> for EndpointError {
   fn from(e: HttpError) -> Self {
@@ -227,6 +244,44 @@ macro_rules! EndpointDefImpl {
       /// A JSON conversion error.
       Json(::serde_json::Error),
     }
+
+    #[allow(unused_qualifications)]
+    impl ::std::fmt::Display for $err {
+      fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        fn format_message(message: &Result<crate::endpoint::ErrorMessage, Vec<u8>>) -> String {
+          match message {
+            Ok(crate::endpoint::ErrorMessage { code, message }) => {
+              format!("{} ({})", message, code)
+            },
+            Err(body) => {
+              match std::str::from_utf8(&body) {
+                Ok(body) => format!("{}", body),
+                Err(err) => format!("{}", err),
+              }
+            },
+          }
+        }
+
+        match self {
+          $(
+            $err::$variant(message) => {
+              let status = ::hyper::http::StatusCode::$err_status;
+              let message = format_message(message);
+              write!(fmt, "HTTP status {}: {}", status, message)
+            },
+          )*
+          $err::UnexpectedStatus(status, message) => {
+            let message = format_message(message);
+            write!(fmt, "Unexpected HTTP status {}: {}", status, message)
+          },
+          $err::Hyper(err) => crate::error::fmt_err(err, fmt),
+          $err::Json(err) => crate::error::fmt_err(err, fmt),
+        }
+      }
+    }
+
+    #[allow(unused_qualifications)]
+    impl ::std::error::Error for $err {}
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<::hyper::Error> for $err {
