@@ -18,7 +18,7 @@ use crate::endpoint::EndpointError;
 use crate::Str;
 
 
-fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
+pub fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
   write!(fmt, "{}", err)?;
   if let Some(src) = err.source() {
     write!(fmt, ": ")?;
@@ -64,6 +64,8 @@ impl Display for Error {
     }
   }
 }
+
+impl StdError for Error {}
 
 impl From<EndpointError> for Error {
   fn from(e: EndpointError) -> Self {
