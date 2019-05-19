@@ -129,9 +129,11 @@ struct Get {}
 EndpointDef! {
   Get,
   Ok => Asset, [
+    /// The asset object for the given symbol was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
+    /// No asset was found for the given symbol.
     /* 404 */ NOT_FOUND => NotFound,
   ]
 }
