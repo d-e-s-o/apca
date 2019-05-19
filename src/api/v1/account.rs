@@ -78,6 +78,7 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Account, [
+    /// The account information was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []

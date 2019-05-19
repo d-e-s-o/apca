@@ -13,6 +13,7 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Vec<Position>, [
+    /// The list of positions was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [ ]
