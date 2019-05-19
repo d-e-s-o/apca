@@ -31,6 +31,7 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Vec<Asset>, [
+    /// The list of assets was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []
