@@ -169,8 +169,10 @@ impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
   ( $name:ident,
-    Ok => $out:ty, [$($ok_status:ident,)*],
-    Err => $err:ident, [$($err_status:ident => $variant:ident,)*] ) => {
+    // We just ignore any documentation for success cases: there is
+    // nowhere we can put it.
+    Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
+    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*] ) => {
 
     EndpointDefImpl! {
       $name,
@@ -179,9 +181,12 @@ macro_rules! EndpointDef {
         // Every request can result in an authentication failure or fall
         // prey to the rate limit and so we include these variants into
         // all our error definitions.
+        /// Authentication failed for the request.
         /* 401 */ UNAUTHORIZED => AuthenticationFailed,
+        /// The rate limit was exceeded, causing the request to be
+        /// denied.
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
-        $($err_status => $variant,)*
+        $($(#[$err_docs])* $err_status => $variant,)*
       ]
     }
   };
@@ -190,7 +195,7 @@ macro_rules! EndpointDef {
 macro_rules! EndpointDefImpl {
   ( $name:ident,
     Ok => $out:ty, [$($ok_status:ident,)*],
-    Err => $err:ident, [$($err_status:ident => $variant:ident,)*] ) => {
+    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*] ) => {
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<(::hyper::http::StatusCode, ::std::vec::Vec<u8>)>
@@ -227,13 +232,11 @@ macro_rules! EndpointDefImpl {
 
     /// An enum representing the various errors this endpoint may
     /// encounter.
-    // TODO: Figure out how to make doc comments work for the dynamic
-    //       variants.
-    #[allow(missing_docs)]
     #[allow(unused_qualifications)]
     #[derive(Debug)]
     pub enum $err {
       $(
+        $(#[$err_docs])*
         $variant(Result<crate::endpoint::ErrorMessage, Vec<u8>>),
       )*
       /// An HTTP status not present in the endpoint's definition was

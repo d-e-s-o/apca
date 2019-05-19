@@ -29,6 +29,7 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Vec<Order>, [
+    /// The list of orders was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []
