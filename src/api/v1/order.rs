@@ -243,9 +243,11 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Order, [
+    /// The order object for the given ID was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
+    /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
   ]
 }
@@ -268,10 +270,13 @@ pub struct Post {}
 EndpointDef! {
   Post,
   Ok => Order, [
+    /// The order was submitted successfully.
     /* 200 */ OK,
   ],
   Err => PostError, [
+    /// Not enough funds are available to submit the order.
     /* 403 */ FORBIDDEN => InsufficientFunds,
+    /// Some data in the request was invalid.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 }
@@ -305,10 +310,13 @@ pub struct Delete {}
 EndpointDef! {
   Delete,
   Ok => (), [
+    /// The order was canceled successfully.
     /* 204 */ NO_CONTENT,
   ],
   Err => DeleteError, [
+    /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
+    /// The order can no longer be canceled.
     /* 422 */ UNPROCESSABLE_ENTITY => NotCancelable,
   ]
 }

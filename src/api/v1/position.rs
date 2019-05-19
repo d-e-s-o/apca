@@ -92,9 +92,11 @@ pub struct Get {}
 EndpointDef! {
   Get,
   Ok => Position, [
+    /// The position with the given ID was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
+    /// No position was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
   ]
 }
