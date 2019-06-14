@@ -9,6 +9,7 @@ A create for interacting with the Alpaca API.
 """
 
 [dependencies]
+chrono = {version = "0.4", default-features = false}
 futures = "0.1"
 num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 hyper = "0.12"
