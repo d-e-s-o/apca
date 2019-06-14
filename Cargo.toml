@@ -9,6 +9,7 @@ A create for interacting with the Alpaca API.
 """
 
 [dependencies]
+chrono = {version = "0.4", default-features = false}
 futures = "0.1"
 hyper = "0.12"
 hyper-tls = "0.3"
