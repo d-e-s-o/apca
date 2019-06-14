@@ -4,6 +4,7 @@
 /// Definitions for the first version of the Alpaca API.
 pub mod v1;
 
+mod time_util;
 
 /// The API base URL used for paper trading.
 pub(crate) const API_BASE_URL: &str = "https://paper-api.alpaca.markets";

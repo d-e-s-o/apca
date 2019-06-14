@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
+use std::time::SystemTime;
 
 use num_decimal::Num;
 
@@ -9,6 +10,7 @@ use serde::Deserialize;
 
 use uuid::Uuid;
 
+use crate::api::time_util::system_time;
 use crate::endpoint::Endpoint;
 use crate::Str;
 
@@ -65,9 +67,8 @@ pub struct Account {
   #[serde(rename = "account_blocked")]
   pub account_blocked: bool,
   /// Timestamp this account was created at.
-  // TODO: Should be something that can represent the time.
-  #[serde(rename = "created_at")]
-  pub created_at: String,
+  #[serde(rename = "created_at", deserialize_with = "system_time")]
+  pub created_at: SystemTime,
 }
 
 
@@ -98,6 +99,9 @@ impl Endpoint for Get {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use std::time::Duration;
+  use std::time::UNIX_EPOCH;
 
   use serde_json::from_str as from_json;
 
@@ -137,6 +141,8 @@ mod tests {
     assert_eq!(acc.withdrawable_cash, Num::new(400032, 100));
     assert_eq!(acc.portfolio_value, Num::new(432198, 100));
     assert_eq!(acc.trading_blocked, false);
+    // Expected timestamp inferred via TZ='UTC' date --date='2018-10-01T13:35:25' +'%s'
+    assert_eq!(acc.created_at, UNIX_EPOCH + Duration::from_secs(1538400925))
   }
 
   #[test]
