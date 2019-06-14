@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
+use std::time::SystemTime;
 
 use hyper::Body;
 use hyper::Chunk;
@@ -16,6 +17,8 @@ use serde_json::to_string as to_json;
 
 use uuid::Uuid;
 
+use crate::api::time_util::optional_system_time;
+use crate::api::time_util::system_time;
 use crate::api::v1::asset;
 use crate::endpoint::Endpoint;
 use crate::Str;
@@ -185,23 +188,23 @@ pub struct Order {
   #[serde(rename = "status")]
   pub status: Status,
   /// Timestamp this order was created at.
-  #[serde(rename = "created_at")]
-  pub created_at: String,
+  #[serde(rename = "created_at", deserialize_with = "system_time")]
+  pub created_at: SystemTime,
   /// Timestamp this order was updated at last.
-  #[serde(rename = "updated_at")]
-  pub updated_at: Option<String>,
+  #[serde(rename = "updated_at", deserialize_with = "optional_system_time")]
+  pub updated_at: Option<SystemTime>,
   /// Timestamp this order was submitted at.
-  #[serde(rename = "submitted_at")]
-  pub submitted_at: Option<String>,
+  #[serde(rename = "submitted_at", deserialize_with = "optional_system_time")]
+  pub submitted_at: Option<SystemTime>,
   /// Timestamp this order was filled at.
-  #[serde(rename = "filled_at")]
-  pub filled_at: Option<String>,
+  #[serde(rename = "filled_at", deserialize_with = "optional_system_time")]
+  pub filled_at: Option<SystemTime>,
   /// Timestamp this order expired at.
-  #[serde(rename = "expired_at")]
-  pub expired_at: Option<String>,
+  #[serde(rename = "expired_at", deserialize_with = "optional_system_time")]
+  pub expired_at: Option<SystemTime>,
   /// Timestamp this order expired at.
-  #[serde(rename = "canceled_at")]
-  pub canceled_at: Option<String>,
+  #[serde(rename = "canceled_at", deserialize_with = "optional_system_time")]
+  pub canceled_at: Option<SystemTime>,
   /// The order's asset class.
   #[serde(rename = "asset_class")]
   pub asset_class: asset::Class,
