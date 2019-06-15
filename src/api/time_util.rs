@@ -5,19 +5,23 @@ use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
+use chrono::DateTime;
+use chrono::offset::FixedOffset;
 use chrono::offset::TimeZone;
-use chrono::Utc;
+use chrono::ParseError;
 
 use serde::de::Deserializer;
 use serde::de::Error;
 use serde::de::Unexpected;
 use serde::Deserialize;
 
+type DateFn = fn(&str) -> Result<DateTime<FixedOffset>, ParseError>;
 
 /// The list of time stamp formats we support.
-const FORMATS: [&str; 2] = [
-  "%Y-%m-%dT%H:%M:%S%.fZ",
-  "%Y-%m-%dT%H:%M:%SZ",
+const PARSE_FNS: [DateFn; 3] = [
+  |s| FixedOffset::east(0).datetime_from_str(s, "%Y-%m-%dT%H:%M:%S%.fZ"),
+  |s| FixedOffset::east(0).datetime_from_str(s, "%Y-%m-%dT%H:%M:%SZ"),
+  |s| DateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f%z"),
 ];
 
 
@@ -26,10 +30,10 @@ fn parse_system_time<'de, D>(time: &str) -> Result<SystemTime, D::Error>
 where
   D: Deserializer<'de>,
 {
-  for format in &FORMATS {
+  for parse_fn in &PARSE_FNS {
     // Ideally we would want to only continue in case of
     // ParseErrorKind::Invalid. However, that member is private...
-    let datetime = match Utc.datetime_from_str(&time, format) {
+    let datetime = match parse_fn(&time) {
       Ok(datetime) => datetime,
       Err(_) => continue,
     };
@@ -97,6 +101,7 @@ mod tests {
     let times = [
       r#"{"time": "2018-04-01T12:00:00Z"}"#,
       r#"{"time": "2018-04-01T12:00:00.000Z"}"#,
+      r#"{"time": "2018-04-01T08:00:00.000-04:00"}"#,
     ];
 
     for json in &times {
