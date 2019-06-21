@@ -57,13 +57,14 @@ mod endpoint;
 /// API.
 pub mod api;
 
+mod api_info;
 mod client;
-mod env;
 mod error;
 mod events;
 
 use std::borrow::Cow;
 
+pub use crate::api_info::ApiInfo;
 pub use crate::client::Client;
 pub use crate::error::Error;
 
