@@ -194,6 +194,7 @@ mod tests {
           .take(1)
           .into_future()
           .map_err(|(err, _stream)| err)
+          .map_err(Error::from)
           // We don't care about the rest of the stream. Well, there
           // really shouldn't be any.
           .map(|(trade, _stream)| trade)
@@ -226,6 +227,7 @@ mod tests {
       stream
         .into_future()
         .map_err(|e| e.0)
+        .map_err(Error::from)
         .map(|(update, _)| update)
     });
 
