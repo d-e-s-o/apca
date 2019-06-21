@@ -67,13 +67,15 @@ mod tests {
 
   use crate::api::v1::order;
   use crate::api::v1::order_util::ClientExt;
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
 
   #[test]
   fn list_orders() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let request = OrdersReq { limit: 50 };
 
     // Holy fucking shit!! We need to get the order ID passed through to
