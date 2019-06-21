@@ -38,6 +38,7 @@ mod tests {
 
   use tokio::runtime::current_thread::block_on_all;
 
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -46,7 +47,8 @@ mod tests {
   fn list_positions() -> Result<(), Error> {
     // We can't do much here except check that the request is not
     // reporting any errors.
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.issue::<Get>(())?;
     let _ = block_on_all(future)?;
     Ok(())

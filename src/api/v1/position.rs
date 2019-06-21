@@ -122,6 +122,7 @@ mod tests {
 
   use tokio::runtime::current_thread::block_on_all;
 
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -167,7 +168,8 @@ mod tests {
 
   #[test]
   fn retrieve_position() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let request = PositionReq {
       symbol: "AAPL".to_string(),
     };
