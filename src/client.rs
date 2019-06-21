@@ -19,11 +19,9 @@ use log::log_enabled;
 
 use serde_json::Error as JsonError;
 
-use url::Url;
-
+use crate::api_info::ApiInfo;
 use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
-use crate::env::api_info;
 use crate::Error;
 use crate::events::EventStream;
 use crate::events::stream;
@@ -36,16 +34,14 @@ use crate::events::stream;
 /// services.
 #[derive(Debug)]
 pub struct Client {
-  api_base: Url,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  api_info: ApiInfo,
   client: HttpClient<HttpsConnector<HttpConnector>, Body>,
 }
 
 impl Client {
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
-  pub(crate) fn new(api_base: Url, key_id: Vec<u8>, secret: Vec<u8>) -> Result<Self, Error> {
+  pub fn new(api_info: ApiInfo) -> Result<Self, Error> {
     // So here is the deal. In tests we use the block_on_all function to
     // wait for futures. This function waits until *all* spawned futures
     // completed. Now, by virtue of keeping idle connections around --
@@ -70,17 +66,9 @@ impl Client {
     }
 
     Ok(Self {
-      api_base,
-      key_id,
-      secret,
+      api_info,
       client: client()?,
     })
-  }
-
-  /// Create a new `Client` with information from the environment.
-  pub fn from_env() -> Result<Self, Error> {
-    let (api_base, key_id, secret) = api_info()?;
-    Self::new(api_base, key_id, secret)
   }
 
   /// Create and issue a request and decode the response.
@@ -94,7 +82,7 @@ impl Client {
     R::Error: From<hyper::Error> + Send + 'static,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
-    let req = R::request(&self.api_base, &self.key_id, &self.secret, &input)?;
+    let req = R::request(&self.api_info, &input)?;
     if log_enabled!(Debug) {
       debug!("HTTP request: {:?}", req);
     } else {
@@ -144,13 +132,10 @@ impl Client {
   where
     S: EventStream,
   {
-    stream::<S>(
-      self.api_base.clone(),
-      self.key_id.clone(),
-      self.secret.clone(),
-    )
+    stream::<S>(self.api_info.clone())
   }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -186,7 +171,8 @@ mod tests {
 
   #[test]
   fn unexpected_status_code_return() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.issue::<GetNotFound>(())?;
     let err = block_on_all(future).unwrap_err();
 
