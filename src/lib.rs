@@ -68,4 +68,12 @@ pub use crate::api_info::ApiInfo;
 pub use crate::client::Client;
 pub use crate::error::Error;
 
+/// A module providing access to lower level event streaming.
+///
+/// It is typically only in rare situations that this lower level
+/// functionality needs to be used directly.
+pub mod event {
+  pub use crate::events::stream;
+}
+
 type Str = Cow<'static, str>;
