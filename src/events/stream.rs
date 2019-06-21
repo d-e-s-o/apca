@@ -26,6 +26,7 @@ use websocket::stream::r#async::AsyncRead;
 use websocket::stream::r#async::AsyncWrite;
 use websocket::WebSocketError;
 
+use crate::api_info::ApiInfo;
 use crate::Error;
 use crate::events::handshake::auth;
 use crate::events::handshake::check_auth;
@@ -206,9 +207,7 @@ where
 
 fn stream_impl<F, S, I>(
   connect: F,
-  api_base: Url,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  api_info: ApiInfo,
   stream: StreamType,
 ) -> impl Future<Item = impl Stream<Item = Result<I, JsonError>, Error = Error>, Error = Error>
 where
@@ -216,7 +215,12 @@ where
   S: AsyncRead + AsyncWrite,
   I: DeserializeOwned,
 {
-  let mut url = api_base;
+  let ApiInfo {
+    base_url: mut url,
+    key_id,
+    secret,
+  } = api_info;
+
   // At some point we adjusted the scheme from http(s) to ws(s), but
   // that seems to be unnecessary. The main problem is that it
   // introduces an additional error path because that step can fail.
@@ -265,28 +269,24 @@ where
 /// insecure manner.
 #[cfg(test)]
 fn stream_insecure<S>(
-  api_base: Url,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  api_info: ApiInfo,
 ) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
   let connect = |url| ClientBuilder::from_url(&url).async_connect_insecure();
-  stream_impl(connect, api_base, key_id, secret, S::stream())
+  stream_impl(connect, api_info, S::stream())
 }
 
 /// Create a stream for decoded event data.
 pub fn stream<S>(
-  api_base: Url,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  api_info: ApiInfo,
 ) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
 where
   S: EventStream,
 {
   let connect = |url| ClientBuilder::from_url(&url).async_connect_secure(None);
-  stream_impl(connect, api_base, key_id, secret, S::stream())
+  stream_impl(connect, api_info, S::stream())
 }
 
 
@@ -365,11 +365,13 @@ mod tests {
     F: Copy + FnOnce(Reader<TcpStream>, Writer<TcpStream>) + Send + 'static,
   {
     let (addr, thrd) = mock_server(f);
-    let url = Url::parse(&format!("http://{}", addr.to_string())).unwrap();
-    let key_id = KEY_ID.as_bytes().to_vec();
-    let secret = SECRET.as_bytes().to_vec();
+    let api_info = ApiInfo {
+      base_url: Url::parse(&format!("http://{}", addr.to_string())).unwrap(),
+      key_id: KEY_ID.as_bytes().to_vec(),
+      secret: SECRET.as_bytes().to_vec(),
+    };
 
-    (thrd, stream_insecure::<S>(url, key_id, secret))
+    (thrd, stream_insecure::<S>(api_info))
   }
 
 
