@@ -360,6 +360,7 @@ mod tests {
   use tokio::runtime::current_thread::spawn;
 
   use crate::api::v1::order_util::ClientExt;
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -416,7 +417,8 @@ mod tests {
 
   #[test]
   fn submit_limit_order() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.order_aapl()?.and_then(|order| {
       spawn(client.cancel_order(order.id));
       ok(order)
@@ -437,7 +439,8 @@ mod tests {
 
   #[test]
   fn submit_unsatisfiable_order() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let request = OrderReq {
       symbol: "AAPL:NASDAQ:us_equity".to_string(),
       quantity: 100000,
@@ -460,7 +463,8 @@ mod tests {
   #[test]
   fn cancel_invalid_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.issue::<Delete>(id)?;
     let err = block_on_all(future).unwrap_err();
 
@@ -473,7 +477,8 @@ mod tests {
 
   #[test]
   fn retrieve_order_by_id() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.order_aapl()?.map_err(Error::from).and_then(|order| {
       let id = order.id;
       ok(order)
@@ -502,7 +507,8 @@ mod tests {
   #[test]
   fn retrieve_non_existent_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.issue::<Get>(id)?;
     let err = block_on_all(future).unwrap_err();
 

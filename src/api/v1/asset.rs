@@ -160,6 +160,7 @@ mod tests {
   use tokio::runtime::current_thread::block_on_all;
 
   use crate::api::v1::asset::Id;
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -187,7 +188,8 @@ mod tests {
 
   #[test]
   fn retrieve_asset() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let request = AssetReq {
       symbol: "AAPL".to_string(),
     };

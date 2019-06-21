@@ -155,6 +155,7 @@ mod tests {
 
   use crate::api::API_BASE_URL;
   use crate::api::v1::order_util::ClientExt;
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -165,7 +166,8 @@ mod tests {
     //       order we never get an event about a new trade. That does
     //       not seem to be in our code, though, as the behavior is the
     //       same when streaming events using Alpaca's Python client.
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let order = client
       .order_aapl()?
       .and_then(|order| {
@@ -213,7 +215,13 @@ mod tests {
   #[test]
   fn stream_with_invalid_credentials() -> Result<(), Error> {
     let api_base = Url::parse(API_BASE_URL)?;
-    let client = Client::new(api_base, b"invalid".to_vec(), b"invalid-too".to_vec())?;
+    let api_info = ApiInfo {
+      base_url: api_base,
+      key_id: b"invalid".to_vec(),
+      secret: b"invalid-too".to_vec(),
+    };
+
+    let client = Client::new(api_info)?;
     let fut = client.subscribe::<TradeUpdates>().and_then(|stream| {
       stream
         .into_future()

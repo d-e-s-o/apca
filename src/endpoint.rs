@@ -17,10 +17,9 @@ use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_json::from_slice;
 
-use url::Url;
-
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
+use crate::api_info::ApiInfo;
 use crate::error::fmt_err;
 use crate::Str;
 
@@ -115,13 +114,8 @@ pub trait Endpoint {
   /// Create a `Request` to the endpoint.
   ///
   /// Typically the default implementation is just fine.
-  fn request(
-    api_base: &Url,
-    key_id: &[u8],
-    secret: &[u8],
-    input: &Self::Input,
-  ) -> Result<Request<Body>, EndpointError> {
-    let mut url = api_base.clone();
+  fn request(api_info: &ApiInfo, input: &Self::Input) -> Result<Request<Body>, EndpointError> {
+    let mut url = api_info.base_url.clone();
     url.set_path(&Self::path(&input));
     url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
 
@@ -129,8 +123,8 @@ pub trait Endpoint {
       .method(Self::method())
       .uri(url.as_str())
       // Add required authentication information.
-      .header(HDR_KEY_ID, key_id)
-      .header(HDR_SECRET, secret)
+      .header(HDR_KEY_ID, api_info.key_id.as_slice())
+      .header(HDR_SECRET, api_info.secret.as_slice())
       .body(Self::body(input)?)
       .map_err(EndpointError::from)
   }

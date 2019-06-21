@@ -112,6 +112,7 @@ mod tests {
   use url::Url;
 
   use crate::api::API_BASE_URL;
+  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
@@ -147,7 +148,8 @@ mod tests {
 
   #[test]
   fn request_account() -> Result<(), Error> {
-    let client = Client::from_env()?;
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
     let future = client.issue::<Get>(())?;
     let account = block_on_all(future)?;
 
@@ -161,7 +163,12 @@ mod tests {
   #[test]
   fn request_account_with_invalid_credentials() -> Result<(), Error> {
     let api_base = Url::parse(API_BASE_URL)?;
-    let client = Client::new(api_base, b"invalid".to_vec(), b"invalid-too".to_vec())?;
+    let api_info = ApiInfo {
+      base_url: api_base,
+      key_id: b"invalid".to_vec(),
+      secret: b"invalid-too".to_vec(),
+    };
+    let client = Client::new(api_info)?;
     let future = client.issue::<Get>(())?;
 
     let err = block_on_all(future).unwrap_err();
