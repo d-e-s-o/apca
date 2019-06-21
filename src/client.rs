@@ -19,6 +19,8 @@ use log::log_enabled;
 
 use serde_json::Error as JsonError;
 
+use websocket::WebSocketError;
+
 use crate::api_info::ApiInfo;
 use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
@@ -128,7 +130,10 @@ impl Client {
   /// Subscribe to the given stream in order to receive updates.
   pub fn subscribe<S>(
     &self,
-  ) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
+  ) -> impl Future<
+    Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
+    Error = Error,
+  >
   where
     S: EventStream,
   {

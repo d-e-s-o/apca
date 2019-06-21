@@ -130,7 +130,7 @@ where
 /// Decode a single value from the client.
 fn handle_msg<C, I>(
   client: C,
-) -> impl Future<Item = (Result<Operation<I>, JsonError>, C), Error = Error>
+) -> impl Future<Item = (Result<Operation<I>, JsonError>, C), Error = WebSocketError>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -139,11 +139,11 @@ where
   client.into_future()
     // TODO: It is unclear whether a WebSocketError received at this
     //       point could potentially be due to a transient issue.
-    .map_err(|(err, _c)| Error::from(err))
+    .map_err(|(err, _c)| err)
     .and_then(|(msg, c)| {
       match msg {
         Some(msg) => ok((msg, c)),
-        None => err(Error::Str("connection lost unexpectedly".into())),
+        None => err(WebSocketError::ProtocolError("connection lost unexpectedly")),
       }
     })
     .and_then(|(msg, c)| {
@@ -166,7 +166,6 @@ where
                 Operation::Pong(dat) => {
                   let fut = c
                     .send(OwnedMessage::Pong(dat))
-                    .map_err(Error::from)
                     .map(|c| (Ok(Operation::Nop), c));
                   Either::A(Either::A(fut))
                 },
@@ -184,7 +183,7 @@ where
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, JsonError>, Error = Error>
+fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -209,7 +208,7 @@ fn stream_impl<F, S, I>(
   connect: F,
   api_info: ApiInfo,
   stream: StreamType,
-) -> impl Future<Item = impl Stream<Item = Result<I, JsonError>, Error = Error>, Error = Error>
+) -> impl Future<Item = impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error = Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -270,7 +269,10 @@ where
 #[cfg(test)]
 fn stream_insecure<S>(
   api_info: ApiInfo,
-) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
+) -> impl Future<
+  Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
+  Error = Error,
+>
 where
   S: EventStream,
 {
@@ -281,7 +283,10 @@ where
 /// Create a stream for decoded event data.
 pub fn stream<S>(
   api_info: ApiInfo,
-) -> impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>
+) -> impl Future<
+  Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
+  Error = Error,
+>
 where
   S: EventStream,
 {
@@ -358,7 +363,10 @@ mod tests {
     f: F,
   ) -> (
     JoinHandle<()>,
-    impl Future<Item = impl Stream<Item = Result<S::Event, JsonError>, Error = Error>, Error = Error>,
+    impl Future<
+      Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
+      Error = Error,
+    >,
   )
   where
     S: EventStream,
@@ -381,7 +389,7 @@ mod tests {
       // Authentication. We receive the message but never respond.
       let _ = recv.recv_message().unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let err = block_on_all(fut).unwrap_err();
     match err {
@@ -408,7 +416,7 @@ mod tests {
       // Just respond with a Close.
       send.send_message(&OwnedMessage::Close(None)).unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let err = block_on_all(fut).unwrap_err();
     match err {
@@ -435,11 +443,14 @@ mod tests {
         .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
         .unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let err = block_on_all(fut).unwrap_err();
     match err {
-      Error::Str(ref e) if e.starts_with("connection lost unexpectedly") => (),
+      Error::WebSocket(e) => match e {
+        WebSocketError::ProtocolError(s) if s.starts_with("connection lost unexpectedly") => (),
+        e @ _ => panic!("received unexpected error: {}", e),
+      },
       e @ _ => panic!("received unexpected error: {}", e),
     }
     Ok(())
@@ -461,7 +472,7 @@ mod tests {
         .send_message(&OwnedMessage::Text(update.to_string()))
         .unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let err = block_on_all(fut).unwrap_err();
     match err {
@@ -497,7 +508,7 @@ mod tests {
         .unwrap();
       send.send_message(&OwnedMessage::Close(None)).unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let _ = block_on_all(fut).unwrap();
     Ok(())
@@ -529,7 +540,7 @@ mod tests {
 
       send.send_message(&OwnedMessage::Close(None)).unwrap();
     });
-    let fut = fut.and_then(|s| s.for_each(|_| ok(())));
+    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
     let _ = block_on_all(fut)?;
     Ok(())
