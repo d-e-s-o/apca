@@ -139,6 +139,11 @@ impl Client {
   {
     stream::<S>(self.api_info.clone())
   }
+
+  /// Retrieve the `ApiInfo` object used by this `Client` instance.
+  pub fn api_info(&self) -> &ApiInfo {
+    &self.api_info
+  }
 }
 
 
