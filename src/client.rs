@@ -8,6 +8,7 @@ use futures::stream::Stream;
 
 use hyper::Body;
 use hyper::Client as HttpClient;
+use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::http::StatusCode;
 use hyper_tls::HttpsConnector;
@@ -29,6 +30,65 @@ use crate::events::EventStream;
 use crate::events::stream;
 
 
+/// A builder for creating customized `Client` objects.
+#[derive(Debug)]
+pub struct Builder {
+  builder: HttpClientBuilder,
+  dns_threads: usize,
+}
+
+impl Builder {
+  /// Adjust the maximum number of idle connections per host.
+  pub fn max_idle_per_host(&mut self, max_idle: usize) -> &mut Self {
+    let _ = self.builder.max_idle_per_host(max_idle);
+    self
+  }
+
+  /// Set the number of DNS worker threads used by the HTTPS connector.
+  pub fn dns_worker_threads(&mut self, threads: usize) -> &mut Self {
+    self.dns_threads = threads;
+    self
+  }
+
+  /// Build the final `Client` object.
+  pub fn build(&self, api_info: ApiInfo) -> Result<Client, Error> {
+    let https = HttpsConnector::new(self.dns_threads)?;
+    let client = self.builder.build(https);
+
+    Ok(Client { api_info, client })
+  }
+}
+
+impl Default for Builder {
+  #[cfg(test)]
+  fn default() -> Self {
+    // So here is the deal. In tests we use the block_on_all function to
+    // wait for futures. This function waits until *all* spawned futures
+    // completed. Now, by virtue of keeping idle connections around --
+    // which effectively map to spawned tasks -- we will block until
+    // those connections die. We can't have that happen for tests, so we
+    // disable idle connections for them.
+    // While at it, also use the minimum number of threads for the
+    // `HttpsConnector`.
+    let mut builder = HttpClient::builder();
+    let _ = builder.max_idle_per_host(0);
+
+    Self {
+      builder,
+      dns_threads: 1,
+    }
+  }
+
+  #[cfg(not(test))]
+  fn default() -> Self {
+    Self {
+      builder: HttpClient::builder(),
+      dns_threads: 4,
+    }
+  }
+}
+
+
 /// A `Client` is the entity used by clients of this module for
 /// interacting with the Alpaca API. It provides the highest-level
 /// primitives and also implements the `Trader` trait, which abstracts
@@ -41,36 +101,15 @@ pub struct Client {
 }
 
 impl Client {
+  /// Instantiate a new `Builder` which allows for creating a customized `Client`.
+  pub fn builder() -> Builder {
+    Builder::default()
+  }
+
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
   pub fn new(api_info: ApiInfo) -> Result<Self, Error> {
-    // So here is the deal. In tests we use the block_on_all function to
-    // wait for futures. This function waits until *all* spawned futures
-    // completed. Now, by virtue of keeping idle connections around --
-    // which effectively map to spawned tasks -- we will block until
-    // those connections die. We can't have that happen for tests, so we
-    // disable idle connections for them.
-    // While at it, also use the minimum number of threads for the
-    // `HttpsConnector`.
-    #[cfg(test)]
-    fn client() -> Result<HttpClient<HttpsConnector<HttpConnector>, Body>, Error> {
-      let https = HttpsConnector::new(1)?;
-      let client = HttpClient::builder()
-        .max_idle_per_host(0)
-        .build::<_, Body>(https);
-      Ok(client)
-    }
-    #[cfg(not(test))]
-    fn client() -> Result<HttpClient<HttpsConnector<HttpConnector>, Body>, Error> {
-      let https = HttpsConnector::new(4)?;
-      let client = HttpClient::builder().build::<_, Body>(https);
-      Ok(client)
-    }
-
-    Ok(Self {
-      api_info,
-      client: client()?,
-    })
+    Builder::default().build(api_info)
   }
 
   /// Create and issue a request and decode the response.
@@ -182,7 +221,7 @@ mod tests {
   #[test]
   fn unexpected_status_code_return() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::builder().max_idle_per_host(0).build(api_info)?;
     let future = client.issue::<GetNotFound>(())?;
     let err = block_on_all(future).unwrap_err();
 
