@@ -6,6 +6,9 @@ use futures::future::ok;
 
 use num_decimal::Num;
 
+use crate::api::v1::asset::Class;
+use crate::api::v1::asset::Exchange;
+use crate::api::v1::asset::Symbol;
 use crate::api::v1::order;
 use crate::api::v1::order::Side;
 use crate::api::v1::order::TimeInForce;
@@ -28,7 +31,7 @@ pub trait ClientExt {
 impl ClientExt for Client {
   fn order_aapl(&self) -> Result<BoxFut<order::Order, order::PostError>, Error> {
     let request = order::OrderReq {
-      symbol: "AAPL:NASDAQ:us_equity".to_string(),
+      symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
       quantity: 1,
       side: Side::Buy,
       type_: Type::Limit,
