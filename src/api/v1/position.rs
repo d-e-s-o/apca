@@ -16,7 +16,7 @@ use crate::Str;
 pub struct PositionReq {
   /// Symbol or asset ID to identify the asset to trade.
   #[serde(rename = "symbol")]
-  pub symbol: String,
+  pub symbol: asset::Symbol,
 }
 
 
@@ -171,7 +171,7 @@ mod tests {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info)?;
     let request = PositionReq {
-      symbol: "AAPL".to_string(),
+      symbol: asset::Symbol::Sym("AAPL".to_string()),
     };
     let future = client.issue::<Get>(request)?;
     let result = block_on_all(future);
