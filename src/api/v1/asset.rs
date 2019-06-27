@@ -1,10 +1,14 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::ops::Deref;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde::Serializer;
 
 use uuid::Uuid;
 
@@ -62,8 +66,45 @@ impl AsRef<str> for Status {
 }
 
 
+/// A symbol, and the various ways to represent it.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Symbol {
+  /// The symbol. Note that this is not a unique way to identify an
+  /// asset (the same symbol may be used in different exchanges or asset
+  /// classes).
+  Sym(String),
+  /// A symbol at a specific exchange.
+  SymExchg(String, Exchange),
+  /// A symbol for a given asset class at a specific exchange.
+  SymExchgCls(String, Exchange, Class),
+  /// An asset as described by an ID.
+  Id(Id),
+}
+
+impl Display for Symbol {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      Symbol::Sym(sym) => fmt.write_str(&sym),
+      Symbol::SymExchg(sym, exchg) => write!(fmt, "{}:{}", sym, exchg.as_ref()),
+      Symbol::SymExchgCls(sym, exchg, cls) => {
+        write!(fmt, "{}:{}:{}", sym, exchg.as_ref(), cls.as_ref())
+      },
+      Symbol::Id(id) => write!(fmt, "{}", id.to_hyphenated_ref()),
+    }
+  }
+}
+
+impl Serialize for Symbol {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    serializer.serialize_str(&self.to_string())
+  }
+}
+
 /// An enumeration of the various supported exchanges.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
 pub enum Exchange {
   /// American Stock Exchange.
   #[serde(rename = "AMEX")]
@@ -84,6 +125,19 @@ pub enum Exchange {
   /// NYSE Arca.
   #[serde(rename = "NYSEARCA")]
   Nysearca,
+}
+
+impl AsRef<str> for Exchange {
+  fn as_ref(&self) -> &'static str {
+    match *self {
+      Exchange::Amex => "AMEX",
+      Exchange::Arca => "ARCA",
+      Exchange::Bats => "BATS",
+      Exchange::Nasdaq => "NASDAQ",
+      Exchange::Nyse => "NYSE",
+      Exchange::Nysearca => "NYSEARCA",
+    }
+  }
 }
 
 
@@ -115,10 +169,7 @@ pub struct Asset {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct AssetReq {
   /// The symbol of the asset in question.
-  // TODO: It is not quite clear if what is wanted here is really only a
-  //       symbol. Somewhere it was stated that asset class and exchange
-  //       may optionally also be part of the specification.
-  pub symbol: String,
+  pub symbol: Symbol,
 }
 
 
@@ -154,6 +205,7 @@ mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
   use test_env_log::test;
 
@@ -164,6 +216,22 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  #[test]
+  fn serialize_symbol() {
+    let symbol = Symbol::Sym("AAPL".to_string());
+    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL""#);
+
+    let symbol = Symbol::SymExchg("AAPL".to_string(), Exchange::Nasdaq);
+    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL:NASDAQ""#);
+
+    let symbol = Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity);
+    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL:NASDAQ:us_equity""#);
+
+    let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
+    let symbol = Symbol::Id(id);
+    assert_eq!(to_json(&symbol).unwrap(), r#""b0b6dd9d-8b9b-48a9-ba46-b9d54906e415""#);
+  }
 
   #[test]
   fn parse_reference_asset() {
@@ -188,22 +256,34 @@ mod tests {
 
   #[test]
   fn retrieve_asset() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let request = AssetReq {
-      symbol: "AAPL".to_string(),
-    };
-    let future = client.issue::<Get>(request)?;
-    let asset = block_on_all(future)?;
+    fn test(symbol: Symbol) -> Result<(), Error> {
+      let api_info = ApiInfo::from_env()?;
+      let client = Client::new(api_info)?;
+      let request = AssetReq { symbol };
+      let future = client.issue::<Get>(request)?;
+      let asset = block_on_all(future)?;
 
-    // The AAPL asset ID, retrieved out-of-band.
-    let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
-    assert_eq!(asset.id, id);
-    assert_eq!(asset.class, Class::UsEquity);
-    assert_eq!(asset.exchange, Exchange::Nasdaq);
-    assert_eq!(asset.symbol, "AAPL");
-    assert_eq!(asset.status, Status::Active);
-    assert_eq!(asset.tradable, true);
+      // The AAPL asset ID, retrieved out-of-band.
+      let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
+      assert_eq!(asset.id, id);
+      assert_eq!(asset.class, Class::UsEquity);
+      assert_eq!(asset.exchange, Exchange::Nasdaq);
+      assert_eq!(asset.symbol, "AAPL");
+      assert_eq!(asset.status, Status::Active);
+      assert_eq!(asset.tradable, true);
+      Ok(())
+    }
+
+    let symbols = [
+      Symbol::Sym("AAPL".to_string()),
+      Symbol::SymExchg("AAPL".to_string(), Exchange::Nasdaq),
+      Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
+      Symbol::Id(Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap())),
+    ];
+
+    for symbol in symbols.into_iter().cloned() {
+      test(symbol)?;
+    }
     Ok(())
   }
 }
