@@ -153,7 +153,7 @@ pub enum TimeInForce {
 pub struct OrderReq {
   /// Symbol or asset ID to identify the asset to trade.
   #[serde(rename = "symbol")]
-  pub symbol: String,
+  pub symbol: asset::Symbol,
   /// Number of shares to trade.
   #[serde(rename = "qty")]
   pub quantity: u64,
@@ -442,7 +442,7 @@ mod tests {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info)?;
     let request = OrderReq {
-      symbol: "AAPL:NASDAQ:us_equity".to_string(),
+      symbol: asset::Symbol::Sym("AAPL".to_string()),
       quantity: 100000,
       side: Side::Buy,
       type_: Type::Limit,
