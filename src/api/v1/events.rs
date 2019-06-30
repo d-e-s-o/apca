@@ -214,6 +214,48 @@ mod tests {
   }
 
   #[test]
+  #[ignore]
+  // This functionality is seemingly not working currently upstream. No
+  // events are received even in other clients.
+  fn stream_account_events() -> Result<(), Error> {
+    // We really can't do much verification for the account updates.
+    // They don't correlate well enough with anything we do and
+    // ultimately anything could be a side effect of some externally
+    // triggered operation. So we mainly check that we *did* receive
+    // such an update when submitting an order.
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info)?;
+    let order = client
+      .order_aapl()?
+      .and_then(|order| {
+        spawn(client.cancel_order(order.id));
+        ok(order)
+      })
+      .map_err(Error::from);
+    let fut = client
+      .subscribe::<AccountUpdates>()
+      .and_then(|stream| ok(stream).join(order))
+      .and_then(|(stream, _order)| {
+        stream
+          .filter_map(|res| {
+            assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
+            res.ok()
+          })
+          // One update is enough.
+          .take(1)
+          .into_future()
+          .map_err(|(err, _stream)| err)
+          .map_err(Error::from)
+          .map(|(trade, _stream)| trade)
+      });
+
+    let result = block_on_all(fut)?;
+    let update = result.unwrap();
+    assert_eq!(update.currency, "USD");
+    Ok(())
+  }
+
+  #[test]
   fn stream_with_invalid_credentials() -> Result<(), Error> {
     let api_base = Url::parse(API_BASE_URL)?;
     let api_info = ApiInfo {
