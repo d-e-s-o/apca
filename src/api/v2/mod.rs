@@ -9,3 +9,7 @@ pub mod asset;
 pub mod order;
 /// Functionality for listing orders.
 pub mod orders;
+/// Definitions surrounding open positions.
+pub mod position;
+/// Functionality for listing open positions.
+pub mod positions;
