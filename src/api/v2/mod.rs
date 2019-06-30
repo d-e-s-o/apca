@@ -5,3 +5,5 @@
 pub mod account;
 /// Definitions surrounding assets.
 pub mod asset;
+/// Definitions surrounding orders.
+pub mod order;
