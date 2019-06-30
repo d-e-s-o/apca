@@ -7,3 +7,5 @@ pub mod account;
 pub mod asset;
 /// Definitions surrounding orders.
 pub mod order;
+/// Functionality for listing orders.
+pub mod orders;
