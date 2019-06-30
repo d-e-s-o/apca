@@ -119,6 +119,14 @@ pub trait Endpoint {
     url.set_path(&Self::path(&input));
     url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
 
+    // TODO: As per the Python package, we may also want to set
+    //       "allow_redirects" to false.
+    //
+    //   # Since we allow users to set endpoint URL via env var,
+    //   # human error to put non-SSL endpoint could exploit
+    //   # uncanny issues in non-GET request redirecting http->https.
+    //   # It's better to fail early if the URL isn't right.
+
     Builder::new()
       .method(Self::method())
       .uri(url.as_str())
@@ -180,6 +188,8 @@ macro_rules! EndpointDef {
         /// The rate limit was exceeded, causing the request to be
         /// denied.
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
+        // TODO: According to the Python package we may also want to
+        //       retry on 504.
         $($(#[$err_docs])* $err_status => $variant,)*
       ]
     }

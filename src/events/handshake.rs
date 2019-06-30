@@ -176,6 +176,7 @@ where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
 {
+  // TODO: We probably should not unwrap here!!
   let key_id = String::from_utf8(key_id).unwrap();
   let secret = String::from_utf8(secret).unwrap();
 

@@ -182,6 +182,7 @@ pub struct Order {
   #[serde(rename = "id")]
   pub id: Id,
   /// Client unique order ID.
+  // TODO: Should this also be an `Id`?
   #[serde(rename = "client_order_id")]
   pub client_order_id: String,
   /// The status of the order.
@@ -213,12 +214,16 @@ pub struct Order {
   pub asset_id: asset::Id,
   /// The symbol of the asset being traded.
   #[serde(rename = "symbol")]
+  // TODO: Should this really be a `Symbol`?
   pub symbol: String,
   /// The quantity being requested.
   #[serde(rename = "qty")]
+  // TODO: Should this really be a `u64`? I guess not, because what we
+  //       get is actually a string: "qty": "15"?
   pub quantity: Num,
   /// The quantity that was filled.
   #[serde(rename = "filled_qty")]
+  // TODO: Should this really be a `u64`?
   pub filled_quantity: Num,
   /// The type of order.
   #[serde(rename = "type")]
