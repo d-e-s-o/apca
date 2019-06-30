@@ -3,6 +3,8 @@
 
 /// Definitions for the first version of the Alpaca API.
 pub mod v1;
+/// Definitions for the second version of the Alpaca API.
+pub mod v2;
 
 mod time_util;
 
