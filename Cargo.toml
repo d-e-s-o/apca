@@ -1,9 +1,20 @@
 [package]
 name = "apca"
-version = "0.0.0"
+version = "0.1.0"
 edition = "2018"
 authors = ["Daniel Mueller <deso@posteo.net>"]
 license = "GPL-3.0-or-later"
+homepage = "https://github.com/d-e-s-o/apca"
+repository = "https://github.com/d-e-s-o/apca.git"
+readme = "README.md"
+categories = [
+  "api-bindings",
+  "asynchronous",
+  "network-programming",
+  "web-programming::http-client",
+  "web-programming::websocket"
+]
+keywords = ["trading", "finance", "async", "stocks"]
 description = """
 A create for interacting with the Alpaca API.
 """
