@@ -5,6 +5,7 @@ apca
 ====
 
 - [Documentation][docs-rs]
+- [Changelog](CHANGELOG.md)
 
 A crate for interacting with the Alpaca API at [alpaca.markets][].
 
