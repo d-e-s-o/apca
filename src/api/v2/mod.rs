@@ -3,3 +3,5 @@
 
 /// Definitions pertaining the user's account.
 pub mod account;
+/// Definitions surrounding assets.
+pub mod asset;
