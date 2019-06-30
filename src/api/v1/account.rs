@@ -28,6 +28,33 @@ impl Deref for Id {
 }
 
 
+/// An enumeration of the various states an account can be in.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub enum Status {
+  /// The account is onboarding.
+  #[serde(rename = "ONBOARDING")]
+  Onboarding,
+  /// The account application submission failed for some reason.
+  #[serde(rename = "SUBMISSION_FAILED")]
+  SubmissionFailed,
+  /// The account application has been submitted for review.
+  #[serde(rename = "SUBMITTED")]
+  Submitted,
+  /// The account information is being updated.
+  #[serde(rename = "ACCOUNT_UPDATED")]
+  Updating,
+  /// The final account approval is pending.
+  #[serde(rename = "APPROVAL_PENDING")]
+  ApprovalPending,
+  /// The account is active for trading.
+  #[serde(rename = "ACTIVE")]
+  Active,
+  /// The account application has been rejected.
+  #[serde(rename = "REJECTED")]
+  Rejected,
+}
+
+
 /// A response as returned by the /v1/account endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Account {
@@ -35,9 +62,8 @@ pub struct Account {
   #[serde(rename = "id")]
   pub id: Id,
   /// The account's status.
-  // TODO: Not yet implemented.
   #[serde(rename = "status")]
-  pub status: String,
+  pub status: Status,
   /// The currency the account uses.
   #[serde(rename = "currency")]
   pub currency: String,
@@ -137,6 +163,7 @@ mod tests {
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
     let acc = from_json::<Account>(&response).unwrap();
     assert_eq!(acc.id, id);
+    assert_eq!(acc.status, Status::Active);
     assert_eq!(acc.currency, "USD");
     assert_eq!(acc.buying_power, Num::new(400032, 100));
     assert_eq!(acc.withdrawable_cash, Num::new(400032, 100));
