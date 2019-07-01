@@ -4,6 +4,7 @@ Unreleased
   - `/v2/account`
   - `/v2/asset`
   - `/v2/orders`
+  - `/v2/positions`
 
 
 0.1.0
