@@ -297,38 +297,44 @@ mod tests {
 
   #[test]
   fn submit_limit_order() -> Result<(), Error> {
-    let request = OrderReq {
-      symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
-      quantity: 1,
-      side: Side::Buy,
-      type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1)),
-      stop_price: None,
-      extended_hours: true,
-    };
-    let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    fn test(extended_hours: bool) -> Result<(), Error> {
+      let request = OrderReq {
+        symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
+        quantity: 1,
+        side: Side::Buy,
+        type_: Type::Limit,
+        time_in_force: TimeInForce::Day,
+        limit_price: Some(Num::from_int(1)),
+        stop_price: None,
+        extended_hours,
+      };
+      let api_info = ApiInfo::from_env()?;
+      let client = Client::new(api_info)?;
 
-    let future = client.issue::<Post>(request)?.and_then(|order| {
-      spawn({
-        client.issue::<Delete>(order.id).unwrap().then(|x| {
-          let _ = x.unwrap();
-          ok(())
-        })
+      let future = client.issue::<Post>(request)?.and_then(|order| {
+        spawn({
+          client.issue::<Delete>(order.id).unwrap().then(|x| {
+            let _ = x.unwrap();
+            ok(())
+          })
+        });
+        ok(order)
       });
-      ok(order)
-    });
 
-    let order = block_on_all(future)?;
-    assert_eq!(order.symbol, "SPY");
-    assert_eq!(order.quantity, Num::from_int(1));
-    assert_eq!(order.side, Side::Buy);
-    assert_eq!(order.type_, Type::Limit);
-    assert_eq!(order.time_in_force, TimeInForce::Day);
-    assert_eq!(order.limit_price, Some(Num::from_int(1)));
-    assert_eq!(order.stop_price, None);
-    assert_eq!(order.extended_hours, true);
+      let order = block_on_all(future)?;
+      assert_eq!(order.symbol, "SPY");
+      assert_eq!(order.quantity, Num::from_int(1));
+      assert_eq!(order.side, Side::Buy);
+      assert_eq!(order.type_, Type::Limit);
+      assert_eq!(order.time_in_force, TimeInForce::Day);
+      assert_eq!(order.limit_price, Some(Num::from_int(1)));
+      assert_eq!(order.stop_price, None);
+      assert_eq!(order.extended_hours, extended_hours);
+      Ok(())
+    }
+
+    test(true)?;
+    test(false)?;
     Ok(())
   }
 
