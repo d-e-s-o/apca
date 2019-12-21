@@ -303,10 +303,10 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio::net::TcpStream;
-  use tokio::reactor::Handle;
-  use tokio::runtime::current_thread::block_on_all;
-  use tokio::runtime::current_thread::spawn;
+  use tokio01::net::TcpStream;
+  use tokio01::reactor::Handle;
+  use tokio01::runtime::current_thread::block_on_all;
+  use tokio01::runtime::current_thread::spawn;
 
   use websocket::client::r#async::Framed;
   use websocket::OwnedMessage;

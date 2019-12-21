@@ -190,7 +190,7 @@ impl Client {
 mod tests {
   use super::*;
 
-  use tokio::runtime::current_thread::block_on_all;
+  use tokio01::runtime::current_thread::block_on_all;
 
   use test_env_log::test;
 
