@@ -5,6 +5,7 @@ Unreleased
   - `/v2/asset`
   - `/v2/orders`
   - `/v2/positions`
+- Bumped `websocket` dependency to `0.24`
 
 
 0.1.0
