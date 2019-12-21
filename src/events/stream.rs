@@ -300,17 +300,18 @@ mod tests {
   use super::*;
 
   use std::net::SocketAddr;
-  use std::net::TcpStream;
-  use std::thread::JoinHandle;
-  use std::thread::spawn;
 
   use test_env_log::test;
 
+  use tokio::net::TcpStream;
+  use tokio::reactor::Handle;
   use tokio::runtime::current_thread::block_on_all;
+  use tokio::runtime::current_thread::spawn;
 
-  use websocket::receiver::Reader;
-  use websocket::sender::Writer;
-  use websocket::sync::Server;
+  use websocket::client::r#async::Framed;
+  use websocket::OwnedMessage;
+  use websocket::r#async::MessageCodec;
+  use websocket::r#async::Server;
 
 
   const KEY_ID: &str = "USER12345678";
@@ -337,57 +338,82 @@ mod tests {
     }
   }
 
+  type Content = Framed<TcpStream, MessageCodec<OwnedMessage>>;
+
   /// Create a websocket server that handles a customizable set of
   /// requests and exits.
-  fn mock_server<F>(f: F) -> (SocketAddr, JoinHandle<()>)
+  fn mock_server<F, R>(f: F) -> (SocketAddr, impl Future<Item = (), Error = ()>)
   where
-    F: Copy + FnOnce(Reader<TcpStream>, Writer<TcpStream>) + Send + 'static,
+    F: Copy + FnOnce(Content) -> R + 'static,
+    R: Future<Item = (), Error = WebSocketError> + 'static,
   {
-    let mut server = Server::bind("localhost:0").unwrap();
+    let server = Server::bind("localhost:0", &Handle::default()).unwrap();
     let addr = server.local_addr().unwrap();
 
-    let handle = spawn(move || match server.accept() {
-      Ok(conn) => {
-        let client = conn.accept().unwrap();
-        let (recv, send) = client.split().unwrap();
+    let future = server
+      .incoming()
+      .take(1)
+      .and_then(move |(upgrade, _addr)| {
+        upgrade
+          .accept()
+          .and_then(move |(client, _headers)| f(client))
+          .map_err(|e| panic!(e))
+      })
+      .map_err(|e| panic!(e))
+      .for_each(|_| ok(()));
 
-        f(recv, send)
-      }
-      Err(_) => panic!("nobody tried to connect"),
-    });
-
-    (addr, handle)
+    (addr, future)
   }
 
-  fn mock_stream<S, F>(
+  fn mock_stream<S, F, R>(
     f: F,
-  ) -> (
-    JoinHandle<()>,
-    impl Future<
-      Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
-      Error = Error,
-    >,
-  )
+  ) -> impl Future<
+    Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
+    Error = Error,
+  >
   where
     S: EventStream,
-    F: Copy + FnOnce(Reader<TcpStream>, Writer<TcpStream>) + Send + 'static,
+    F: Copy + FnOnce(Content) -> R + 'static,
+    R: Future<Item = (), Error = WebSocketError> + 'static,
   {
-    let (addr, thrd) = mock_server(f);
+    let (addr, srv_fut) = mock_server(f);
     let api_info = ApiInfo {
       base_url: Url::parse(&format!("http://{}", addr.to_string())).unwrap(),
       key_id: KEY_ID.as_bytes().to_vec(),
       secret: SECRET.as_bytes().to_vec(),
     };
+    let stream_fut = stream_insecure::<S>(api_info);
 
-    (thrd, stream_insecure::<S>(api_info))
+    ok(()).and_then(|_| {
+      spawn(srv_fut);
+      stream_fut
+    })
+  }
+
+  fn expect_msg<C>(
+    client: C,
+    expected: OwnedMessage,
+  ) -> impl Future<Item = C, Error = WebSocketError>
+  where
+    C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+  {
+    client
+      .into_future()
+      .map(move |(msg, client)| {
+        assert_eq!(msg, Some(expected));
+        client
+      })
+      .map_err(|(e, _)| e)
   }
 
 
   #[test]
   fn broken_stream() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, _| {
-      // Authentication. We receive the message but never respond.
-      let _ = recv.recv_message().unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication. We receive the message but never respond.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
@@ -401,20 +427,16 @@ mod tests {
 
   #[test]
   fn early_close() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
-      // Authentication.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
-        .unwrap();
-
-      // Subscription.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
-
-      // Just respond with a Close.
-      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(AUTH_RESP.to_string())))
+        // Subscription.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(STREAM_REQ.to_string())))
+        // Just respond with a Close.
+        .and_then(|client| client.send(OwnedMessage::Close(None)))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
@@ -428,20 +450,15 @@ mod tests {
 
   #[test]
   fn no_messages() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
-      // Authentication.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
-        .unwrap();
-
-      // Subscription.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
-        .unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(AUTH_RESP.to_string())))
+        // Subscription.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(STREAM_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(STREAM_RESP.to_string())))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
@@ -458,19 +475,13 @@ mod tests {
 
   #[test]
   fn decode_error_during_handshake() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
-      // Authentication.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
-        .unwrap();
-
-      // Some unexpected (and invalid) JSON.
-      let update = "{ foobarbaz }";
-      send
-        .send_message(&OwnedMessage::Text(update.to_string()))
-        .unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(AUTH_RESP.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text("{ foobarbaz }".to_string())))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
@@ -484,29 +495,18 @@ mod tests {
 
   #[test]
   fn decode_error_errors_do_not_terminate() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
-      // Authentication.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
-        .unwrap();
-
-      // Subscription.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
-        .unwrap();
-
-      let update = "{ foobarbaz }";
-      send
-        .send_message(&OwnedMessage::Text(update.to_string()))
-        .unwrap();
-      send
-        .send_message(&OwnedMessage::Text(UNIT_EVENT.to_string()))
-        .unwrap();
-      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(AUTH_RESP.to_string())))
+        // Subscription.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(STREAM_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(STREAM_RESP.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text("{ foobarbaz }".to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(UNIT_EVENT.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Close(None)))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
@@ -516,29 +516,20 @@ mod tests {
 
   #[test]
   fn ping_pong() -> Result<(), Error> {
-    let (_srv, fut) = mock_stream::<DummyStream, _>(|mut recv, mut send| {
-      // Authentication.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(AUTH_RESP.to_string()))
-        .unwrap();
-
-      // Subscription.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Text(STREAM_REQ.to_string()));
-      send
-        .send_message(&OwnedMessage::Text(STREAM_RESP.to_string()))
-        .unwrap();
-
-      // Ping.
-      send.send_message(&OwnedMessage::Ping(Vec::new())).unwrap();
-
-      // Expect Pong.
-      let msg = recv.recv_message().unwrap();
-      assert_eq!(msg, OwnedMessage::Pong(Vec::new()));
-
-      send.send_message(&OwnedMessage::Close(None)).unwrap();
+    let fut = mock_stream::<DummyStream, _, _>(|client| {
+      ok(client)
+        // Authentication.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(AUTH_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(AUTH_RESP.to_string())))
+        // Subscription.
+        .and_then(|client| expect_msg(client, OwnedMessage::Text(STREAM_REQ.to_string())))
+        .and_then(|client| client.send(OwnedMessage::Text(STREAM_RESP.to_string())))
+        // Ping.
+        .and_then(|client| client.send(OwnedMessage::Ping(Vec::new())))
+        // Expect Pong.
+        .and_then(|client| expect_msg(client, OwnedMessage::Pong(Vec::new())))
+        .and_then(|client| client.send(OwnedMessage::Close(None)))
+        .map(|_| ())
     });
     let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
 
