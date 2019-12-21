@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.1.1
+-----
 - Added support for accessing various `v2` endpoints:
   - `/v2/account`
   - `/v2/asset`
