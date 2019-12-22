@@ -66,7 +66,7 @@ mod tests {
   use tokio01::runtime::current_thread::block_on_all;
 
   use crate::api::v1::order;
-  use crate::api::v1::order_util::ClientExt;
+  use crate::api::v1::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
@@ -83,7 +83,7 @@ mod tests {
     // scope for lifetime conflicts. We also can't just use move
     // closures because that moves the client object as well. So we end
     // up with this dance to pass the order ID through the pipeline.
-    let future = client.order_aapl()?.map_err(Error::from).and_then(|order| {
+    let future = order_aapl(&client)?.map_err(Error::from).and_then(|order| {
       ok(order.id)
         .join({
           client

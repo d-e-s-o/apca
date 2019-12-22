@@ -16,37 +16,25 @@ use crate::api::v1::order::Type;
 use crate::Client;
 use crate::Error;
 
-type BoxFut<T, E> = Box<dyn Future<Item = T, Error = E>>;
 
-/// An extension trait for the `Client` that provides convenient
-/// access to often required functionality for testing purposes.
-pub trait ClientExt {
-  /// Submit an unsatisfiable limit order for one share of AAPL.
-  fn order_aapl(&self) -> Result<BoxFut<order::Order, order::PostError>, Error>;
-
-  /// Safely cancel an order, panicking on error.
-  fn cancel_order(&self, id: order::Id) -> BoxFut<(), ()>;
+pub fn order_aapl(
+  client: &Client,
+) -> Result<impl Future<Item = order::Order, Error = order::PostError>, Error> {
+  let request = order::OrderReq {
+    symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
+    quantity: 1,
+    side: Side::Buy,
+    type_: Type::Limit,
+    time_in_force: TimeInForce::Day,
+    limit_price: Some(Num::from_int(1)),
+    stop_price: None,
+  };
+  client.issue::<order::Post>(request)
 }
 
-impl ClientExt for Client {
-  fn order_aapl(&self) -> Result<BoxFut<order::Order, order::PostError>, Error> {
-    let request = order::OrderReq {
-      symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
-      quantity: 1,
-      side: Side::Buy,
-      type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1)),
-      stop_price: None,
-    };
-    self.issue::<order::Post>(request).map(|x| Box::new(x) as _)
-  }
-
-  fn cancel_order(&self, id: order::Id) -> BoxFut<(), ()> {
-    let fut = self.issue::<order::Delete>(id).unwrap().then(|x| {
-      let _ = x.unwrap();
-      ok(())
-    });
-    Box::new(fut)
-  }
+pub fn cancel_order(client: &Client, id: order::Id) -> impl Future<Item = (), Error = ()> {
+  client.issue::<order::Delete>(id).unwrap().then(|x| {
+    let _ = x.unwrap();
+    ok(())
+  })
 }
