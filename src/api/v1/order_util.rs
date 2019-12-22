@@ -1,8 +1,8 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::future::Future;
-use futures::future::ok;
+use futures01::future::Future;
+use futures01::future::ok;
 
 use num_decimal::Num;
 
