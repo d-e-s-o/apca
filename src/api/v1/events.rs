@@ -142,10 +142,10 @@ impl EventStream for TradeUpdates {
 mod tests {
   use super::*;
 
-  use futures::compat::Future01CompatExt;
-  use futures01::future::Future;
-  use futures01::future::ok;
-  use futures01::stream::Stream;
+  use futures::future::ok;
+  use futures::FutureExt;
+  use futures::StreamExt;
+  use futures::TryStreamExt;
 
   use test_env_log::test;
 
@@ -172,27 +172,24 @@ mod tests {
     let _ = client.issue::<order::Delete>(order.id).await?;
 
     let trade = stream
-      .filter_map(|res| {
+      .try_filter_map(|res| {
         assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
-        res.ok()
+        ok(res.ok())
       })
       // There could be other trades happening concurrently but we
       // are only interested in ones belonging to the order we
       // submitted as part of this test.
-      .skip_while(|trade| ok(trade.order.id != order.id))
+      .try_skip_while(|trade| ok(trade.order.id != order.id))
       // In fact, we only care about the first such trade for our
       // verification purposes.
       .take(1)
       .into_future()
-      .map_err(|(err, _stream)| err)
-      .map_err(Error::from)
       // We don't care about the rest of the stream. Well, there
       // really shouldn't be any.
       .map(|(trade, _stream)| trade)
-      .compat()
-      .await?;
+      .await
+      .unwrap()?;
 
-    let trade = trade.unwrap();
     assert_eq!(order.id, trade.order.id);
     assert_eq!(order.asset_id, trade.order.asset_id);
     assert_eq!(order.symbol, trade.order.symbol);
