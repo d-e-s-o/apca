@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.2.0
+-----
 - Converted `api` functionality to use `async`/`await` syntax
 - Bumped `test-env-log` dependency to `0.2`
 
