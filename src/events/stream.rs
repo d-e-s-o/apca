@@ -1,6 +1,7 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use futures::compat::Future01CompatExt;
 use futures01::future::Either;
 use futures01::future::err;
 use futures01::future::Future as Future01;
@@ -204,11 +205,11 @@ where
   .filter_map(|res| res.map(|op| op.into_decoded()).transpose())
 }
 
-fn stream_impl<F, S, I>(
+async fn stream_impl<F, S, I>(
   connect: F,
   api_info: ApiInfo,
   stream: StreamType,
-) -> impl Future01<Item = impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error = Error>
+) -> Result<impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -262,36 +263,32 @@ where
       }
     })
 		.and_then(|c| ok(do_stream::<_, I>(c)))
+    .compat()
+    .await
 }
 
 /// Testing-only function to connect to a websocket stream in an
 /// insecure manner.
 #[cfg(test)]
-fn stream_insecure<S>(
+async fn stream_insecure<S>(
   api_info: ApiInfo,
-) -> impl Future01<
-  Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
-  Error = Error,
->
+) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
 where
   S: EventStream,
 {
   let connect = |url| ClientBuilder::from_url(&url).async_connect_insecure();
-  stream_impl(connect, api_info, S::stream())
+  stream_impl(connect, api_info, S::stream()).await
 }
 
 /// Create a stream for decoded event data.
-pub fn stream<S>(
+pub async fn stream<S>(
   api_info: ApiInfo,
-) -> impl Future01<
-  Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
-  Error = Error,
->
+) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
 where
   S: EventStream,
 {
   let connect = |url| ClientBuilder::from_url(&url).async_connect_secure(None);
-  stream_impl(connect, api_info, S::stream())
+  stream_impl(connect, api_info, S::stream()).await
 }
 
 
@@ -299,10 +296,7 @@ where
 mod tests {
   use super::*;
 
-  use std::future::Future;
   use std::net::SocketAddr;
-
-  use futures::compat::Future01CompatExt;
 
   use test_env_log::test;
 
@@ -367,11 +361,9 @@ mod tests {
     (addr, future)
   }
 
-  fn mock_stream<S, F, R>(
+  async fn mock_stream<S, F, R>(
     f: F,
-  ) -> impl Future<
-    Output = Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>,
-  >
+  ) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
   where
     S: EventStream,
     F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
@@ -383,14 +375,9 @@ mod tests {
       key_id: KEY_ID.as_bytes().to_vec(),
       secret: SECRET.as_bytes().to_vec(),
     };
-    let stream_fut = stream_insecure::<S>(api_info);
 
-    ok(())
-      .and_then(|_| {
-        let _ = spawn(srv_fut.compat());
-        stream_fut
-      })
-      .compat()
+    let _ = spawn(srv_fut.compat());
+    stream_insecure::<S>(api_info).await
   }
 
   fn expect_msg<C>(

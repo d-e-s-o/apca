@@ -43,23 +43,20 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use crate::api::v1::asset;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
 
-  #[test]
-  fn retrieve_position() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn retrieve_position() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
     let request = PositionReq {
       symbol: asset::Symbol::Sym("SPY".to_string()),
     };
-    let future = client.issue::<Get>(request)?;
-    let result = block_on_all(future);
+    let result = client.issue::<Get>(request).await;
 
     // We don't know whether there is an open position and we can't
     // simply create one as the market may be closed. So really the best

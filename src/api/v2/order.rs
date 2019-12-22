@@ -4,7 +4,6 @@
 use std::time::SystemTime;
 
 use hyper::Body;
-use hyper::Chunk;
 use hyper::Method;
 
 use num_decimal::Num;
@@ -188,7 +187,7 @@ impl Endpoint for Post {
 
   fn body(input: &Self::Input) -> Result<Body, JsonError> {
     let json = to_json(input)?;
-    let body = Body::from(Chunk::from(json));
+    let body = Body::from(json);
     Ok(body)
   }
 }
@@ -237,15 +236,9 @@ impl Endpoint for Delete {
 mod tests {
   use super::*;
 
-  use futures01::future::Future;
-  use futures01::future::ok;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
-
-  use tokio01::runtime::current_thread::block_on_all;
-  use tokio01::runtime::current_thread::spawn;
 
   use uuid::Uuid;
 
@@ -295,9 +288,9 @@ mod tests {
     assert_eq!(order.stop_price, Some(Num::from_int(106)));
   }
 
-  #[test]
-  fn submit_limit_order() -> Result<(), Error> {
-    fn test(extended_hours: bool) -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn submit_limit_order() -> Result<(), Error> {
+    async fn test(extended_hours: bool) -> Result<(), Error> {
       let request = OrderReq {
         symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
         quantity: 1,
@@ -309,19 +302,11 @@ mod tests {
         extended_hours,
       };
       let api_info = ApiInfo::from_env()?;
-      let client = Client::new(api_info)?;
+      let client = Client::new(api_info);
 
-      let future = client.issue::<Post>(request)?.and_then(|order| {
-        spawn({
-          client.issue::<Delete>(order.id).unwrap().then(|x| {
-            let _ = x.unwrap();
-            ok(())
-          })
-        });
-        ok(order)
-      });
+      let order = client.issue::<Post>(request).await?;
+      let _ = client.issue::<Delete>(order.id).await?;
 
-      let order = block_on_all(future)?;
       assert_eq!(order.symbol, "SPY");
       assert_eq!(order.quantity, Num::from_int(1));
       assert_eq!(order.side, Side::Buy);
@@ -333,13 +318,13 @@ mod tests {
       Ok(())
     }
 
-    test(true)?;
-    test(false)?;
+    test(true).await?;
+    test(false).await?;
     Ok(())
   }
 
-  #[test]
-  fn extended_hours_market_order() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn extended_hours_market_order() -> Result<(), Error> {
     let request = OrderReq {
       symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
       quantity: 1,
@@ -351,12 +336,13 @@ mod tests {
       extended_hours: true,
     };
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
 
     // We are submitted a market order with extended_hours, that is
     // invalid as per the Alpaca documentation.
-    let future = client.issue::<Post>(request)?;
-    let err = block_on_all(future).unwrap_err();
+    let result = client.issue::<Post>(request).await;
+    let err = result.unwrap_err();
+
     match err {
       PostError::InvalidInput(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
