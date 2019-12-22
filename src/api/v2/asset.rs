@@ -92,8 +92,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use uuid::Uuid;
 
   use crate::api_info::ApiInfo;
@@ -128,14 +126,13 @@ mod tests {
     assert_eq!(asset.easy_to_borrow, true);
   }
 
-  #[test]
-  fn retrieve_asset() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn retrieve_asset() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
     let symbol = Symbol::Sym("SPY".to_string());
     let request = AssetReq { symbol };
-    let future = client.issue::<Get>(request)?;
-    let asset = block_on_all(future)?;
+    let asset = client.issue::<Get>(request).await?;
 
     let id = Id(Uuid::parse_str("b28f4066-5c6d-479b-a2af-85dc1a8f16fb").unwrap());
     assert_eq!(asset.id, id);

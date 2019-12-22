@@ -9,7 +9,6 @@ use std::fmt::Result as FmtResult;
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
 use hyper::http::StatusCode as HttpStatusCode;
-use hyper_tls::Error as TlsError;
 use serde_json::Error as JsonError;
 use url::ParseError;
 use websocket::WebSocketError;
@@ -42,8 +41,6 @@ pub enum Error {
   Json(JsonError),
   /// An error directly originating in this module.
   Str(Str),
-  /// A TLS related error.
-  Tls(TlsError),
   /// An URL parsing error.
   Url(ParseError),
   /// A websocket error.
@@ -58,7 +55,6 @@ impl Display for Error {
       Error::Hyper(err) => fmt_err(err, fmt),
       Error::Json(err) => fmt_err(err, fmt),
       Error::Str(err) => fmt.write_str(err),
-      Error::Tls(err) => fmt_err(err, fmt),
       Error::Url(err) => fmt_err(err, fmt),
       Error::WebSocket(err) => fmt_err(err, fmt),
     }
@@ -97,12 +93,6 @@ impl From<HyperError> for Error {
 impl From<JsonError> for Error {
   fn from(e: JsonError) -> Self {
     Error::Json(e)
-  }
-}
-
-impl From<TlsError> for Error {
-  fn from(e: TlsError) -> Self {
-    Error::Tls(e)
   }
 }
 
