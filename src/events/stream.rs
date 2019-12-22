@@ -1,13 +1,13 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::future::Either;
-use futures::future::err;
-use futures::future::Future;
-use futures::future::ok;
-use futures::sink::Sink;
-use futures::stream::Stream;
-use futures::stream::unfold;
+use futures01::future::Either;
+use futures01::future::err;
+use futures01::future::Future;
+use futures01::future::ok;
+use futures01::sink::Sink;
+use futures01::stream::Stream;
+use futures01::stream::unfold;
 
 use log::debug;
 use log::trace;
