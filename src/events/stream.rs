@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use futures::compat::Future01CompatExt;
+use futures::compat::Stream01CompatExt;
+use futures::stream::Stream;
 use futures01::future::Either;
 use futures01::future::err;
 use futures01::future::Future as Future01;
 use futures01::future::ok;
 use futures01::sink::Sink;
-use futures01::stream::Stream;
+use futures01::stream::Stream as Stream01;
 use futures01::stream::unfold;
 
 use log::debug;
@@ -133,7 +135,7 @@ fn handle_msg<C, I>(
   client: C,
 ) -> impl Future01<Item = (Result<Operation<I>, JsonError>, C), Error = WebSocketError>
 where
-  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+  C: Stream01<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
   I: DeserializeOwned,
 {
@@ -184,9 +186,9 @@ where
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>
+fn do_stream<C, I>(client: C) -> impl Stream01<Item = Result<I, JsonError>, Error = WebSocketError>
 where
-  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+  C: Stream01<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
   I: DeserializeOwned,
 {
@@ -209,7 +211,7 @@ async fn stream_impl<F, S, I>(
   connect: F,
   api_info: ApiInfo,
   stream: StreamType,
-) -> Result<impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error>
+) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>, Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -262,7 +264,7 @@ where
         },
       }
     })
-		.and_then(|c| ok(do_stream::<_, I>(c)))
+		.and_then(|c| ok(do_stream::<_, I>(c).compat()))
     .compat()
     .await
 }
@@ -272,7 +274,7 @@ where
 #[cfg(test)]
 async fn stream_insecure<S>(
   api_info: ApiInfo,
-) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
+) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
 where
   S: EventStream,
 {
@@ -283,7 +285,7 @@ where
 /// Create a stream for decoded event data.
 pub async fn stream<S>(
   api_info: ApiInfo,
-) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
+) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
 where
   S: EventStream,
 {
@@ -297,6 +299,9 @@ mod tests {
   use super::*;
 
   use std::net::SocketAddr;
+
+  use futures::future::ready;
+  use futures::TryStreamExt;
 
   use test_env_log::test;
 
@@ -363,7 +368,7 @@ mod tests {
 
   async fn mock_stream<S, F, R>(
     f: F,
-  ) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
   where
     S: EventStream,
     F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
@@ -385,7 +390,7 @@ mod tests {
     expected: OwnedMessage,
   ) -> impl Future01<Item = C, Error = WebSocketError>
   where
-    C: Stream<Item = OwnedMessage, Error = WebSocketError>,
+    C: Stream01<Item = OwnedMessage, Error = WebSocketError>,
   {
     stream
       .into_future()
@@ -452,10 +457,10 @@ mod tests {
 
     let err = stream
       .map_err(Error::from)
-      .for_each(|_| ok(()))
-      .compat()
+      .try_for_each(|_| ready(Ok(())))
       .await
       .unwrap_err();
+
     match err {
       Error::WebSocket(e) => match e {
         WebSocketError::ProtocolError(s) if s.starts_with("connection lost unexpectedly") => (),
@@ -504,8 +509,7 @@ mod tests {
 
     let _ = stream
       .map_err(Error::from)
-      .for_each(|_| ok(()))
-      .compat()
+      .try_for_each(|_| ready(Ok(())))
       .await
       .unwrap();
   }
@@ -532,8 +536,7 @@ mod tests {
 
     let _ = stream
       .map_err(Error::from)
-      .for_each(|_| ok(()))
-      .compat()
+      .try_for_each(|_| ready(Ok(())))
       .await
       .unwrap();
   }
