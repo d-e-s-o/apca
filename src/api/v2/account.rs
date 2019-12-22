@@ -132,8 +132,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use uuid::Uuid;
 
   use crate::api_info::ApiInfo;
@@ -184,12 +182,11 @@ mod tests {
     assert_eq!(acc.daytrade_count, 0);
   }
 
-  #[test]
-  fn request_account() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn request_account() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Get>(())?;
-    let account = block_on_all(future)?;
+    let client = Client::new(api_info);
+    let account = client.issue::<Get>(()).await?;
 
     assert_eq!(account.currency, "USD");
     assert!(!account.account_blocked);

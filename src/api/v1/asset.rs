@@ -209,8 +209,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use crate::api::v1::asset::Id;
   use crate::api_info::ApiInfo;
   use crate::Client;
@@ -254,14 +252,13 @@ mod tests {
     assert_eq!(asset.tradable, true);
   }
 
-  #[test]
-  fn retrieve_asset() -> Result<(), Error> {
-    fn test(symbol: Symbol) -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn retrieve_asset() -> Result<(), Error> {
+    async fn test(symbol: Symbol) -> Result<(), Error> {
       let api_info = ApiInfo::from_env()?;
-      let client = Client::new(api_info)?;
+      let client = Client::new(api_info);
       let request = AssetReq { symbol };
-      let future = client.issue::<Get>(request)?;
-      let asset = block_on_all(future)?;
+      let asset = client.issue::<Get>(request).await?;
 
       // The AAPL asset ID, retrieved out-of-band.
       let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
@@ -282,7 +279,7 @@ mod tests {
     ];
 
     for symbol in symbols.into_iter().cloned() {
-      test(symbol)?;
+      test(symbol).await?;
     }
     Ok(())
   }
