@@ -3,10 +3,10 @@
 
 use std::str::from_utf8;
 
-use futures01::future::Future;
 use futures01::stream::Stream;
 
 use hyper::Body;
+use hyper::body::to_bytes;
 use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
@@ -34,7 +34,6 @@ use crate::events::stream;
 #[derive(Debug)]
 pub struct Builder {
   builder: HttpClientBuilder,
-  dns_threads: usize,
 }
 
 impl Builder {
@@ -44,18 +43,12 @@ impl Builder {
     self
   }
 
-  /// Set the number of DNS worker threads used by the HTTPS connector.
-  pub fn dns_worker_threads(&mut self, threads: usize) -> &mut Self {
-    self.dns_threads = threads;
-    self
-  }
-
   /// Build the final `Client` object.
-  pub fn build(&self, api_info: ApiInfo) -> Result<Client, Error> {
-    let https = HttpsConnector::new(self.dns_threads)?;
+  pub fn build(&self, api_info: ApiInfo) -> Client {
+    let https = HttpsConnector::new();
     let client = self.builder.build(https);
 
-    Ok(Client { api_info, client })
+    Client { api_info, client }
   }
 }
 
@@ -75,7 +68,6 @@ impl Default for Builder {
 
     Self {
       builder,
-      dns_threads: 1,
     }
   }
 
@@ -83,7 +75,6 @@ impl Default for Builder {
   fn default() -> Self {
     Self {
       builder: HttpClient::builder(),
-      dns_threads: 4,
     }
   }
 }
@@ -108,75 +99,58 @@ impl Client {
 
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
-  pub fn new(api_info: ApiInfo) -> Result<Self, Error> {
+  pub fn new(api_info: ApiInfo) -> Self {
     Builder::default().build(api_info)
   }
 
   /// Create and issue a request and decode the response.
-  pub fn issue<R>(
-    &self,
-    input: R::Input,
-  ) -> Result<impl Future<Item = R::Output, Error = R::Error>, Error>
+  pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
     R: Endpoint,
-    R::Output: Send + 'static,
-    R::Error: From<hyper::Error> + Send + 'static,
+    R::Error: From<hyper::Error>,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
-    let req = R::request(&self.api_info, &input)?;
+    let req = R::request(&self.api_info, &input).unwrap();
     if log_enabled!(Debug) {
       debug!("HTTP request: {:?}", req);
     } else {
       info!("HTTP request: {} to {}", req.method(), req.uri());
     }
 
-    let fut = self
-      .client
-      .request(req)
-      .and_then(|res| {
-        let status = res.status();
-        // We unconditionally wait for the full body to be received
-        // before even evaluating the header. That is mostly done for
-        // simplicity and it shouldn't really matter anyway because most
-        // if not all requests evaluate the body on success and on error
-        // the server shouldn't send back much.
-        // TODO: However, there may be one case that has the potential
-        //       to cause trouble: when we receive, for example, the
-        //       list of all orders it now needs to be stored in memory
-        //       in its entirety. That may blow things.
-        res.into_body().concat2().map(move |body| (status, body))
-      })
-      .map_err(R::Error::from)
-      .and_then(|(status, body)| {
-        let bytes = body.into_bytes();
-        let body = Vec::from(bytes.as_ref());
+    let result = self.client.request(req).await?;
+    let status = result.status();
+    // We unconditionally wait for the full body to be received
+    // before even evaluating the header. That is mostly done for
+    // simplicity and it shouldn't really matter anyway because most
+    // if not all requests evaluate the body on success and on error
+    // the server shouldn't send back much.
+    // TODO: However, there may be one case that has the potential
+    //       to cause trouble: when we receive, for example, the
+    //       list of all orders it now needs to be stored in memory
+    //       in its entirety. That may blow things.
+    let bytes = to_bytes(result.into_body()).await?;
+    let body = Vec::from(bytes.as_ref());
 
-        info!("HTTP status: {}", status);
-        if log_enabled!(Debug) {
-          match from_utf8(&body) {
-            Ok(s) => debug!("HTTP body: {}", s),
-            Err(b) => debug!("HTTP body: {}", b),
-          }
-        }
+    info!("HTTP status: {}", status);
+    if log_enabled!(Debug) {
+      match from_utf8(&body) {
+        Ok(s) => debug!("HTTP body: {}", s),
+        Err(b) => debug!("HTTP body: {}", b),
+      }
+    }
 
-        let res = ConvertResult::<R::Output, R::Error>::from((status, body));
-        Into::<Result<_, _>>::into(res)
-      });
-
-    Ok(Box::new(fut))
+    let res = ConvertResult::<R::Output, R::Error>::from((status, body));
+    Into::<Result<_, _>>::into(res)
   }
 
   /// Subscribe to the given stream in order to receive updates.
-  pub fn subscribe<S>(
+  pub async fn subscribe<S>(
     &self,
-  ) -> impl Future<
-    Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
-    Error = Error,
-  >
+  ) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
   where
     S: EventStream,
   {
-    stream::<S>(self.api_info.clone())
+    stream::<S>(self.api_info.clone()).await
   }
 
   /// Retrieve the `ApiInfo` object used by this `Client` instance.
@@ -189,8 +163,6 @@ impl Client {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  use tokio01::runtime::current_thread::block_on_all;
 
   use test_env_log::test;
 
@@ -217,13 +189,12 @@ mod tests {
     }
   }
 
-
-  #[test]
-  fn unexpected_status_code_return() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn unexpected_status_code_return() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::builder().max_idle_per_host(0).build(api_info)?;
-    let future = client.issue::<GetNotFound>(())?;
-    let err = block_on_all(future).unwrap_err();
+    let client = Client::builder().max_idle_per_host(0).build(api_info);
+    let result = client.issue::<GetNotFound>(()).await;
+    let err = result.unwrap_err();
 
     match err {
       GetNotFoundError::UnexpectedStatus(status, message) => {
