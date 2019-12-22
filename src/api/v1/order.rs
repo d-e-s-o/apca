@@ -359,7 +359,8 @@ mod tests {
   use tokio01::runtime::current_thread::block_on_all;
   use tokio01::runtime::current_thread::spawn;
 
-  use crate::api::v1::order_util::ClientExt;
+  use crate::api::v1::order_util::cancel_order;
+  use crate::api::v1::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
@@ -419,8 +420,8 @@ mod tests {
   fn submit_limit_order() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info)?;
-    let future = client.order_aapl()?.and_then(|order| {
-      spawn(client.cancel_order(order.id));
+    let future = order_aapl(&client)?.and_then(|order| {
+      spawn(cancel_order(&client, order.id));
       ok(order)
     });
 
@@ -479,12 +480,12 @@ mod tests {
   fn retrieve_order_by_id() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info)?;
-    let future = client.order_aapl()?.map_err(Error::from).and_then(|order| {
+    let future = order_aapl(&client)?.map_err(Error::from).and_then(|order| {
       let id = order.id;
       ok(order)
         .join({ client.issue::<Get>(id).unwrap().map_err(Error::from) })
         .then(move |res| {
-          spawn(client.cancel_order(id));
+          spawn(cancel_order(&client, id));
           res
         })
     });
