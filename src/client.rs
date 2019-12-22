@@ -3,8 +3,8 @@
 
 use std::str::from_utf8;
 
-use futures::future::Future;
-use futures::stream::Stream;
+use futures01::future::Future;
+use futures01::stream::Stream;
 
 use hyper::Body;
 use hyper::Client as HttpClient;
