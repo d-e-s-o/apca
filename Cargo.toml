@@ -23,5 +23,7 @@ websocket = {version = "0.24", default-features = false, features = ["async", "a
 
 [dev-dependencies]
 env_logger = {version = "0.6", default-features = false}
+futures = {version = "0.3", default-features = false, features = ["compat"]}
 test-env-log = "0.2"
+tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
 tokio01 = {package = "tokio", version = "0.1", default-features = false, features = ["tcp"]}
