@@ -3,7 +3,7 @@
 
 use futures01::future::Either;
 use futures01::future::err;
-use futures01::future::Future;
+use futures01::future::Future as Future01;
 use futures01::future::ok;
 use futures01::sink::Sink;
 use futures01::stream::Stream;
@@ -130,7 +130,7 @@ where
 /// Decode a single value from the client.
 fn handle_msg<C, I>(
   client: C,
-) -> impl Future<Item = (Result<Operation<I>, JsonError>, C), Error = WebSocketError>
+) -> impl Future01<Item = (Result<Operation<I>, JsonError>, C), Error = WebSocketError>
 where
   C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
@@ -208,7 +208,7 @@ fn stream_impl<F, S, I>(
   connect: F,
   api_info: ApiInfo,
   stream: StreamType,
-) -> impl Future<Item = impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error = Error>
+) -> impl Future01<Item = impl Stream<Item = Result<I, JsonError>, Error = WebSocketError>, Error = Error>
 where
   F: FnOnce(Url) -> ClientNew<S>,
   S: AsyncRead + AsyncWrite,
@@ -269,7 +269,7 @@ where
 #[cfg(test)]
 fn stream_insecure<S>(
   api_info: ApiInfo,
-) -> impl Future<
+) -> impl Future01<
   Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
   Error = Error,
 >
@@ -283,7 +283,7 @@ where
 /// Create a stream for decoded event data.
 pub fn stream<S>(
   api_info: ApiInfo,
-) -> impl Future<
+) -> impl Future01<
   Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
   Error = Error,
 >
@@ -299,14 +299,16 @@ where
 mod tests {
   use super::*;
 
+  use std::future::Future;
   use std::net::SocketAddr;
+
+  use futures::compat::Future01CompatExt;
 
   use test_env_log::test;
 
+  use tokio::spawn;
   use tokio01::net::TcpStream;
   use tokio01::reactor::Handle;
-  use tokio01::runtime::current_thread::block_on_all;
-  use tokio01::runtime::current_thread::spawn;
 
   use websocket::client::r#async::Framed;
   use websocket::OwnedMessage;
@@ -342,10 +344,10 @@ mod tests {
 
   /// Create a websocket server that handles a customizable set of
   /// requests and exits.
-  fn mock_server<F, R>(f: F) -> (SocketAddr, impl Future<Item = (), Error = ()>)
+  fn mock_server<F, R>(f: F) -> (SocketAddr, impl Future01<Item = (), Error = ()>)
   where
     F: Copy + FnOnce(WebSocketStream) -> R + 'static,
-    R: Future<Item = (), Error = WebSocketError> + 'static,
+    R: Future01<Item = (), Error = WebSocketError> + 'static,
   {
     let server = Server::bind("localhost:0", &Handle::default()).unwrap();
     let addr = server.local_addr().unwrap();
@@ -368,13 +370,12 @@ mod tests {
   fn mock_stream<S, F, R>(
     f: F,
   ) -> impl Future<
-    Item = impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>,
-    Error = Error,
+    Output = Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>,
   >
   where
     S: EventStream,
-    F: Copy + FnOnce(WebSocketStream) -> R + 'static,
-    R: Future<Item = (), Error = WebSocketError> + 'static,
+    F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
+    R: Future01<Item = (), Error = WebSocketError> + Send + 'static,
   {
     let (addr, srv_fut) = mock_server(f);
     let api_info = ApiInfo {
@@ -384,16 +385,18 @@ mod tests {
     };
     let stream_fut = stream_insecure::<S>(api_info);
 
-    ok(()).and_then(|_| {
-      spawn(srv_fut);
-      stream_fut
-    })
+    ok(())
+      .and_then(|_| {
+        let _ = spawn(srv_fut.compat());
+        stream_fut
+      })
+      .compat()
   }
 
   fn expect_msg<C>(
     stream: C,
     expected: OwnedMessage,
-  ) -> impl Future<Item = C, Error = WebSocketError>
+  ) -> impl Future01<Item = C, Error = WebSocketError>
   where
     C: Stream<Item = OwnedMessage, Error = WebSocketError>,
   {
@@ -406,28 +409,26 @@ mod tests {
       .map_err(|(e, _)| e)
   }
 
-
-  #[test]
-  fn broken_stream() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn broken_stream() {
+    let result = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication. We receive the message but never respond.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await;
 
-    let err = block_on_all(fut).unwrap_err();
-    match err {
-      Error::Str(ref e) if e == "no response to authentication request" => (),
-      e @ _ => panic!("received unexpected error: {}", e),
+    match result {
+      Ok(_) => panic!("authentication succeeded unexpectedly"),
+      Err(Error::Str(ref e)) if e == "no response to authentication request" => (),
+      Err(e) => panic!("received unexpected error: {}", e),
     }
-    Ok(())
   }
 
-  #[test]
-  fn early_close() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn early_close() {
+    let result = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
@@ -437,20 +438,19 @@ mod tests {
         // Just respond with a Close.
         .and_then(|stream| stream.send(OwnedMessage::Close(None)))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await;
 
-    let err = block_on_all(fut).unwrap_err();
-    match err {
-      Error::Str(ref e) if e.starts_with("received unexpected message: Close") => (),
-      e @ _ => panic!("received unexpected error: {}", e),
+    match result {
+      Ok(_) => panic!("operation succeeded unexpectedly"),
+      Err(Error::Str(ref e)) if e.starts_with("received unexpected message: Close") => (),
+      Err(e) => panic!("received unexpected error: {}", e),
     }
-    Ok(())
   }
 
-  #[test]
-  fn no_messages() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn no_messages() {
+    let stream = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
@@ -459,43 +459,47 @@ mod tests {
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(STREAM_REQ.to_string())))
         .and_then(|stream| stream.send(OwnedMessage::Text(STREAM_RESP.to_string())))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await
+    .unwrap();
 
-    let err = block_on_all(fut).unwrap_err();
+    let err = stream
+      .map_err(Error::from)
+      .for_each(|_| ok(()))
+      .compat()
+      .await
+      .unwrap_err();
     match err {
       Error::WebSocket(e) => match e {
         WebSocketError::ProtocolError(s) if s.starts_with("connection lost unexpectedly") => (),
-        e @ _ => panic!("received unexpected error: {}", e),
+        e => panic!("received unexpected error: {}", e),
       },
-      e @ _ => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {}", e),
     }
-    Ok(())
   }
 
-  #[test]
-  fn decode_error_during_handshake() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn decode_error_during_handshake() {
+    let result = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
         .and_then(|stream| stream.send(OwnedMessage::Text(AUTH_RESP.to_string())))
         .and_then(|stream| stream.send(OwnedMessage::Text("{ foobarbaz }".to_string())))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await;
 
-    let err = block_on_all(fut).unwrap_err();
-    match err {
-      Error::Json(_) => (),
-      e @ _ => panic!("received unexpected error: {}", e),
+    match result {
+      Ok(_) => panic!("operation succeeded unexpectedly"),
+      Err(Error::Json(_)) => (),
+      Err(e) => panic!("received unexpected error: {}", e),
     }
-    Ok(())
   }
 
-  #[test]
-  fn decode_error_errors_do_not_terminate() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn decode_error_errors_do_not_terminate() {
+    let stream = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
@@ -507,16 +511,21 @@ mod tests {
         .and_then(|stream| stream.send(OwnedMessage::Text(UNIT_EVENT.to_string())))
         .and_then(|stream| stream.send(OwnedMessage::Close(None)))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await
+    .unwrap();
 
-    let _ = block_on_all(fut).unwrap();
-    Ok(())
+    let _ = stream
+      .map_err(Error::from)
+      .for_each(|_| ok(()))
+      .compat()
+      .await
+      .unwrap();
   }
 
-  #[test]
-  fn ping_pong() -> Result<(), Error> {
-    let fut = mock_stream::<DummyStream, _, _>(|stream| {
+  #[test(tokio::test)]
+  async fn ping_pong() {
+    let stream = mock_stream::<DummyStream, _, _>(|stream| {
       ok(stream)
         // Authentication.
         .and_then(|stream| expect_msg(stream, OwnedMessage::Text(AUTH_REQ.to_string())))
@@ -530,10 +539,15 @@ mod tests {
         .and_then(|stream| expect_msg(stream, OwnedMessage::Pong(Vec::new())))
         .and_then(|stream| stream.send(OwnedMessage::Close(None)))
         .map(|_| ())
-    });
-    let fut = fut.and_then(|s| s.map_err(Error::from).for_each(|_| ok(())));
+    })
+    .await
+    .unwrap();
 
-    let _ = block_on_all(fut)?;
-    Ok(())
+    let _ = stream
+      .map_err(Error::from)
+      .for_each(|_| ok(()))
+      .compat()
+      .await
+      .unwrap();
   }
 }
