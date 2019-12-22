@@ -154,7 +154,8 @@ mod tests {
   use url::Url;
 
   use crate::api::API_BASE_URL;
-  use crate::api::v1::order_util::ClientExt;
+  use crate::api::v1::order_util::cancel_order;
+  use crate::api::v1::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
@@ -168,10 +169,9 @@ mod tests {
     //       same when streaming events using Alpaca's Python client.
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info)?;
-    let order = client
-      .order_aapl()?
+    let order = order_aapl(&client)?
       .and_then(|order| {
-        spawn(client.cancel_order(order.id));
+        spawn(cancel_order(&client, order.id));
         ok(order)
       })
       .map_err(Error::from);
