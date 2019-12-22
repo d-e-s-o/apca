@@ -3,7 +3,7 @@
 
 use std::str::from_utf8;
 
-use futures01::stream::Stream;
+use futures::stream::Stream;
 
 use hyper::Body;
 use hyper::body::to_bytes;
@@ -146,7 +146,7 @@ impl Client {
   /// Subscribe to the given stream in order to receive updates.
   pub async fn subscribe<S>(
     &self,
-  ) -> Result<impl Stream<Item = Result<S::Event, JsonError>, Error = WebSocketError>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
   where
     S: EventStream,
   {
