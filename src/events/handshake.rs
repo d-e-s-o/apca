@@ -1,9 +1,9 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::future::Future;
-use futures::sink::Sink;
-use futures::stream::Stream;
+use futures01::future::Future;
+use futures01::sink::Sink;
+use futures01::stream::Stream;
 
 use log::debug;
 use log::error;
