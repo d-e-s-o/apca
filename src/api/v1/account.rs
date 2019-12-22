@@ -133,8 +133,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use url::Url;
 
   use crate::api::API_BASE_URL;
@@ -173,12 +171,11 @@ mod tests {
     assert_eq!(acc.created_at, UNIX_EPOCH + Duration::from_secs(1538400925))
   }
 
-  #[test]
-  fn request_account() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn request_account() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Get>(())?;
-    let account = block_on_all(future)?;
+    let client = Client::new(api_info);
+    let account = client.issue::<Get>(()).await?;
 
     // Just a few sanity checks to verify that we did receive something
     // meaningful from the correct API endpoint.
@@ -187,18 +184,18 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn request_account_with_invalid_credentials() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn request_account_with_invalid_credentials() -> Result<(), Error> {
     let api_base = Url::parse(API_BASE_URL)?;
     let api_info = ApiInfo {
       base_url: api_base,
       key_id: b"invalid".to_vec(),
       secret: b"invalid-too".to_vec(),
     };
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Get>(())?;
+    let client = Client::new(api_info);
+    let result = client.issue::<Get>(()).await;
 
-    let err = block_on_all(future).unwrap_err();
+    let err = result.unwrap_err();
     match err {
       GetError::AuthenticationFailed(_) => (),
       e @ _ => panic!("received unexpected error: {:?}", e),

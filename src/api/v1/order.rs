@@ -5,7 +5,6 @@ use std::ops::Deref;
 use std::time::SystemTime;
 
 use hyper::Body;
-use hyper::Chunk;
 use hyper::Method;
 
 use num_decimal::Num;
@@ -299,7 +298,7 @@ impl Endpoint for Post {
 
   fn body(input: &Self::Input) -> Result<Body, JsonError> {
     let json = to_json(input)?;
-    let body = Body::from(Chunk::from(json));
+    let body = Body::from(json);
     Ok(body)
   }
 }
@@ -348,18 +347,11 @@ impl Endpoint for Delete {
 mod tests {
   use super::*;
 
-  use futures01::future::Future;
-  use futures01::future::ok;
-
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-  use tokio01::runtime::current_thread::spawn;
-
-  use crate::api::v1::order_util::cancel_order;
   use crate::api::v1::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
@@ -416,16 +408,13 @@ mod tests {
     assert_eq!(order.stop_price, Some(Num::from_int(106)));
   }
 
-  #[test]
-  fn submit_limit_order() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn submit_limit_order() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = order_aapl(&client)?.and_then(|order| {
-      spawn(cancel_order(&client, order.id));
-      ok(order)
-    });
+    let client = Client::new(api_info);
+    let order = order_aapl(&client).await?;
+    let _ = client.issue::<Delete>(order.id).await?;
 
-    let order = block_on_all(future)?;
     // Just a few sanity checks to verify that we did receive something
     // meaningful from the correct API endpoint.
     assert_eq!(order.symbol, "AAPL");
@@ -438,10 +427,10 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn submit_unsatisfiable_order() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn submit_unsatisfiable_order() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
     let request = OrderReq {
       symbol: asset::Symbol::Sym("AAPL".to_string()),
       quantity: 100000,
@@ -451,8 +440,8 @@ mod tests {
       limit_price: Some(Num::from_int(1000)),
       stop_price: None,
     };
-    let future = client.issue::<Post>(request)?;
-    let err = block_on_all(future).unwrap_err();
+    let result = client.issue::<Post>(request).await;
+    let err = result.unwrap_err();
 
     match err {
       PostError::InsufficientFunds(_) => (),
@@ -461,13 +450,13 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn cancel_invalid_order() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn cancel_invalid_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Delete>(id)?;
-    let err = block_on_all(future).unwrap_err();
+    let client = Client::new(api_info);
+    let result = client.issue::<Delete>(id).await;
+    let err = result.unwrap_err();
 
     match err {
       DeleteError::NotFound(_) => (),
@@ -476,21 +465,15 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn retrieve_order_by_id() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn retrieve_order_by_id() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = order_aapl(&client)?.map_err(Error::from).and_then(|order| {
-      let id = order.id;
-      ok(order)
-        .join({ client.issue::<Get>(id).unwrap().map_err(Error::from) })
-        .then(move |res| {
-          spawn(cancel_order(&client, id));
-          res
-        })
-    });
+    let client = Client::new(api_info);
+    let posted = order_aapl(&client).await?;
+    let result = client.issue::<Get>(posted.id).await;
+    let _ = client.issue::<Delete>(posted.id).await?;
+    let gotten = result?;
 
-    let (posted, gotten) = block_on_all(future)?;
     // We can't simply compare the two orders for equality, because some
     // time stamps may differ.
     assert_eq!(posted.id, gotten.id);
@@ -505,13 +488,13 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn retrieve_non_existent_order() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn retrieve_non_existent_order() -> Result<(), Error> {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Get>(id)?;
-    let err = block_on_all(future).unwrap_err();
+    let client = Client::new(api_info);
+    let result = client.issue::<Get>(id).await;
+    let err = result.unwrap_err();
 
     match err {
       GetError::NotFound(_) => (),

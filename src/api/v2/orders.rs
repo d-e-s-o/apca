@@ -48,22 +48,19 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
 
-  #[test]
-  fn list_orders() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn list_orders() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
     let request = OrdersReq { limit: 50 };
-    let future = client.issue::<Get>(request)?;
 
     // We merely check that no error is reported.
-    let _ = block_on_all(future)?;
+    let _ = client.issue::<Get>(request).await?;
     Ok(())
   }
 }

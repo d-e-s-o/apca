@@ -58,12 +58,7 @@ impl Endpoint for Get {
 mod tests {
   use super::*;
 
-  use futures01::future::Future;
-  use futures01::future::ok;
-
   use test_env_log::test;
-
-  use tokio01::runtime::current_thread::block_on_all;
 
   use crate::api::v1::order;
   use crate::api::v1::order_util::order_aapl;
@@ -72,46 +67,23 @@ mod tests {
   use crate::Error;
 
 
-  #[test]
-  fn list_orders() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn list_orders() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
+    let client = Client::new(api_info);
     let request = OrdersReq { limit: 50 };
 
-    // Holy fucking shit!! We need to get the order ID passed through to
-    // the various futures. We cannot just close over it from the outer
-    // scope for lifetime conflicts. We also can't just use move
-    // closures because that moves the client object as well. So we end
-    // up with this dance to pass the order ID through the pipeline.
-    let future = order_aapl(&client)?.map_err(Error::from).and_then(|order| {
-      ok(order.id)
-        .join({
-          client
-            .issue::<Get>(request.clone())
-            .unwrap()
-            .map_err(Error::from)
-        })
-        .then(|res| {
-          let (id, res) = res.unwrap();
-          ok((id, res)).join({
-            client
-              .issue::<order::Delete>(id)
-              .unwrap()
-              .map_err(Error::from)
-          })
-        })
-        .and_then(|res| {
-          let (id, before) = res;
-          ok((id, before)).join(client.issue::<Get>(request).unwrap().map_err(Error::from))
-        })
-    });
+    let order = order_aapl(&client).await?;
+    let result = client.issue::<Get>(request.clone()).await;
+    let _ = client.issue::<order::Delete>(order.id).await?;
+    let before = result?;
+    let after = client.issue::<Get>(request.clone()).await?;
 
-    let (((id, before), _), after) = block_on_all(future)?;
     let before = Into::<Vec<_>>::into(before);
     let after = Into::<Vec<_>>::into(after);
 
-    assert!(before.into_iter().find(|x| x.id == id).is_some());
-    assert!(after.into_iter().find(|x| x.id == id).is_none());
+    assert!(before.into_iter().find(|x| x.id == order.id).is_some());
+    assert!(after.into_iter().find(|x| x.id == order.id).is_none());
     Ok(())
   }
 }
