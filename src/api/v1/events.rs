@@ -142,66 +142,56 @@ impl EventStream for TradeUpdates {
 mod tests {
   use super::*;
 
+  use futures::compat::Future01CompatExt;
   use futures01::future::Future;
   use futures01::future::ok;
   use futures01::stream::Stream;
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-  use tokio01::runtime::current_thread::spawn;
-
   use url::Url;
 
   use crate::api::API_BASE_URL;
-  use crate::api::v1::order_util::cancel_order;
+  use crate::api::v1::order;
   use crate::api::v1::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
 
-  #[test]
-  fn stream_trade_events() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn stream_trade_events() -> Result<(), Error> {
     // TODO: There may be something amiss here. If we don't cancel the
     //       order we never get an event about a new trade. That does
     //       not seem to be in our code, though, as the behavior is the
     //       same when streaming events using Alpaca's Python client.
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let order = order_aapl(&client)?
-      .and_then(|order| {
-        spawn(cancel_order(&client, order.id));
-        ok(order)
-      })
-      .map_err(Error::from);
-    let fut = client
-      .subscribe::<TradeUpdates>()
-      .and_then(|stream| ok(stream).join(order))
-      .and_then(|(stream, order)| {
-        let id = order.id;
-        stream
-          .filter_map(|res| {
-            assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
-            res.ok()
-          })
-          // There could be other trades happening concurrently but we
-          // are only interested in ones belonging to the order we
-          // submitted as part of this test.
-          .skip_while(move |trade| ok(trade.order.id != id))
-          // In fact, we only care about the first such trade for our
-          // verification purposes.
-          .take(1)
-          .into_future()
-          .map_err(|(err, _stream)| err)
-          .map_err(Error::from)
-          // We don't care about the rest of the stream. Well, there
-          // really shouldn't be any.
-          .map(|(trade, _stream)| trade)
-          .join(ok(order))
-      });
+    let client = Client::new(api_info);
+    let stream = client.subscribe::<TradeUpdates>().await?;
+    let order = order_aapl(&client).await?;
+    let _ = client.issue::<order::Delete>(order.id).await?;
 
-    let (trade, order) = block_on_all(fut)?;
+    let trade = stream
+      .filter_map(|res| {
+        assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
+        res.ok()
+      })
+      // There could be other trades happening concurrently but we
+      // are only interested in ones belonging to the order we
+      // submitted as part of this test.
+      .skip_while(|trade| ok(trade.order.id != order.id))
+      // In fact, we only care about the first such trade for our
+      // verification purposes.
+      .take(1)
+      .into_future()
+      .map_err(|(err, _stream)| err)
+      .map_err(Error::from)
+      // We don't care about the rest of the stream. Well, there
+      // really shouldn't be any.
+      .map(|(trade, _stream)| trade)
+      .compat()
+      .await?;
+
     let trade = trade.unwrap();
     assert_eq!(order.id, trade.order.id);
     assert_eq!(order.asset_id, trade.order.asset_id);
@@ -213,8 +203,8 @@ mod tests {
     Ok(())
   }
 
-  #[test]
-  fn stream_with_invalid_credentials() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn stream_with_invalid_credentials() -> Result<(), Error> {
     let api_base = Url::parse(API_BASE_URL)?;
     let api_info = ApiInfo {
       base_url: api_base,
@@ -222,19 +212,13 @@ mod tests {
       secret: b"invalid-too".to_vec(),
     };
 
-    let client = Client::new(api_info)?;
-    let fut = client.subscribe::<TradeUpdates>().and_then(|stream| {
-      stream
-        .into_future()
-        .map_err(|e| e.0)
-        .map_err(Error::from)
-        .map(|(update, _)| update)
-    });
+    let client = Client::new(api_info);
+    let result = client.subscribe::<TradeUpdates>().await;
 
-    let err = block_on_all(fut).unwrap_err();
-    match err {
-      Error::Str(ref e) if e == "authentication not successful" => (),
-      e @ _ => panic!("received unexpected error: {}", e),
+    match result {
+      Ok(_) => panic!("operation succeeded unexpectedly"),
+      Err(Error::Str(ref e)) if e == "authentication not successful" => (),
+      Err(e) => panic!("received unexpected error: {}", e),
     }
     Ok(())
   }

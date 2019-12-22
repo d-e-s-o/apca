@@ -61,8 +61,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio01::runtime::current_thread::block_on_all;
-
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
@@ -81,14 +79,13 @@ mod tests {
     assert_eq!(clock.open, true);
   }
 
-  #[test]
-  fn current_market_clock() -> Result<(), Error> {
+  #[test(tokio::test)]
+  async fn current_market_clock() -> Result<(), Error> {
     const SECS_IN_HOUR: u64 = 60 * 60;
 
     let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info)?;
-    let future = client.issue::<Get>(())?;
-    let clock = block_on_all(future)?;
+    let client = Client::new(api_info);
+    let clock = client.issue::<Get>(()).await?;
 
     // We want to sanitize the current time being reported at least to a
     // certain degree. For that we assume that our local time is
