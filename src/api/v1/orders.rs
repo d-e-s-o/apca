@@ -58,8 +58,8 @@ impl Endpoint for Get {
 mod tests {
   use super::*;
 
-  use futures::future::Future;
-  use futures::future::ok;
+  use futures01::future::Future;
+  use futures01::future::ok;
 
   use test_env_log::test;
 

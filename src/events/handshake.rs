@@ -3,9 +3,9 @@
 
 use std::str::from_utf8;
 
-use futures::future::Future;
-use futures::sink::Sink;
-use futures::stream::Stream;
+use futures01::future::Future;
+use futures01::sink::Sink;
+use futures01::stream::Stream;
 
 use log::debug;
 use log::error;

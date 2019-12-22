@@ -348,8 +348,8 @@ impl Endpoint for Delete {
 mod tests {
   use super::*;
 
-  use futures::future::Future;
-  use futures::future::ok;
+  use futures01::future::Future;
+  use futures01::future::ok;
 
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
