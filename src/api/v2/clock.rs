@@ -27,7 +27,7 @@ pub struct Clock {
   pub next_close: SystemTime,
 }
 
-/// The representation of a GET request to the /v1/assets/<symbol> endpoint.
+/// The representation of a GET request to the /v2/assets/<symbol> endpoint.
 #[derive(Clone, Copy, Debug)]
 pub struct Get {}
 
@@ -46,7 +46,7 @@ impl Endpoint for Get {
   type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
-    "/v1/clock".into()
+    "/v2/clock".into()
   }
 }
 
