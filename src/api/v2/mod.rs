@@ -5,6 +5,8 @@
 pub mod account;
 /// Definitions surrounding assets.
 pub mod asset;
+/// Functionality for retrieving market open/close timing information.
+pub mod clock;
 /// Definitions surrounding orders.
 pub mod order;
 /// Functionality for listing orders.
