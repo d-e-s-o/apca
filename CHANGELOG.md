@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Removed support for `v1` API
+
+
 0.2.0
 -----
 - Converted `api` functionality to use `async`/`await` syntax

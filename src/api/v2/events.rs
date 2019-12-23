@@ -152,8 +152,8 @@ mod tests {
   use url::Url;
 
   use crate::api::API_BASE_URL;
-  use crate::api::v1::order_util::order_aapl;
   use crate::api::v2::order;
+  use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;

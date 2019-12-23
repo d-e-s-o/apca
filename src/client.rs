@@ -185,7 +185,7 @@ mod tests {
     type Error = GetNotFoundError;
 
     fn path(_input: &Self::Input) -> Str {
-      "/v1/foobarbaz".into()
+      "/v2/foobarbaz".into()
     }
   }
 
