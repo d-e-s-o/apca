@@ -9,8 +9,6 @@ pub mod assets;
 pub mod events;
 /// Definitions surrounding open positions.
 pub mod position;
-/// Functionality for listing open positions.
-pub mod positions;
 
 // TODO: Make module private again once transition to v2 is done.
 #[cfg(test)]
