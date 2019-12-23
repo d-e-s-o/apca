@@ -1,8 +1,6 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// Definitions for the first version of the Alpaca API.
-pub mod v1;
 /// Definitions for the second version of the Alpaca API.
 pub mod v2;
 

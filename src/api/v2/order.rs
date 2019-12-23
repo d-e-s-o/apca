@@ -363,10 +363,10 @@ mod tests {
 
   use uuid::Uuid;
 
-  use crate::api::v1::order_util::order_aapl;
   use crate::api::v2::asset::Class;
   use crate::api::v2::asset::Exchange;
   use crate::api::v2::asset::Symbol;
+  use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
