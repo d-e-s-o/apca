@@ -5,14 +5,14 @@ use serde::Serialize;
 
 use url::form_urlencoded::Serializer;
 
-use crate::api::v1::asset::Asset;
-use crate::api::v1::asset::Class;
-use crate::api::v1::asset::Status;
+use crate::api::v2::asset::Asset;
+use crate::api::v2::asset::Class;
+use crate::api::v2::asset::Status;
 use crate::endpoint::Endpoint;
 use crate::Str;
 
 
-/// A GET request to be made to the /v1/assets endpoint.
+/// A GET request to be made to the /v2/assets endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq)]
 pub struct AssetsReq {
   /// The status of assets to include in the response.
@@ -24,7 +24,7 @@ pub struct AssetsReq {
 }
 
 
-/// The representation of a GET request to the /v1/assets endpoint.
+/// The representation of a GET request to the /v2/assets endpoint.
 #[derive(Clone, Copy, Debug)]
 pub struct Get {}
 
@@ -43,7 +43,7 @@ impl Endpoint for Get {
   type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
-    "/v1/assets".into()
+    "/v2/assets".into()
   }
 
   fn query(input: &Self::Input) -> Option<Str> {
@@ -63,7 +63,7 @@ mod tests {
 
   use test_env_log::test;
 
-  use crate::api::v1::asset::Exchange;
+  use crate::api::v2::asset::Exchange;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
