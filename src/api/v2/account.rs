@@ -1,18 +1,58 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::ops::Deref;
 use std::time::SystemTime;
 
 use num_decimal::Num;
 
 use serde::Deserialize;
 
-pub use crate::api::v1::account::Id;
-pub use crate::api::v1::account::Status;
+use uuid::Uuid;
 
 use crate::api::time_util::system_time;
 use crate::endpoint::Endpoint;
 use crate::Str;
+
+
+/// A type representing an account ID.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub struct Id(pub Uuid);
+
+impl Deref for Id {
+  type Target = Uuid;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+
+/// An enumeration of the various states an account can be in.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub enum Status {
+  /// The account is onboarding.
+  #[serde(rename = "ONBOARDING")]
+  Onboarding,
+  /// The account application submission failed for some reason.
+  #[serde(rename = "SUBMISSION_FAILED")]
+  SubmissionFailed,
+  /// The account application has been submitted for review.
+  #[serde(rename = "SUBMITTED")]
+  Submitted,
+  /// The account information is being updated.
+  #[serde(rename = "ACCOUNT_UPDATED")]
+  Updating,
+  /// The final account approval is pending.
+  #[serde(rename = "APPROVAL_PENDING")]
+  ApprovalPending,
+  /// The account is active for trading.
+  #[serde(rename = "ACTIVE")]
+  Active,
+  /// The account application has been rejected.
+  #[serde(rename = "REJECTED")]
+  Rejected,
+}
 
 
 /// A response as returned by the /v2/account endpoint.
@@ -132,8 +172,11 @@ mod tests {
 
   use test_env_log::test;
 
+  use url::Url;
+
   use uuid::Uuid;
 
+  use crate::api::API_BASE_URL;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
@@ -196,6 +239,25 @@ mod tests {
       multiplier == 1 || multiplier == 2 || multiplier == 4,
       multiplier,
     );
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn request_account_with_invalid_credentials() -> Result<(), Error> {
+    let api_base = Url::parse(API_BASE_URL)?;
+    let api_info = ApiInfo {
+      base_url: api_base,
+      key_id: b"invalid".to_vec(),
+      secret: b"invalid-too".to_vec(),
+    };
+    let client = Client::new(api_info);
+    let result = client.issue::<Get>(()).await;
+
+    let err = result.unwrap_err();
+    match err {
+      GetError::AuthenticationFailed(_) => (),
+      e @ _ => panic!("received unexpected error: {:?}", e),
+    }
     Ok(())
   }
 }

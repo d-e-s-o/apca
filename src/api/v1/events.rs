@@ -8,7 +8,7 @@ use num_decimal::Num;
 use serde::Deserialize;
 
 use crate::api::time_util::optional_system_time;
-use crate::api::v1::account;
+use crate::api::v2::account;
 use crate::api::v1::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
