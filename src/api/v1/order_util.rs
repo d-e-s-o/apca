@@ -6,10 +6,10 @@ use num_decimal::Num;
 use crate::api::v1::asset::Class;
 use crate::api::v1::asset::Exchange;
 use crate::api::v1::asset::Symbol;
-use crate::api::v1::order;
-use crate::api::v1::order::Side;
-use crate::api::v1::order::TimeInForce;
-use crate::api::v1::order::Type;
+use crate::api::v2::order;
+use crate::api::v2::order::Side;
+use crate::api::v2::order::TimeInForce;
+use crate::api::v2::order::Type;
 use crate::Client;
 
 pub async fn order_aapl(client: &Client) -> Result<order::Order, order::PostError> {
@@ -21,6 +21,7 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, order::PostErro
     time_in_force: TimeInForce::Day,
     limit_price: Some(Num::from_int(1)),
     stop_price: None,
+    extended_hours: false,
   };
   client.issue::<order::Post>(request).await
 }
