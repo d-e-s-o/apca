@@ -7,8 +7,6 @@ pub mod asset;
 pub mod assets;
 /// Definitions for account and trade related events.
 pub mod events;
-/// Definitions surrounding open positions.
-pub mod position;
 
 // TODO: Make module private again once transition to v2 is done.
 #[cfg(test)]
