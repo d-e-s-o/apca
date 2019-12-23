@@ -1,8 +1,6 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/// Definitions surrounding assets.
-pub mod asset;
 /// Definitions for account and trade related events.
 pub mod events;
 
