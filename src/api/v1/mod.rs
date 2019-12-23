@@ -9,12 +9,11 @@ pub mod assets;
 pub mod events;
 /// Definitions surrounding orders.
 pub mod order;
-/// Functionality for listing orders.
-pub mod orders;
 /// Definitions surrounding open positions.
 pub mod position;
 /// Functionality for listing open positions.
 pub mod positions;
 
+// TODO: Make module private again once transition to v2 is done.
 #[cfg(test)]
-mod order_util;
+pub mod order_util;
