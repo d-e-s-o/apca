@@ -1,6 +1,7 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::ops::Deref;
 use std::time::SystemTime;
 
 use hyper::Body;
@@ -13,17 +14,137 @@ use serde::Serialize;
 use serde_json::Error as JsonError;
 use serde_json::to_string as to_json;
 
-pub use crate::api::v1::order::Id;
-pub use crate::api::v1::order::Side;
-pub use crate::api::v1::order::Status;
-pub use crate::api::v1::order::TimeInForce;
-pub use crate::api::v1::order::Type;
+use uuid::Uuid;
 
 use crate::api::time_util::optional_system_time;
 use crate::api::time_util::system_time;
 use crate::api::v2::asset;
 use crate::endpoint::Endpoint;
 use crate::Str;
+
+
+/// An ID uniquely identifying an order.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub struct Id(pub Uuid);
+
+impl Deref for Id {
+  type Target = Uuid;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+
+/// The status an order can have.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+pub enum Status {
+  /// The order has been received by Alpaca, and routed to exchanges for
+  /// execution. This is the usual initial state of an order.
+  #[serde(rename = "new")]
+  New,
+  /// The order has been partially filled.
+  #[serde(rename = "partially_filled")]
+  PartiallyFilled,
+  /// The order has been filled, and no further updates will occur for
+  /// the order.
+  #[serde(rename = "filled")]
+  Filled,
+  /// The order is done executing for the day, and will not receive
+  /// further updates until the next trading day.
+  #[serde(rename = "done_for_day")]
+  DoneForDay,
+  /// The order has been canceled, and no further updates will occur for
+  /// the order. This can be either due to a cancel request by the user,
+  /// or the order has been canceled by the exchanges due to its
+  /// time-in-force.
+  #[serde(rename = "canceled")]
+  Canceled,
+  /// The order has expired, and no further updates will occur for the
+  /// order.
+  #[serde(rename = "expired")]
+  Expired,
+  /// The order has been received by Alpaca, but hasn't yet been routed
+  /// to the execution venue. This state only occurs on rare occasions.
+  #[serde(rename = "accepted")]
+  Accepted,
+  /// The order has been received by Alpaca, and routed to the
+  /// exchanges, but has not yet been accepted for execution. This state
+  /// only occurs on rare occasions.
+  #[serde(rename = "pending_new")]
+  PendingNew,
+  /// The order has been received by exchanges, and is evaluated for
+  /// pricing. This state only occurs on rare occasions.
+  #[serde(rename = "accepted_for_bidding")]
+  AcceptedForBidding,
+  /// The order is waiting to be canceled. This state only occurs on
+  /// rare occasions.
+  #[serde(rename = "pending_cancel")]
+  PendingCancel,
+  /// The order has been stopped, and a trade is guaranteed for the
+  /// order, usually at a stated price or better, but has not yet
+  /// occurred. This state only occurs on rare occasions.
+  #[serde(rename = "stopped")]
+  Stopped,
+  /// The order has been rejected, and no further updates will occur for
+  /// the order. This state occurs on rare occasions and may occur based
+  /// on various conditions decided by the exchanges.
+  #[serde(rename = "rejected")]
+  Rejected,
+  /// The order has been suspended, and is not eligible for trading.
+  /// This state only occurs on rare occasions.
+  #[serde(rename = "suspended")]
+  Suspended,
+  /// The order has been completed for the day (either filled or done
+  /// for day), but remaining settlement calculations are still pending.
+  /// This state only occurs on rare occasions.
+  #[serde(rename = "calculated")]
+  Calculated,
+}
+
+
+/// The side an order is on.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum Side {
+  /// Buy an asset.
+  #[serde(rename = "buy")]
+  Buy,
+  /// Sell an asset.
+  #[serde(rename = "sell")]
+  Sell,
+}
+
+
+/// The type of an order.
+// Note that we currently do not support `stop_limit` orders.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum Type {
+  /// A market order.
+  #[serde(rename = "market")]
+  Market,
+  /// A limit order.
+  #[serde(rename = "limit")]
+  Limit,
+  /// A stop on quote order.
+  #[serde(rename = "stop")]
+  Stop,
+  /// A stop limit order.
+  #[serde(rename = "stop_limit")]
+  StopLimit,
+}
+
+
+/// A description of the time for which an order is valid.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum TimeInForce {
+  /// The order is good for the day, and it will be canceled
+  /// automatically at the end of Regular Trading Hours if unfilled.
+  #[serde(rename = "day")]
+  Day,
+  /// The order is good until canceled.
+  #[serde(rename = "gtc")]
+  UntilCanceled,
+}
 
 
 /// A POST request to be made to the /v2/orders endpoint.
@@ -242,6 +363,7 @@ mod tests {
 
   use uuid::Uuid;
 
+  use crate::api::v1::order_util::order_aapl;
   use crate::api::v2::asset::Class;
   use crate::api::v2::asset::Exchange;
   use crate::api::v2::asset::Symbol;
@@ -249,6 +371,19 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  #[test]
+  fn emit_side() {
+    assert_eq!(to_json(&Side::Buy).unwrap(), r#""buy""#);
+    assert_eq!(to_json(&Side::Sell).unwrap(), r#""sell""#);
+  }
+
+  #[test]
+  fn emit_type() {
+    assert_eq!(to_json(&Type::Market).unwrap(), r#""market""#);
+    assert_eq!(to_json(&Type::Limit).unwrap(), r#""limit""#);
+    assert_eq!(to_json(&Type::Stop).unwrap(), r#""stop""#);
+  }
 
   #[test]
   fn parse_reference_order() {
@@ -320,6 +455,83 @@ mod tests {
 
     test(true).await?;
     test(false).await?;
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn submit_unsatisfiable_order() -> Result<(), Error> {
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info);
+    let request = OrderReq {
+      symbol: asset::Symbol::Sym("AAPL".to_string()),
+      quantity: 100000,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(1000)),
+      stop_price: None,
+      extended_hours: false,
+    };
+    let result = client.issue::<Post>(request).await;
+    let err = result.unwrap_err();
+
+    match err {
+      PostError::InsufficientFunds(_) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn cancel_invalid_order() -> Result<(), Error> {
+    let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info);
+    let result = client.issue::<Delete>(id).await;
+    let err = result.unwrap_err();
+
+    match err {
+      DeleteError::NotFound(_) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn retrieve_order_by_id() -> Result<(), Error> {
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info);
+    let posted = order_aapl(&client).await?;
+    let result = client.issue::<Get>(posted.id).await;
+    let _ = client.issue::<Delete>(posted.id).await?;
+    let gotten = result?;
+
+    // We can't simply compare the two orders for equality, because some
+    // time stamps may differ.
+    assert_eq!(posted.id, gotten.id);
+    assert_eq!(posted.status, gotten.status);
+    assert_eq!(posted.asset_class, gotten.asset_class);
+    assert_eq!(posted.asset_id, gotten.asset_id);
+    assert_eq!(posted.symbol, gotten.symbol);
+    assert_eq!(posted.quantity, gotten.quantity);
+    assert_eq!(posted.type_, gotten.type_);
+    assert_eq!(posted.side, gotten.side);
+    assert_eq!(posted.time_in_force, gotten.time_in_force);
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn retrieve_non_existent_order() -> Result<(), Error> {
+    let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info);
+    let result = client.issue::<Get>(id).await;
+    let err = result.unwrap_err();
+
+    match err {
+      GetError::NotFound(_) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
     Ok(())
   }
 
