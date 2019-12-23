@@ -3,8 +3,6 @@
 
 /// Definitions surrounding assets.
 pub mod asset;
-/// Functionality for listing available assets.
-pub mod assets;
 /// Definitions for account and trade related events.
 pub mod events;
 
