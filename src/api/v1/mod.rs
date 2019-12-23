@@ -7,8 +7,6 @@ pub mod asset;
 pub mod assets;
 /// Definitions for account and trade related events.
 pub mod events;
-/// Definitions surrounding orders.
-pub mod order;
 /// Definitions surrounding open positions.
 pub mod position;
 /// Functionality for listing open positions.
