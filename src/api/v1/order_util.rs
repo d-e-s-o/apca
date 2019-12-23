@@ -3,9 +3,9 @@
 
 use num_decimal::Num;
 
-use crate::api::v1::asset::Class;
-use crate::api::v1::asset::Exchange;
-use crate::api::v1::asset::Symbol;
+use crate::api::v2::asset::Class;
+use crate::api::v2::asset::Exchange;
+use crate::api::v2::asset::Symbol;
 use crate::api::v2::order;
 use crate::api::v2::order::Side;
 use crate::api::v2::order::TimeInForce;
