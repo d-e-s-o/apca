@@ -5,11 +5,13 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 use std::ops::Deref;
+use std::str::FromStr;
 
 use serde::Deserialize;
 use serde::Serialize;
 use serde::Serializer;
 
+use uuid::parser::ParseError as UuidParseError;
 use uuid::Uuid;
 
 use crate::endpoint::Endpoint;
@@ -45,6 +47,18 @@ impl AsRef<str> for Class {
   }
 }
 
+impl FromStr for Class {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s == Class::UsEquity.as_ref() {
+      Ok(Class::UsEquity)
+    } else {
+      Err(())
+    }
+  }
+}
+
 
 /// The status an asset can have.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -67,6 +81,34 @@ impl AsRef<str> for Status {
 }
 
 
+/// An enumeration of all possible symbol parsing errors.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ParseSymbolError {
+  /// The symbol contains an invalid character.
+  InvalidSymbol(char),
+  /// The exchange is unknown.
+  UnknownExchange,
+  /// The asset class is unknown.
+  UnknownClass,
+  /// The ID could not be parsed.
+  InvalidId(UuidParseError),
+  /// The symbol has an invalid/unrecognized format.
+  InvalidFormat,
+}
+
+impl Display for ParseSymbolError {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    match self {
+      Self::InvalidSymbol(c) => write!(fmt, "the symbol contains an invalid character ('{}')", c),
+      Self::UnknownExchange => fmt.write_str("the exchange is unknown"),
+      Self::UnknownClass => fmt.write_str("the asset class is unknown"),
+      Self::InvalidId(err) => write!(fmt, "failed to parse asset ID: {}", err),
+      Self::InvalidFormat => fmt.write_str("the symbol is of an invalid format"),
+    }
+  }
+}
+
+
 /// A symbol, and the various ways to represent it.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Symbol {
@@ -80,6 +122,46 @@ pub enum Symbol {
   SymExchgCls(String, Exchange, Class),
   /// An asset as described by an ID.
   Id(Id),
+}
+
+impl FromStr for Symbol {
+  type Err = ParseSymbolError;
+
+  fn from_str(sym: &str) -> Result<Self, Self::Err> {
+    let sym = match sym.split(':').collect::<Vec<_>>().as_slice() {
+      [sym] => {
+        if let Ok(id) = Uuid::parse_str(sym) {
+          Self::Id(Id(id))
+        } else {
+          let invalid = sym.as_bytes().iter().try_fold((), |(), c| {
+            if !c.is_ascii_alphabetic() || !c.is_ascii_uppercase() {
+              Err(*c as char)
+            } else {
+              Ok(())
+            }
+          });
+
+          if let Err(c) = invalid {
+            return Err(ParseSymbolError::InvalidSymbol(c))
+          }
+          Self::Sym(sym.to_string())
+        }
+      },
+      [sym, exchg] => {
+        let exchg = Exchange::from_str(exchg).map_err(|_| ParseSymbolError::UnknownExchange)?;
+
+        Self::SymExchg(sym.to_string(), exchg)
+      },
+      [sym, exchg, cls] => {
+        let exchg = Exchange::from_str(exchg).map_err(|_| ParseSymbolError::UnknownExchange)?;
+        let cls = Class::from_str(cls).map_err(|_| ParseSymbolError::UnknownClass)?;
+
+        Self::SymExchgCls(sym.to_string(), exchg, cls)
+      },
+      _ => return Err(ParseSymbolError::InvalidFormat),
+    };
+    Ok(sym)
+  }
 }
 
 impl Display for Symbol {
@@ -138,6 +220,28 @@ impl AsRef<str> for Exchange {
       Exchange::Nasdaq => "NASDAQ",
       Exchange::Nyse => "NYSE",
       Exchange::Nysearca => "NYSEARCA",
+    }
+  }
+}
+
+impl FromStr for Exchange {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if s == Exchange::Amex.as_ref() {
+      Ok(Exchange::Amex)
+    } else if s == Exchange::Arca.as_ref() {
+      Ok(Exchange::Arca)
+    } else if s == Exchange::Bats.as_ref() {
+      Ok(Exchange::Bats)
+    } else if s == Exchange::Nasdaq.as_ref() {
+      Ok(Exchange::Nasdaq)
+    } else if s == Exchange::Nyse.as_ref() {
+      Ok(Exchange::Nyse)
+    } else if s == Exchange::Nysearca.as_ref() {
+      Ok(Exchange::Nysearca)
+    } else {
+      Err(())
     }
   }
 }
@@ -228,6 +332,44 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  #[test]
+  fn parse_symbol() {
+    let id = "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415";
+    assert_eq!(
+      Symbol::from_str(id).unwrap(),
+      Symbol::Id(Id(Uuid::parse_str(id).unwrap())),
+    );
+
+    assert_eq!(Symbol::from_str("SPY").unwrap(), Symbol::Sym("SPY".into()));
+
+    assert_eq!(
+      Symbol::from_str("SPY:NYSE").unwrap(),
+      Symbol::SymExchg("SPY".into(), Exchange::Nyse),
+    );
+
+    assert_eq!(
+      Symbol::from_str("AAPL:NASDAQ:us_equity").unwrap(),
+      Symbol::SymExchgCls("AAPL".into(), Exchange::Nasdaq, Class::UsEquity),
+    );
+
+    assert_eq!(
+      Symbol::from_str("AAPL:HIHI"),
+      Err(ParseSymbolError::UnknownExchange),
+    );
+    assert_eq!(
+      Symbol::from_str("AAPL:NASDAQ:blah"),
+      Err(ParseSymbolError::UnknownClass),
+    );
+    assert_eq!(
+      Symbol::from_str("Z%&Y"),
+      Err(ParseSymbolError::InvalidSymbol('%')),
+    );
+    assert_eq!(
+      Symbol::from_str("A:B:C:"),
+      Err(ParseSymbolError::InvalidFormat),
+    );
+  }
 
   #[test]
   fn serialize_symbol() {
