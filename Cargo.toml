@@ -1,6 +1,6 @@
 [package]
 name = "alpaca"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2018"
 authors = ["Daniel Mueller <deso@posteo.net>"]
 license = "GPL-3.0-or-later"
