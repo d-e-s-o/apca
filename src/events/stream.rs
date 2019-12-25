@@ -343,10 +343,10 @@ mod tests {
 
   /// Create a websocket server that handles a customizable set of
   /// requests and exits.
-  fn mock_server<F, R>(f: F) -> (SocketAddr, impl Future01<Item = (), Error = ()>)
+  async fn mock_server<F, R>(f: F) -> SocketAddr
   where
-    F: Copy + FnOnce(WebSocketStream) -> R + 'static,
-    R: Future01<Item = (), Error = WebSocketError> + 'static,
+    F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
+    R: Future01<Item = (), Error = WebSocketError> + Send + 'static,
   {
     let server = Server::bind("localhost:0", &Handle::default()).unwrap();
     let addr = server.local_addr().unwrap();
@@ -363,7 +363,8 @@ mod tests {
       .map_err(|e| panic!(e))
       .for_each(|_| ok(()));
 
-    (addr, future)
+    let _ = spawn(future.compat());
+    addr
   }
 
   async fn mock_stream<S, F, R>(
@@ -374,14 +375,13 @@ mod tests {
     F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
     R: Future01<Item = (), Error = WebSocketError> + Send + 'static,
   {
-    let (addr, srv_fut) = mock_server(f);
+    let addr = mock_server(f).await;
     let api_info = ApiInfo {
       base_url: Url::parse(&format!("http://{}", addr.to_string())).unwrap(),
       key_id: KEY_ID.as_bytes().to_vec(),
       secret: SECRET.as_bytes().to_vec(),
     };
 
-    let _ = spawn(srv_fut.compat());
     stream_insecure::<S>(api_info).await
   }
 
