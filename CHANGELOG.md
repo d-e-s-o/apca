@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.2.1
+-----
 - Removed support for `v1` API
 - Implemented `FromStr` for various `/v2/asset` types
 
