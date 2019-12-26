@@ -301,25 +301,23 @@ mod tests {
   use std::future::Future;
   use std::net::SocketAddr;
 
-  use futures::compat::Compat01As03Sink;
-  use futures::compat::Sink01CompatExt;
+  use async_std::net::TcpListener;
+  use async_std::net::TcpStream;
+
   use futures::future::ready;
+  use futures::FutureExt;
   use futures::SinkExt;
   use futures::StreamExt;
-  use futures::TryFutureExt;
   use futures::TryStreamExt;
 
   use test_env_log::test;
 
   use tokio::spawn;
-  use tokio01::net::TcpStream;
-  use tokio01::reactor::Handle;
 
-  use websocket::client::r#async::Framed;
-  use websocket::OwnedMessage;
-  use websocket::r#async::MessageCodec;
-  use websocket::r#async::Server;
-
+  use tungstenite::accept_async as accept_websocket;
+  use tungstenite::tungstenite::Error as TungsteniteError;
+  use tungstenite::tungstenite::Message;
+  use tungstenite::WebSocketStream as WsStream;
 
   const KEY_ID: &str = "USER12345678";
   const SECRET: &str = "justletmein";
@@ -345,30 +343,27 @@ mod tests {
     }
   }
 
-  type WebSocketStream = Compat01As03Sink<Framed<TcpStream, MessageCodec<OwnedMessage>>, OwnedMessage>;
+  type WebSocketStream = WsStream<TcpStream>;
 
   /// Create a websocket server that handles a customizable set of
   /// requests and exits.
   async fn mock_server<F, R>(f: F) -> SocketAddr
   where
-    F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
-    R: Future<Output = Result<(), WebSocketError>> + Send + 'static,
+    F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    R: Future<Output = Result<(), TungsteniteError>> + Send + Sync + 'static,
   {
-    let server = Server::bind("localhost:0", &Handle::default()).unwrap();
-    let addr = server.local_addr().unwrap();
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
 
-    let future = server
-      .incoming()
-      .compat()
-      .take(1)
-      .then(|result| ready(result.unwrap()))
-      .then(move |(upgrade, _addr)| {
-        upgrade
-          .accept()
-          .compat()
-          .and_then(move |(stream, _headers)| f(stream.sink_compat()))
-      })
-      .try_for_each(|_| ready(Ok(())));
+    let future = async move {
+      listener
+        .accept()
+        .map(move |result| result.unwrap())
+        .then(|(stream, _addr)| accept_websocket(stream))
+        .map(move |result| result.unwrap())
+        .then(move |ws_stream| f(ws_stream))
+        .await
+    };
 
     let _ = spawn(future);
     addr
@@ -376,11 +371,14 @@ mod tests {
 
   async fn mock_stream<S, F, R>(
     f: F,
-  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
+  ) -> Result<
+    impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>,
+    Error,
+  >
   where
     S: EventStream,
-    F: Copy + FnOnce(WebSocketStream) -> R + Send + 'static,
-    R: Future<Output = Result<(), WebSocketError>> + Send + 'static,
+    F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    R: Future<Output = Result<(), TungsteniteError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
@@ -394,9 +392,9 @@ mod tests {
 
   #[test(tokio::test)]
   async fn broken_stream() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       let msg = stream.next().await.unwrap()?;
-      assert_eq!(msg, OwnedMessage::Text(AUTH_REQ.to_string()));
+      assert_eq!(msg, Message::Text(AUTH_REQ.to_string()));
       Ok(())
     }
 
@@ -410,23 +408,21 @@ mod tests {
 
   #[test(tokio::test)]
   async fn early_close() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(AUTH_REQ.to_string()),
+        Message::Text(AUTH_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(AUTH_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(STREAM_REQ.to_string()),
+        Message::Text(STREAM_REQ.to_string()),
       );
       // Just respond with a Close.
-      stream.send(OwnedMessage::Close(None)).await?;
+      stream.send(Message::Close(None)).await?;
       Ok(())
     }
 
@@ -440,24 +436,20 @@ mod tests {
 
   #[test(tokio::test)]
   async fn no_messages() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(AUTH_REQ.to_string()),
+        Message::Text(AUTH_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(AUTH_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(STREAM_REQ.to_string()),
+        Message::Text(STREAM_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(STREAM_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
       Ok(())
     }
 
@@ -479,18 +471,16 @@ mod tests {
 
   #[test(tokio::test)]
   async fn decode_error_during_handshake() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(AUTH_REQ.to_string()),
+        Message::Text(AUTH_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(AUTH_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
 
       stream
-        .send(OwnedMessage::Text("{ foobarbaz }".to_string()))
+        .send(Message::Text("{ foobarbaz }".to_string()))
         .await?;
       Ok(())
     }
@@ -505,32 +495,26 @@ mod tests {
 
   #[test(tokio::test)]
   async fn decode_error_errors_do_not_terminate() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(AUTH_REQ.to_string()),
+        Message::Text(AUTH_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(AUTH_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(STREAM_REQ.to_string()),
+        Message::Text(STREAM_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(STREAM_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
 
       stream
-        .send(OwnedMessage::Text("{ foobarbaz }".to_string()))
+        .send(Message::Text("{ foobarbaz }".to_string()))
         .await?;
-      stream
-        .send(OwnedMessage::Text(UNIT_EVENT.to_string()))
-        .await?;
-      stream.send(OwnedMessage::Close(None)).await?;
+      stream.send(Message::Text(UNIT_EVENT.to_string())).await?;
+      stream.send(Message::Close(None)).await?;
       Ok(())
     }
 
@@ -544,34 +528,27 @@ mod tests {
 
   #[test(tokio::test)]
   async fn ping_pong() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(AUTH_REQ.to_string()),
+        Message::Text(AUTH_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(AUTH_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        OwnedMessage::Text(STREAM_REQ.to_string()),
+        Message::Text(STREAM_REQ.to_string()),
       );
-      stream
-        .send(OwnedMessage::Text(STREAM_RESP.to_string()))
-        .await?;
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
 
       // Ping.
-      stream.send(OwnedMessage::Ping(Vec::new())).await?;
+      stream.send(Message::Ping(Vec::new())).await?;
       // Expect Pong.
-      assert_eq!(
-        stream.next().await.unwrap()?,
-        OwnedMessage::Pong(Vec::new()),
-      );
+      assert_eq!(stream.next().await.unwrap()?, Message::Pong(Vec::new()),);
 
-      stream.send(OwnedMessage::Close(None)).await?;
+      stream.send(Message::Close(None)).await?;
       Ok(())
     }
 
