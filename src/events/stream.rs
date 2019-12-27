@@ -1,16 +1,19 @@
 // Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::compat::Future01CompatExt;
-use futures::compat::Stream01CompatExt;
+use std::future::Future;
+
+use async_std::net::TcpStream;
+use async_tls::TlsConnector;
+
+use futures::future::Either;
+use futures::future::err;
+use futures::future::ok;
+use futures::sink::Sink;
 use futures::stream::Stream;
-use futures01::future::Either;
-use futures01::future::err;
-use futures01::future::Future as Future01;
-use futures01::future::ok;
-use futures01::sink::Sink;
-use futures01::stream::Stream as Stream01;
-use futures01::stream::unfold;
+use futures::stream::unfold;
+use futures::StreamExt;
+use futures::FutureExt;
 
 use log::debug;
 use log::trace;
@@ -22,12 +25,13 @@ use serde_json::from_slice as from_json;
 
 use url::Url;
 
-use websocket::client::r#async::ClientNew;
-use websocket::ClientBuilder;
-use websocket::OwnedMessage;
-use websocket::stream::r#async::AsyncRead;
-use websocket::stream::r#async::AsyncWrite;
-use websocket::WebSocketError;
+use tungstenite::connect_async;
+use tungstenite::connect_async_with_tls_connector;
+use tungstenite::MaybeTlsStream;
+use tungstenite::tungstenite::Error as WebSocketError;
+use tungstenite::tungstenite::Message;
+use tungstenite::tungstenite::handshake::client::Response;
+use tungstenite::WebSocketStream as TungsteniteStream;
 
 use crate::api_info::ApiInfo;
 use crate::Error;
@@ -37,6 +41,7 @@ use crate::events::handshake::check_subscribe;
 use crate::events::handshake::StreamType;
 use crate::events::handshake::subscribe;
 
+pub type WebSocketStream = TungsteniteStream<MaybeTlsStream<TcpStream>>;
 
 /// A trade representing a particular event stream.
 pub trait EventStream {
@@ -64,13 +69,13 @@ mod stream {
 }
 
 
-fn handle_only_data_msg<F>(msg: OwnedMessage, f: F) -> Result<(), Error>
+fn handle_only_data_msg<F>(msg: Message, f: F) -> Result<(), Error>
 where
   F: FnOnce(&[u8]) -> Result<(), Error>,
 {
   match msg {
-    OwnedMessage::Text(text) => f(text.as_bytes()),
-    OwnedMessage::Binary(data) => f(data.as_slice()),
+    Message::Text(text) => f(text.as_bytes()),
+    Message::Binary(data) => f(data.as_slice()),
     m => {
       let e = format!("received unexpected message: {:?}", m);
       Err(Error::Str(e.into()))
@@ -109,34 +114,34 @@ impl<T> Operation<T> {
 
 
 /// Convert a message into an `Operation`.
-fn decode_msg<I>(msg: OwnedMessage) -> Result<Operation<I>, JsonError>
+fn decode_msg<I>(msg: Message) -> Result<Operation<I>, JsonError>
 where
   I: DeserializeOwned,
 {
   match msg {
-    OwnedMessage::Close(_) => Ok(Operation::Close),
-    OwnedMessage::Text(txt) => {
+    Message::Close(_) => Ok(Operation::Close),
+    Message::Text(txt) => {
       // TODO: Strictly speaking we would need to check that the
       //       stream is the expected one.
       let resp = from_json::<stream::Event<I>>(txt.as_bytes())?;
       Ok(Operation::Decode(resp.data.0))
     },
-    OwnedMessage::Binary(dat) => {
+    Message::Binary(dat) => {
       let resp = from_json::<stream::Event<I>>(dat.as_slice())?;
       Ok(Operation::Decode(resp.data.0))
     },
-    OwnedMessage::Ping(dat) => Ok(Operation::Pong(dat)),
-    OwnedMessage::Pong(_) => Ok(Operation::Nop),
+    Message::Ping(dat) => Ok(Operation::Pong(dat)),
+    Message::Pong(_) => Ok(Operation::Nop),
   }
 }
 
 /// Decode a single value from the client.
-fn handle_msg<C, I>(
+async fn handle_msg<C, I>(
   client: C,
-) -> impl Future01<Item = (Result<Operation<I>, JsonError>, C), Error = WebSocketError>
+) -> Result<(Result<Operation<I>, JsonError>, C), WebSocketError>
 where
-  C: Stream01<Item = OwnedMessage, Error = WebSocketError>,
-  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
+  C: Stream<Item = Result<Message, WebSocketError>>,
+  C: Sink<Message, Error = WebSocketError> + Unpin,
   I: DeserializeOwned,
 {
   client.into_future()
@@ -146,7 +151,7 @@ where
     .and_then(|(msg, c)| {
       match msg {
         Some(msg) => ok((msg, c)),
-        None => err(WebSocketError::ProtocolError("connection lost unexpectedly")),
+        None => err(WebSocketError::Protocol("connection lost unexpectedly".into())),
       }
     })
     .and_then(|(msg, c)| {
@@ -168,17 +173,17 @@ where
               match op {
                 Operation::Pong(dat) => {
                   let fut = c
-                    .send(OwnedMessage::Pong(dat))
+                    .send(Message::Pong(dat))
                     .map(|c| (Ok(Operation::Nop), c));
-                  Either::A(Either::A(fut))
+                  Either::Left(Either::Left(fut))
                 },
                 op => {
                   let fut = ok((Ok(op), c));
-                  Either::A(Either::B(fut))
+                  Either::Left(Either::Right(fut))
                 },
               }
             },
-            Err(e) => Either::B(ok((Err(e), c))),
+            Err(e) => Either::Right(ok((Err(e), c))),
           }
         })
     })
@@ -186,10 +191,10 @@ where
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-fn do_stream<C, I>(client: C) -> impl Stream01<Item = Result<I, JsonError>, Error = WebSocketError>
+async fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>
 where
-  C: Stream01<Item = OwnedMessage, Error = WebSocketError>,
-  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
+  C: Stream<Item = Result<Message, WebSocketError>>,
+  C: Sink<Message, Error = WebSocketError> + Unpin,
   I: DeserializeOwned,
 {
   unfold((false, client), |(closed, c)| {
@@ -207,14 +212,14 @@ where
   .filter_map(|res| res.map(|op| op.into_decoded()).transpose())
 }
 
-async fn stream_impl<F, S, I>(
+async fn stream_impl<F, R, I>(
   connect: F,
   api_info: ApiInfo,
-  stream: StreamType,
+  stream_type: StreamType,
 ) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>, Error>
 where
-  F: FnOnce(Url) -> ClientNew<S>,
-  S: AsyncRead + AsyncWrite,
+  F: FnOnce(Url) -> R,
+  R: Future<Output = Result<(WebSocketStream, Response), WebSocketError>>,
   I: DeserializeOwned,
 {
   let ApiInfo {
@@ -230,43 +235,34 @@ where
 
   debug!("connecting to {}", &url);
 
-  connect(url)
-    // We just ignore the headers that are sent along after the
-    // connection is made. Alpaca does not seem to be using them,
-    // really.
-    .map(|(c, _)| c)
-    .and_then(|c| auth(c, key_id, secret))
-    .and_then(|c| c.into_future().map_err(|e| e.0))
-    .map_err(Error::from)
-    .and_then(|(m, c)| {
-      match m {
-        Some(msg) => {
-          handle_only_data_msg(msg, check_auth)
-            .map(|_| c)
-            .into()
-        },
-        None => {
-          err(Error::Str("no response to authentication request".into()))
-        },
-      }
-    })
-    .and_then(move |c| subscribe(c, stream).map_err(Error::from))
-    .and_then(|c| c.into_future().map_err(|e| Error::from(e.0)))
-    .and_then(move |(m, c)| {
-      match m {
-        Some(msg) => {
-          handle_only_data_msg(msg, |dat| check_subscribe(dat, stream))
-            .map(|_| c)
-            .into()
-        },
-        None => {
-          err(Error::Str("no response to subscription request".into()))
-        },
-      }
-    })
-		.and_then(|c| ok(do_stream::<_, I>(c).compat()))
-    .compat()
+  // We just ignore the response & headers that are sent along after
+  // the connection is made. Alpaca does not seem to be using them,
+  // really.
+  let (stream, _response) = connect(url).await?;
+
+  // Authentication.
+  // TODO: Can we club the message handling into `auth`?
+  let stream = auth(stream, key_id, secret).await?;
+  let result = stream
+    .next()
     .await
+    .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, check_auth)?;
+
+  // Subscription.
+  let stream = subscribe(stream, stream_type).await?;
+  let result = stream
+    .next()
+    .await
+    .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
+
+	let stream = do_stream::<_, I>(stream).await;
+  Ok(stream)
 }
 
 /// Testing-only function to connect to a websocket stream in an
@@ -278,7 +274,10 @@ async fn stream_insecure<S>(
 where
   S: EventStream,
 {
-  let connect = |url| ClientBuilder::from_url(&url).async_connect_insecure();
+  // TODO: Ideally we'd want to establish a TCP connection ourselves and
+  //       use `client_async_tls_with_connector`. See implementation of
+  //       `connect_async_with_tls_connector_and_config`.
+  let connect = |url| connect_async(url);
   stream_impl(connect, api_info, S::stream()).await
 }
 
@@ -289,7 +288,10 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let connect = |url| ClientBuilder::from_url(&url).async_connect_secure(None);
+  let connect = |url| {
+    let connector = TlsConnector::default();
+    connect_async_with_tls_connector(url, Some(connector))
+  };
   stream_impl(connect, api_info, S::stream()).await
 }
 
@@ -315,8 +317,6 @@ mod tests {
   use tokio::spawn;
 
   use tungstenite::accept_async as accept_websocket;
-  use tungstenite::tungstenite::Error as TungsteniteError;
-  use tungstenite::tungstenite::Message;
   use tungstenite::WebSocketStream as WsStream;
 
   const KEY_ID: &str = "USER12345678";
@@ -350,8 +350,9 @@ mod tests {
   async fn mock_server<F, R>(f: F) -> SocketAddr
   where
     F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
-    R: Future<Output = Result<(), TungsteniteError>> + Send + Sync + 'static,
+    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
+    // TODO: Does `tungstenite` provide a short hand for this stuff?
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
@@ -378,7 +379,7 @@ mod tests {
   where
     S: EventStream,
     F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
-    R: Future<Output = Result<(), TungsteniteError>> + Send + Sync + 'static,
+    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
@@ -392,7 +393,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn broken_stream() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       let msg = stream.next().await.unwrap()?;
       assert_eq!(msg, Message::Text(AUTH_REQ.to_string()));
       Ok(())
@@ -408,7 +409,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn early_close() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
@@ -436,7 +437,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn no_messages() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
@@ -462,7 +463,7 @@ mod tests {
 
     match err {
       Error::WebSocket(e) => match e {
-        WebSocketError::ProtocolError(s) if s.starts_with("connection lost unexpectedly") => (),
+        WebSocketError::Protocol(s) if s.starts_with("connection lost unexpectedly") => (),
         e => panic!("received unexpected error: {}", e),
       },
       e => panic!("received unexpected error: {}", e),
@@ -471,7 +472,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn decode_error_during_handshake() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
@@ -495,7 +496,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn decode_error_errors_do_not_terminate() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
@@ -528,7 +529,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn ping_pong() {
-    async fn test(mut stream: WebSocketStream) -> Result<(), TungsteniteError> {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
