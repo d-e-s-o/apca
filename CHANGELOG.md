@@ -1,3 +1,10 @@
+Unreleased
+----------
+- Migrated streaming functionality from `websocket` to
+  `async-tungstenite`
+- Dropped dependency on `futures` `0.1`
+
+
 0.2.1
 -----
 - Removed support for `v1` API

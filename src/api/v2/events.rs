@@ -171,7 +171,12 @@ mod tests {
     let order = order_aapl(&client).await?;
     let _ = client.issue::<order::Delete>(order.id).await?;
 
-    let trade = stream
+    // Unfortunately due to various braindeadnesses on the Rust &
+    // futures side of things there is no sane way for us to provide a
+    // stream that implements `Unpin`, which is a requirement for
+    // `into_future`. Given that this is a test we just fudge that by
+    // pinning the stream on the heap.
+    let trade = Box::pin(stream)
       .try_filter_map(|res| {
         assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
         ok(res.ok())
