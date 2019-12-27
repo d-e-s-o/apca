@@ -3,9 +3,8 @@
 
 use std::str::from_utf8;
 
-use futures01::future::Future;
-use futures01::sink::Sink;
-use futures01::stream::Stream;
+use futures::SinkExt;
+use futures::TryFutureExt;
 
 use log::debug;
 use log::error;
@@ -17,11 +16,11 @@ use serde::Serialize;
 use serde_json::from_slice as from_json;
 use serde_json::to_string as to_json;
 
-use websocket::Message;
-use websocket::OwnedMessage;
-use websocket::WebSocketError;
+use tungstenite::tungstenite::Error as WebSocketError;
+use tungstenite::tungstenite::Message;
 
 use crate::Error;
+use crate::events::stream::WebSocketStream;
 
 
 /// An enumeration of the different event streams.
@@ -169,15 +168,11 @@ type StreamResponse = resp::Response<Streams>;
 
 
 /// Authenticate with the streaming service.
-pub fn auth<C>(
-  client: C,
+pub async fn auth(
+  stream: &mut WebSocketStream,
   key_id: Vec<u8>,
   secret: Vec<u8>,
-) -> impl Future<Item = C, Error = WebSocketError>
-where
-  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
-  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
-{
+) -> Result<(), WebSocketError> {
   let key_id = String::from_utf8(key_id).unwrap();
   let secret = String::from_utf8(secret).unwrap();
 
@@ -186,10 +181,13 @@ where
   let json = to_json(&request).unwrap();
   debug!("stream auth request: {}", json);
 
-  client.send(Message::text(json).into()).map_err(|e| {
-    error!("failed to send stream auth request: {}", e);
-    e
-  })
+  stream
+    .send(Message::text(json).into())
+    .map_err(|e| {
+      error!("failed to send stream auth request: {}", e);
+      e
+    })
+    .await
 }
 
 
@@ -218,19 +216,21 @@ pub fn check_auth(msg: &[u8]) -> Result<(), Error> {
 }
 
 /// Subscribe to the given stream.
-pub fn subscribe<C>(client: C, stream: StreamType) -> impl Future<Item = C, Error = WebSocketError>
-where
-  C: Stream<Item = OwnedMessage, Error = WebSocketError>,
-  C: Sink<SinkItem = OwnedMessage, SinkError = WebSocketError>,
-{
-  let request = StreamRequest::new([stream].as_ref().into());
+pub async fn subscribe(
+  stream: &mut WebSocketStream,
+  stream_type: StreamType,
+) -> Result<(), WebSocketError> {
+  let request = StreamRequest::new([stream_type].as_ref().into());
   let json = to_json(&request).unwrap();
   debug!("stream subscribe request: {}", json);
 
-  client.send(Message::text(json).into()).map_err(|e| {
-    error!("failed to send stream subscribe request: {}", e);
-    e
-  })
+  stream
+    .send(Message::text(json).into())
+    .map_err(|e| {
+      error!("failed to send stream subscribe request: {}", e);
+      e
+    })
+    .await
 }
 
 

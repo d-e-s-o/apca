@@ -20,7 +20,7 @@ use log::log_enabled;
 
 use serde_json::Error as JsonError;
 
-use websocket::WebSocketError;
+use tungstenite::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::endpoint::ConvertResult;
