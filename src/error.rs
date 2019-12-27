@@ -10,8 +10,8 @@ use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
 use hyper::http::StatusCode as HttpStatusCode;
 use serde_json::Error as JsonError;
+use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
-use websocket::WebSocketError;
 
 use crate::endpoint::EndpointError;
 use crate::Str;
