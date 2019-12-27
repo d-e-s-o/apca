@@ -9,22 +9,21 @@ A create for interacting with the Alpaca API.
 """
 
 [dependencies]
+async-std = "1.4"
+async-tls = "0.6"
 chrono = {version = "0.4", default-features = false}
-futures = {version = "0.3", default-features = false, features = ["compat"]}
-futures01 = {package = "futures", version = "0.1", default-features = false}
+futures = {version = "0.3", default-features = false}
 num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 hyper = {version = "0.13", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
 log = "0.4"
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
-url = "1.0"
+tungstenite = {package = "async-tungstenite", version = "0.2", features = ["tls"]}
+url = "2.0"
 uuid = {version = "0.7", features = ["serde", "v4"]}
-websocket = {version = "0.24", default-features = false, features = ["async", "async-ssl"]}
 
 [dev-dependencies]
-async-std = {version = "1.4"}
 env_logger = {version = "0.6", default-features = false}
 test-env-log = "0.2"
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
-tungstenite = {package = "async-tungstenite", version = "0.2", default-features = false}
