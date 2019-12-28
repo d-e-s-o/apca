@@ -27,9 +27,6 @@ use tungstenite::WebSocketStream as TungsteniteStream;
 
 use crate::api_info::ApiInfo;
 use crate::Error;
-use crate::events::handshake::auth;
-use crate::events::handshake::check_auth;
-use crate::events::handshake::check_subscribe;
 use crate::events::handshake::StreamType;
 use crate::events::handshake::subscribe;
 
@@ -57,21 +54,6 @@ mod stream {
     pub stream: StreamType,
     #[serde(rename = "data")]
     pub data: Data<T>,
-  }
-}
-
-
-fn handle_only_data_msg<F>(msg: Message, f: F) -> Result<(), Error>
-where
-  F: FnOnce(&[u8]) -> Result<(), Error>,
-{
-  match msg {
-    Message::Text(text) => f(text.as_bytes()),
-    Message::Binary(data) => f(data.as_slice()),
-    m => {
-      let e = format!("received unexpected message: {:?}", m);
-      Err(Error::Str(e.into()))
-    },
   }
 }
 
@@ -215,27 +197,7 @@ where
   //       use `client_async_tls_with_connector`. See implementation of
   //       `connect_async_with_tls_connector_and_config`.
   let (mut stream, _response) = connect_async_with_tls_connector(url, connector).await?;
-
-  // Authentication.
-  auth(&mut stream, key_id, secret).await?;
-  let result = stream
-    .next()
-    .await
-    .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
-  let msg = result?;
-
-  handle_only_data_msg(msg, check_auth)?;
-
-  // Subscription.
-  subscribe(&mut stream, stream_type).await?;
-  let result = stream
-    .next()
-    .await
-    .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
-  let msg = result?;
-
-  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
-
+  subscribe(&mut stream, key_id, secret, stream_type).await?;
   let stream = do_stream::<I>(stream).await;
   Ok(stream)
 }
