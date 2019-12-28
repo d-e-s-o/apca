@@ -27,8 +27,6 @@ use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_json::from_slice as from_json;
 
-use tokio::spawn;
-
 use url::Url;
 
 #[cfg(test)]
@@ -175,15 +173,21 @@ where
           // that's only for Ping events, so that should not matter much.
           match decode_msg::<I>(msg) {
             Ok(op) => {
-              let op = match op {
+              match op {
                 Operation::Pong(dat) => {
-                  //spawn(stream.send(Message::Pong(dat)));
-                  Operation::Nop
+                  let fut = stream
+                    .send(Message::Pong(dat))
+                    .and_then(|()| ready(Ok(Ok(Operation::Nop))));
+
+                  let fut = fut.map(move |result| (result, stream));
+
+                  Either::Left(Either::Left(fut))
                 },
-                op => op,
-              };
-              let fut = ready((Ok(Ok(op)), stream));
-              Either::Left(fut)
+                op => {
+                  let fut = ready((Ok(Ok(op)), stream));
+                  Either::Left(Either::Right(fut))
+                },
+              }
             },
             Err(e) => Either::Right(ready((Ok(Err(e)), stream))),
           }
