@@ -146,7 +146,7 @@ impl Client {
   /// Subscribe to the given stream in order to receive updates.
   pub async fn subscribe<S>(
     &self,
-  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
+  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>> + Unpin, Error>
   where
     S: EventStream,
   {

@@ -9,11 +9,15 @@ use async_tls::TlsConnector;
 use futures::future::Either;
 use futures::future::err;
 use futures::future::ok;
+use futures::future::ready;
+use futures::FutureExt;
 use futures::sink::Sink;
+use futures::SinkExt;
 use futures::stream::Stream;
 use futures::stream::unfold;
 use futures::StreamExt;
-use futures::FutureExt;
+use futures::TryFutureExt;
+use futures::TryStreamExt;
 
 use log::debug;
 use log::trace;
@@ -25,12 +29,13 @@ use serde_json::from_slice as from_json;
 
 use url::Url;
 
+#[cfg(test)]
 use tungstenite::connect_async;
 use tungstenite::connect_async_with_tls_connector;
 use tungstenite::MaybeTlsStream;
 use tungstenite::tungstenite::Error as WebSocketError;
-use tungstenite::tungstenite::Message;
 use tungstenite::tungstenite::handshake::client::Response;
+use tungstenite::tungstenite::Message;
 use tungstenite::WebSocketStream as TungsteniteStream;
 
 use crate::api_info::ApiInfo;
@@ -136,87 +141,124 @@ where
 }
 
 /// Decode a single value from the client.
-async fn handle_msg<C, I>(
-  client: C,
-) -> Result<(Result<Operation<I>, JsonError>, C), WebSocketError>
+fn handle_msg<I>(
+  stream: WebSocketStream,
+) -> impl Future<Output = (Result<Result<Operation<I>, JsonError>, WebSocketError>, WebSocketStream)>
 where
-  C: Stream<Item = Result<Message, WebSocketError>>,
-  C: Sink<Message, Error = WebSocketError> + Unpin,
   I: DeserializeOwned,
 {
-  client.into_future()
+  stream
+    .into_future()
     // TODO: It is unclear whether a WebSocketError received at this
     //       point could potentially be due to a transient issue.
-    .map_err(|(err, _c)| err)
-    .and_then(|(msg, c)| {
-      match msg {
-        Some(msg) => ok((msg, c)),
-        None => err(WebSocketError::Protocol("connection lost unexpectedly".into())),
-      }
+    .then(|(option, stream)| {
+      let result = option
+        .unwrap_or_else(|| Err(WebSocketError::Protocol("connection lost unexpectedly".into())));
+
+      ready((result, stream))
     })
-    .and_then(|(msg, c)| {
-      trace!("received message: {:?}", msg);
-      // We have to jump through a shit ton of hoops just to be able to
-      // respond to a ping. In a nutshell, because our code is
-      // (supposed to be) independent of the reactor/event loop/whatever
-      // you may call it, we can't really just "spawn" a task. There is
-      // futures::executor::spawn but really its purpose is unclear,
-      // given that one still has to poll the resulting task to drive it
-      // to completion.
-      // So either way, it appears that we are needlessly blocking the
-      // actual request by waiting for the Pong to be sent, but then
-      // that's only for Ping events, so that should not matter much.
-      ok(decode_msg::<I>(msg))
-        .and_then(|res| {
-          match res {
-            Ok(op) => {
-              match op {
-                Operation::Pong(dat) => {
-                  let fut = c
-                    .send(Message::Pong(dat))
-                    .map(|c| (Ok(Operation::Nop), c));
-                  Either::Left(Either::Left(fut))
-                },
-                op => {
-                  let fut = ok((Ok(op), c));
-                  Either::Left(Either::Right(fut))
-                },
-              }
-            },
-            Err(e) => Either::Right(ok((Err(e), c))),
-          }
-        })
+    .then(|(result, stream)| {
+      match result {
+        Ok(msg) => {
+          trace!("received message: {:?}", msg);
+          // We have to jump through a shit ton of hoops just to be able to
+          // respond to a ping. In a nutshell, because our code is
+          // (supposed to be) independent of the reactor/event loop/whatever
+          // you may call it, we can't really just "spawn" a task. There is
+          // futures::executor::spawn but really its purpose is unclear,
+          // given that one still has to poll the resulting task to drive it
+          // to completion.
+          // So either way, it appears that we are needlessly blocking the
+          // actual request by waiting for the Pong to be sent, but then
+          // that's only for Ping events, so that should not matter much.
+          ready((Err(WebSocketError::Protocol("test".into())), stream))
+          //let future = match decode_msg::<I>(msg) {
+          //  Ok(op) => {
+          //    match op {
+          //      Operation::Pong(dat) => {
+          //        let fut = stream
+          //          .send(Message::Pong(dat))
+          //          .map(|stream| ready((Ok(Operation::Nop), stream)));
+
+          //        Either::Left(Either::Left(fut))
+          //      },
+          //      op => {
+          //        let fut = ready((Ok(op), stream));
+          //        Either::Left(Either::Right(fut))
+          //      },
+          //    }
+          //  },
+          //  Err(e) => Either::Right(ready((Err(e), stream))),
+          //};
+          //future
+        },
+        Err(e) => ready((Err(e), stream)),
+      }
     })
 }
 
+///// Handle a single message from the stream.
+//async fn handle_msg<I>(
+//  mut stream: WebSocketStream,
+//) -> Result<(Result<Operation<I>, JsonError>, WebSocketStream), WebSocketError>
+//where
+//  I: DeserializeOwned,
+//{
+//  // TODO: It is unclear whether a WebSocketError received at this
+//  //       point could potentially be due to a transient issue.
+//  let result = stream
+//    .next()
+//    .await
+//    .ok_or_else(|| WebSocketError::Protocol("connection lost unexpectedly".into()))?;
+//  let msg = result?;
+//
+//  trace!("received message: {:?}", msg);
+//  let result = decode_msg::<I>(msg);
+//  match result {
+//    Ok(op) => {
+//      if let Operation::Pong(dat) = op {
+//        // TODO: We should probably spawn a task here.
+//        stream.send(Message::Pong(dat)).await?;
+//        Ok((Ok(Operation::Nop), stream))
+//      } else {
+//        Ok((Ok(op), stream))
+//      }
+//    },
+//    e @ Err(_) => Ok((e, stream)),
+//  }
+//}
+
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
-async fn do_stream<C, I>(client: C) -> impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>
+async fn do_stream<I>(
+  stream: WebSocketStream,
+) -> impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>> + Unpin
 where
-  C: Stream<Item = Result<Message, WebSocketError>>,
-  C: Sink<Message, Error = WebSocketError> + Unpin,
   I: DeserializeOwned,
 {
-  unfold((false, client), |(closed, c)| {
+  unfold((false, stream), |(closed, mut stream)| {
     if closed {
-      None
+      Either::Left(ready(None))
     } else {
-      let fut = handle_msg(c).map(|(res, c)| {
-        let closed = res.as_ref().map(|op| op.is_close()).unwrap_or(false);
-
-        (res, (closed, c))
-      });
-      Some(fut)
+      let result = handle_msg(stream)
+        .then(|(result, stream)| {
+          let closed = match result.as_ref() {
+            Ok(Ok(op)) => op.is_close(),
+            _ => false,
+          };
+          ready(Some((result, (closed, stream))))
+        });
+      Either::Right(result)
     }
   })
-  .filter_map(|res| res.map(|op| op.into_decoded()).transpose())
+  .try_filter_map(|res| ready(Ok(res.map(|op| op.into_decoded()).transpose())))
 }
 
 async fn stream_impl<F, R, I>(
   connect: F,
   api_info: ApiInfo,
   stream_type: StreamType,
-) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>, Error>
+) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>> + Unpin, Error>
 where
   F: FnOnce(Url) -> R,
   R: Future<Output = Result<(WebSocketStream, Response), WebSocketError>>,
@@ -238,11 +280,12 @@ where
   // We just ignore the response & headers that are sent along after
   // the connection is made. Alpaca does not seem to be using them,
   // really.
-  let (stream, _response) = connect(url).await?;
+  let (mut stream, _response) = connect(url).await?;
 
   // Authentication.
-  // TODO: Can we club the message handling into `auth`?
-  let stream = auth(stream, key_id, secret).await?;
+  // TODO: Can we club the message handling into `auth`? In fact, can we
+  //       just have a `handshake` and be done?
+  auth(&mut stream, key_id, secret).await?;
   let result = stream
     .next()
     .await
@@ -252,7 +295,7 @@ where
   handle_only_data_msg(msg, check_auth)?;
 
   // Subscription.
-  let stream = subscribe(stream, stream_type).await?;
+  subscribe(&mut stream, stream_type).await?;
   let result = stream
     .next()
     .await
@@ -261,7 +304,7 @@ where
 
   handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
 
-	let stream = do_stream::<_, I>(stream).await;
+  let stream = do_stream::<I>(stream).await;
   Ok(stream)
 }
 
@@ -270,7 +313,7 @@ where
 #[cfg(test)]
 async fn stream_insecure<S>(
   api_info: ApiInfo,
-) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
+) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>> + Unpin, Error>
 where
   S: EventStream,
 {
@@ -284,7 +327,7 @@ where
 /// Create a stream for decoded event data.
 pub async fn stream<S>(
   api_info: ApiInfo,
-) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
+) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>> + Unpin, Error>
 where
   S: EventStream,
 {
@@ -372,10 +415,7 @@ mod tests {
 
   async fn mock_stream<S, F, R>(
     f: F,
-  ) -> Result<
-    impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>,
-    Error,
-  >
+  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
   where
     S: EventStream,
     F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
