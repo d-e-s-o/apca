@@ -143,7 +143,6 @@ mod tests {
   use super::*;
 
   use futures::future::ok;
-  use futures::FutureExt;
   use futures::StreamExt;
   use futures::TryStreamExt;
 
@@ -174,8 +173,8 @@ mod tests {
     // Unfortunately due to various braindeadnesses on the Rust &
     // futures side of things there is no sane way for us to provide a
     // stream that implements `Unpin`, which is a requirement for
-    // `into_future`. Given that this is a test we just fudge that by
-    // pinning the stream on the heap.
+    // `next`. Given that this is a test we just fudge that by pinning
+    // the stream on the heap.
     let trade = Box::pin(stream)
       .try_filter_map(|res| {
         assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
@@ -185,13 +184,7 @@ mod tests {
       // are only interested in ones belonging to the order we
       // submitted as part of this test.
       .try_skip_while(|trade| ok(trade.order.id != order.id))
-      // In fact, we only care about the first such trade for our
-      // verification purposes.
-      .take(1)
-      .into_future()
-      // We don't care about the rest of the stream. Well, there
-      // really shouldn't be any.
-      .map(|(trade, _stream)| trade)
+      .next()
       .await
       .unwrap()?;
 
