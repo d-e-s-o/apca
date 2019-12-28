@@ -27,6 +27,8 @@ use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_json::from_slice as from_json;
 
+use tokio::spawn;
+
 use url::Url;
 
 #[cfg(test)]
@@ -157,7 +159,7 @@ where
 
       ready((result, stream))
     })
-    .then(|(result, stream)| {
+    .then(|(result, mut stream)| {
       match result {
         Ok(msg) => {
           trace!("received message: {:?}", msg);
@@ -171,62 +173,25 @@ where
           // So either way, it appears that we are needlessly blocking the
           // actual request by waiting for the Pong to be sent, but then
           // that's only for Ping events, so that should not matter much.
-          ready((Err(WebSocketError::Protocol("test".into())), stream))
-          //let future = match decode_msg::<I>(msg) {
-          //  Ok(op) => {
-          //    match op {
-          //      Operation::Pong(dat) => {
-          //        let fut = stream
-          //          .send(Message::Pong(dat))
-          //          .map(|stream| ready((Ok(Operation::Nop), stream)));
-
-          //        Either::Left(Either::Left(fut))
-          //      },
-          //      op => {
-          //        let fut = ready((Ok(op), stream));
-          //        Either::Left(Either::Right(fut))
-          //      },
-          //    }
-          //  },
-          //  Err(e) => Either::Right(ready((Err(e), stream))),
-          //};
-          //future
+          match decode_msg::<I>(msg) {
+            Ok(op) => {
+              let op = match op {
+                Operation::Pong(dat) => {
+                  //spawn(stream.send(Message::Pong(dat)));
+                  Operation::Nop
+                },
+                op => op,
+              };
+              let fut = ready((Ok(Ok(op)), stream));
+              Either::Left(fut)
+            },
+            Err(e) => Either::Right(ready((Ok(Err(e)), stream))),
+          }
         },
-        Err(e) => ready((Err(e), stream)),
+        Err(e) => Either::Right(ready((Err(e), stream))),
       }
     })
 }
-
-///// Handle a single message from the stream.
-//async fn handle_msg<I>(
-//  mut stream: WebSocketStream,
-//) -> Result<(Result<Operation<I>, JsonError>, WebSocketStream), WebSocketError>
-//where
-//  I: DeserializeOwned,
-//{
-//  // TODO: It is unclear whether a WebSocketError received at this
-//  //       point could potentially be due to a transient issue.
-//  let result = stream
-//    .next()
-//    .await
-//    .ok_or_else(|| WebSocketError::Protocol("connection lost unexpectedly".into()))?;
-//  let msg = result?;
-//
-//  trace!("received message: {:?}", msg);
-//  let result = decode_msg::<I>(msg);
-//  match result {
-//    Ok(op) => {
-//      if let Operation::Pong(dat) = op {
-//        // TODO: We should probably spawn a task here.
-//        stream.send(Message::Pong(dat)).await?;
-//        Ok((Ok(Operation::Nop), stream))
-//      } else {
-//        Ok((Ok(op), stream))
-//      }
-//    },
-//    e @ Err(_) => Ok((e, stream)),
-//  }
-//}
 
 /// Create a stream of higher level primitives out of a client, honoring
 /// and filtering websocket control messages such as `Ping` and `Close`.
@@ -236,7 +201,7 @@ async fn do_stream<I>(
 where
   I: DeserializeOwned,
 {
-  unfold((false, stream), |(closed, mut stream)| {
+  unfold((false, stream), |(closed, stream)| {
     if closed {
       Either::Left(ready(None))
     } else {
