@@ -4,6 +4,7 @@
 use std::str::from_utf8;
 
 use futures::SinkExt;
+use futures::StreamExt;
 use futures::TryFutureExt;
 
 use log::debug;
@@ -168,7 +169,7 @@ type StreamResponse = resp::Response<Streams>;
 
 
 /// Authenticate with the streaming service.
-pub async fn auth(
+async fn auth(
   stream: &mut WebSocketStream,
   key_id: Vec<u8>,
   secret: Vec<u8>,
@@ -192,7 +193,7 @@ pub async fn auth(
 
 
 /// Check the response to an authentication request.
-pub fn check_auth(msg: &[u8]) -> Result<(), Error> {
+fn check_auth(msg: &[u8]) -> Result<(), Error> {
   if log_enabled!(Debug) {
     match from_utf8(msg) {
       Ok(s) => debug!("stream auth response: {}", s),
@@ -216,7 +217,7 @@ pub fn check_auth(msg: &[u8]) -> Result<(), Error> {
 }
 
 /// Subscribe to the given stream.
-pub async fn subscribe(
+async fn subscribe_stream(
   stream: &mut WebSocketStream,
   stream_type: StreamType,
 ) -> Result<(), WebSocketError> {
@@ -235,7 +236,7 @@ pub async fn subscribe(
 
 
 /// Check the response to a stream subscription request.
-pub fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
+fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
   if log_enabled!(Debug) {
     match from_utf8(msg) {
       Ok(s) => debug!("stream subscription response: {}", s),
@@ -266,6 +267,51 @@ pub fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
     },
     Err(e) => Err(Error::from(e)),
   }
+}
+
+
+fn handle_only_data_msg<F>(msg: Message, f: F) -> Result<(), Error>
+where
+  F: FnOnce(&[u8]) -> Result<(), Error>,
+{
+  match msg {
+    Message::Text(text) => f(text.as_bytes()),
+    Message::Binary(data) => f(data.as_slice()),
+    m => {
+      let e = format!("received unexpected message: {:?}", m);
+      Err(Error::Str(e.into()))
+    },
+  }
+}
+
+
+/// Authenticate with and subscribe to an Alpaca event stream.
+pub async fn subscribe(
+  stream: &mut WebSocketStream,
+  key_id: Vec<u8>,
+  secret: Vec<u8>,
+  stream_type: StreamType,
+) -> Result<(), Error> {
+  // Authentication.
+  auth(stream, key_id, secret).await?;
+  let result = stream
+    .next()
+    .await
+    .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, check_auth)?;
+
+  // Subscription.
+  subscribe_stream(stream, stream_type).await?;
+  let result = stream
+    .next()
+    .await
+    .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
+  Ok(())
 }
 
 
