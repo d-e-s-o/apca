@@ -35,6 +35,6 @@ url = "2.0"
 uuid = {version = "0.7", features = ["serde", "v4"]}
 
 [dev-dependencies]
-env_logger = {version = "0.6", default-features = false}
+env_logger = {version = "0.7", default-features = false}
 test-env-log = "0.2"
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
