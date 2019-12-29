@@ -3,6 +3,7 @@ Unreleased
 - Migrated streaming functionality from `websocket` to
   `async-tungstenite`
 - Dropped dependency on `futures` `0.1`
+- Factored out `websocket-util` crate
 - Bumped `env_logger` dependency to `0.7`
 
 
