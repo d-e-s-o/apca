@@ -5,6 +5,7 @@ Unreleased
 - Dropped dependency on `futures` `0.1`
 - Factored out `websocket-util` crate
 - Bumped `env_logger` dependency to `0.7`
+- Bumped `uuid` dependency to `0.8`
 
 
 0.2.1
