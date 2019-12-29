@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::Serializer;
 
-use uuid::parser::ParseError as UuidParseError;
+use uuid::Error as UuidError;
 use uuid::Uuid;
 
 use crate::endpoint::Endpoint;
@@ -82,7 +82,7 @@ impl AsRef<str> for Status {
 
 
 /// An enumeration of all possible symbol parsing errors.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ParseSymbolError {
   /// The symbol contains an invalid character.
   InvalidSymbol(char),
@@ -91,7 +91,7 @@ pub enum ParseSymbolError {
   /// The asset class is unknown.
   UnknownClass,
   /// The ID could not be parsed.
-  InvalidId(UuidParseError),
+  InvalidId(UuidError),
   /// The symbol has an invalid/unrecognized format.
   InvalidFormat,
 }
