@@ -4,27 +4,22 @@
 use async_std::net::TcpStream;
 use async_tls::TlsConnector;
 
-use futures::future::ready;
 use futures::FutureExt;
-use futures::SinkExt;
 use futures::stream::Stream;
-use futures::stream::unfold;
 use futures::StreamExt;
-use futures::TryStreamExt;
 
 use log::debug;
-use log::trace;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
-use serde_json::from_slice as from_json;
 
 use tungstenite::connect_async_with_tls_connector;
 use tungstenite::MaybeTlsStream;
 use tungstenite::tungstenite::Error as WebSocketError;
-use tungstenite::tungstenite::Message;
 use tungstenite::WebSocketStream as TungsteniteStream;
+
+use websocket_util::stream as do_stream;
 
 use crate::api_info::ApiInfo;
 use crate::Error;
@@ -58,110 +53,6 @@ mod stream {
   }
 }
 
-
-#[derive(Debug)]
-enum Operation<T> {
-  /// A value was decoded.
-  Decode(T),
-  /// A ping was received and we are about to issue a pong.
-  Pong(Vec<u8>),
-  /// We received a control message that we just ignore.
-  Nop,
-  /// The connection is supposed to be close.
-  Close,
-}
-
-impl<T> Operation<T> {
-  fn into_decoded(self) -> Option<T> {
-    match self {
-      Operation::Decode(dat) => Some(dat),
-      _ => None,
-    }
-  }
-
-  fn is_close(&self) -> bool {
-    match self {
-      Operation::Close => true,
-      _ => false,
-    }
-  }
-}
-
-
-/// Convert a message into an `Operation`.
-fn decode_msg<I>(msg: Message) -> Result<Operation<I>, JsonError>
-where
-  I: DeserializeOwned,
-{
-  match msg {
-    Message::Close(_) => Ok(Operation::Close),
-    Message::Text(txt) => {
-      // TODO: Strictly speaking we would need to check that the
-      //       stream is the expected one.
-      let resp = from_json::<I>(txt.as_bytes())?;
-      Ok(Operation::Decode(resp))
-    },
-    Message::Binary(dat) => {
-      let resp = from_json::<I>(dat.as_slice())?;
-      Ok(Operation::Decode(resp))
-    },
-    Message::Ping(dat) => Ok(Operation::Pong(dat)),
-    Message::Pong(_) => Ok(Operation::Nop),
-  }
-}
-
-/// Handle a single message from the stream.
-async fn handle_msg<I>(
-  stream: &mut WebSocketStream,
-) -> Result<Result<Operation<I>, JsonError>, WebSocketError>
-where
-  I: DeserializeOwned,
-{
-  // TODO: It is unclear whether a WebSocketError received at this
-  //       point could potentially be due to a transient issue.
-  let result = stream
-    .next()
-    .await
-    .ok_or_else(|| WebSocketError::Protocol("connection lost unexpectedly".into()))?;
-  let msg = result?;
-
-  trace!("received message: {:?}", msg);
-  let result = decode_msg::<I>(msg);
-  match result {
-    Ok(Operation::Pong(dat)) => {
-      // TODO: We should probably spawn a task here.
-      stream.send(Message::Pong(dat)).await?;
-      Ok(Ok(Operation::Nop))
-    },
-    op => Ok(op),
-  }
-}
-
-/// Create a stream of higher level primitives out of a client, honoring
-/// and filtering websocket control messages such as `Ping` and `Close`.
-async fn do_stream<I>(
-  stream: WebSocketStream,
-) -> impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>
-where
-  I: DeserializeOwned,
-{
-  unfold((false, stream), |(closed, mut stream)| {
-    async move {
-      if closed {
-        None
-      } else {
-        let result = handle_msg(&mut stream).await;
-        let closed = match result.as_ref() {
-          Ok(Ok(op)) => op.is_close(),
-          _ => false,
-        };
-
-        Some((result, (closed, stream)))
-      }
-    }
-  })
-  .try_filter_map(|res| ready(Ok(res.map(|op| op.into_decoded()).transpose())))
-}
 
 async fn stream_impl<I>(
   api_info: ApiInfo,
@@ -200,7 +91,7 @@ where
   let (mut stream, _response) = connect_async_with_tls_connector(url, connector).await?;
   subscribe(&mut stream, key_id, secret, stream_type).await?;
 
-  let stream = do_stream::<stream::Event<I>>(stream)
+  let stream = do_stream::<_, stream::Event<I>>(stream)
     .map(|stream| {
       stream.map(|result| {
         result.map(|result| {
@@ -247,9 +138,8 @@ mod tests {
   use async_std::net::TcpListener;
   use async_std::net::TcpStream;
 
-  use futures::FutureExt;
+  use futures::future::ready;
   use futures::SinkExt;
-  use futures::StreamExt;
   use futures::TryStreamExt;
 
   use test_env_log::test;
@@ -257,6 +147,7 @@ mod tests {
   use tokio::spawn;
 
   use tungstenite::accept_async as accept_websocket;
+  use tungstenite::tungstenite::Message;
   use tungstenite::WebSocketStream as WsStream;
 
   use url::Url;
