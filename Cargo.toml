@@ -21,7 +21,7 @@ serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
 tungstenite = {package = "async-tungstenite", version = "0.2", features = ["tls"]}
 url = "2.0"
-uuid = {version = "0.7", features = ["serde", "v4"]}
+uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
 websocket-util = {version = "0.1", git = "ssh://rpigit/~/git/websocket-util.git"}
 
 [dev-dependencies]
