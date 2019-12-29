@@ -5,6 +5,7 @@ use async_std::net::TcpStream;
 use async_tls::TlsConnector;
 
 use futures::future::ready;
+use futures::FutureExt;
 use futures::SinkExt;
 use futures::stream::Stream;
 use futures::stream::unfold;
@@ -97,12 +98,12 @@ where
     Message::Text(txt) => {
       // TODO: Strictly speaking we would need to check that the
       //       stream is the expected one.
-      let resp = from_json::<stream::Event<I>>(txt.as_bytes())?;
-      Ok(Operation::Decode(resp.data.0))
+      let resp = from_json::<I>(txt.as_bytes())?;
+      Ok(Operation::Decode(resp))
     },
     Message::Binary(dat) => {
-      let resp = from_json::<stream::Event<I>>(dat.as_slice())?;
-      Ok(Operation::Decode(resp.data.0))
+      let resp = from_json::<I>(dat.as_slice())?;
+      Ok(Operation::Decode(resp))
     },
     Message::Ping(dat) => Ok(Operation::Pong(dat)),
     Message::Pong(_) => Ok(Operation::Nop),
@@ -198,7 +199,16 @@ where
   //       `connect_async_with_tls_connector_and_config`.
   let (mut stream, _response) = connect_async_with_tls_connector(url, connector).await?;
   subscribe(&mut stream, key_id, secret, stream_type).await?;
-  let stream = do_stream::<I>(stream).await;
+
+  let stream = do_stream::<stream::Event<I>>(stream)
+    .map(|stream| {
+      stream.map(|result| {
+        result.map(|result| {
+          result.map(|event| event.data.0)
+        })
+      })
+    }).await;
+
   Ok(stream)
 }
 
