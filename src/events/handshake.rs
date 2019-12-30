@@ -169,12 +169,9 @@ type StreamResponse = resp::Response<Streams>;
 /// Authenticate with the streaming service.
 async fn auth(
   stream: &mut WebSocketStream,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  key_id: String,
+  secret: String,
 ) -> Result<(), WebSocketError> {
-  let key_id = String::from_utf8(key_id).unwrap();
-  let secret = String::from_utf8(secret).unwrap();
-
   let auth = req::AuthData::new(key_id, secret);
   let request = AuthRequest::new(auth);
   let json = to_json(&request).unwrap();
@@ -286,8 +283,8 @@ where
 /// Authenticate with and subscribe to an Alpaca event stream.
 pub async fn subscribe(
   stream: &mut WebSocketStream,
-  key_id: Vec<u8>,
-  secret: Vec<u8>,
+  key_id: String,
+  secret: String,
   stream_type: StreamType,
 ) -> Result<(), Error> {
   // Authentication.
