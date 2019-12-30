@@ -3,7 +3,6 @@
 
 use std::env::var_os;
 use std::ffi::OsString;
-use std::os::unix::ffi::OsStringExt;
 
 use url::Url;
 
@@ -25,9 +24,9 @@ pub struct ApiInfo {
   /// The base URL for the API.
   pub(crate) base_url: Url,
   /// The key ID to use for authentication.
-  pub(crate) key_id: Vec<u8>,
+  pub(crate) key_id: String,
   /// The secret to use for authentication.
-  pub(crate) secret: Vec<u8>,
+  pub(crate) secret: String,
 }
 
 impl ApiInfo {
@@ -53,10 +52,17 @@ impl ApiInfo {
 
     let key_id = var_os(ENV_KEY_ID)
       .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?
-      .into_vec();
+      .into_string()
+      .map_err(|_| {
+        Error::Str(format!("{} environment variable is not a valid string", ENV_KEY_ID).into())
+      })?;
+
     let secret = var_os(ENV_SECRET)
       .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_SECRET).into()))?
-      .into_vec();
+      .into_string()
+      .map_err(|_| {
+        Error::Str(format!("{} environment variable is not a valid string", ENV_SECRET).into())
+      })?;
 
     Ok(Self {
       base_url,

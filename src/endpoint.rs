@@ -123,8 +123,8 @@ pub trait Endpoint {
       .method(Self::method())
       .uri(url.as_str())
       // Add required authentication information.
-      .header(HDR_KEY_ID, api_info.key_id.as_slice())
-      .header(HDR_SECRET, api_info.secret.as_slice())
+      .header(HDR_KEY_ID, api_info.key_id.as_str())
+      .header(HDR_SECRET, api_info.secret.as_str())
       .body(Self::body(input)?)
       .map_err(EndpointError::from)
   }
