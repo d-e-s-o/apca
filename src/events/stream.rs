@@ -213,8 +213,8 @@ mod tests {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
       base_url: Url::parse(&format!("http://{}", addr.to_string())).unwrap(),
-      key_id: KEY_ID.as_bytes().to_vec(),
-      secret: SECRET.as_bytes().to_vec(),
+      key_id: KEY_ID.to_string(),
+      secret: SECRET.to_string(),
     };
 
     stream_insecure::<S>(api_info).await
