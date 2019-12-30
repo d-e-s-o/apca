@@ -203,8 +203,8 @@ mod tests {
     let api_base = Url::parse(API_BASE_URL)?;
     let api_info = ApiInfo {
       base_url: api_base,
-      key_id: b"invalid".to_vec(),
-      secret: b"invalid-too".to_vec(),
+      key_id: "invalid".to_string(),
+      secret: "invalid-too".to_string(),
     };
 
     let client = Client::new(api_info);
