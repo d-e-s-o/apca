@@ -9,6 +9,9 @@ use futures::stream::Stream;
 use futures::StreamExt;
 
 use log::debug;
+use log::Level::Trace;
+use log::log_enabled;
+use log::trace;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -88,7 +91,13 @@ where
   // TODO: Ideally we'd want to establish a TCP connection ourselves and
   //       use `client_async_tls_with_connector`. See implementation of
   //       `connect_async_with_tls_connector_and_config`.
-  let (mut stream, _response) = connect_async_with_tls_connector(url, connector).await?;
+  let (mut stream, response) = connect_async_with_tls_connector(url.clone(), connector).await?;
+  if log_enabled!(Trace) {
+    trace!("connection successful, response: {:?}", response);
+  } else {
+    debug!("connection successful");
+  }
+
   subscribe(&mut stream, key_id, secret, stream_type).await?;
 
   let stream = do_stream::<_, stream::Event<I>>(stream)
