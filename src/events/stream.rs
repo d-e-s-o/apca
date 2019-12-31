@@ -142,10 +142,6 @@ mod tests {
   use super::*;
 
   use std::future::Future;
-  use std::net::SocketAddr;
-
-  use async_std::net::TcpListener;
-  use async_std::net::TcpStream;
 
   use futures::future::ready;
   use futures::SinkExt;
@@ -153,13 +149,12 @@ mod tests {
 
   use test_env_log::test;
 
-  use tokio::spawn;
-
-  use tungstenite::accept_async as accept_websocket;
   use tungstenite::tungstenite::Message;
-  use tungstenite::WebSocketStream as WsStream;
 
   use url::Url;
+
+  use websocket_util::test::mock_server;
+  use websocket_util::test::WebSocketStream;
 
   const KEY_ID: &str = "USER12345678";
   const SECRET: &str = "justletmein";
@@ -185,38 +180,12 @@ mod tests {
     }
   }
 
-  type WebSocketStream = WsStream<TcpStream>;
-
-  /// Create a websocket server that handles a customizable set of
-  /// requests and exits.
-  async fn mock_server<F, R>(f: F) -> SocketAddr
-  where
-    F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
-    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
-  {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-
-    let future = async move {
-      listener
-        .accept()
-        .map(move |result| result.unwrap())
-        .then(|(stream, _addr)| accept_websocket(stream))
-        .map(move |result| result.unwrap())
-        .then(move |ws_stream| f(ws_stream))
-        .await
-    };
-
-    let _ = spawn(future);
-    addr
-  }
-
   async fn mock_stream<S, F, R>(
     f: F,
   ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
   where
     S: EventStream,
-    F: Copy + FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
