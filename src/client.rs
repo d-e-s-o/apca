@@ -150,7 +150,19 @@ impl Client {
   where
     S: EventStream,
   {
-    stream::<S>(self.api_info.clone()).await
+    let mut url = self.api_info.base_url.clone();
+    url.set_scheme("wss").map_err(|()| {
+      Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
+    })?;
+    url.set_path("stream");
+
+    let api_info = ApiInfo {
+      base_url: url,
+      key_id: self.api_info.key_id.clone(),
+      secret: self.api_info.secret.clone(),
+    };
+
+    stream::<S>(api_info).await
   }
 
   /// Retrieve the `ApiInfo` object used by this `Client` instance.
