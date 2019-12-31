@@ -357,6 +357,8 @@ impl Endpoint for Delete {
 mod tests {
   use super::*;
 
+  use hyper::StatusCode;
+
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
@@ -453,8 +455,20 @@ mod tests {
       Ok(())
     }
 
-    test(true).await?;
     test(false).await?;
+
+    // When an extended hours order is submitted between 6pm and 8pm,
+    // the Alpaca API reports an error:
+    // > {"code":42210000,"message":"extended hours orders between 6:00pm
+    // >   and 8:00pm is not supported"}
+    //
+    // So we need to treat this case specially.
+    let result = test(true).await;
+    match result {
+      Ok(()) |
+      Err(Error::HttpStatus(StatusCode::UNPROCESSABLE_ENTITY)) => (),
+      err => panic!("unexpected error: {:?}", err),
+    };
     Ok(())
   }
 
