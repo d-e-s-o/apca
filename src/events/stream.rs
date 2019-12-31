@@ -59,32 +59,20 @@ mod stream {
 
 async fn stream_impl<I>(
   api_info: ApiInfo,
-  secure: bool,
   stream_type: StreamType,
 ) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>, Error>
 where
   I: DeserializeOwned,
 {
   let ApiInfo {
-    base_url: mut url,
+    base_url: url,
     key_id,
     secret,
   } = api_info;
 
-  url
-    .set_scheme(if secure { "wss" } else { "ws" })
-    .map_err(|()| {
-      Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
-    })?;
-  url.set_path("stream");
-
   debug!("connecting to {}", &url);
 
-  let connector = if secure {
-    Some(TlsConnector::default())
-  } else {
-    None
-  };
+  let connector = Some(TlsConnector::default());
   // We just ignore the response & headers that are sent along after
   // the connection is made. Alpaca does not seem to be using them,
   // really.
@@ -112,19 +100,6 @@ where
   Ok(stream)
 }
 
-/// Testing-only function to connect to a websocket stream in an
-/// insecure manner.
-#[cfg(test)]
-async fn stream_insecure<S>(
-  api_info: ApiInfo,
-) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
-where
-  S: EventStream,
-{
-  let secure = false;
-  stream_impl(api_info, secure, S::stream()).await
-}
-
 /// Create a stream for decoded event data.
 pub async fn stream<S>(
   api_info: ApiInfo,
@@ -132,8 +107,7 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let secure = true;
-  stream_impl(api_info, secure, S::stream()).await
+  stream_impl(api_info, S::stream()).await
 }
 
 
@@ -190,12 +164,12 @@ mod tests {
   {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
-      base_url: Url::parse(&format!("http://{}", addr.to_string())).unwrap(),
+      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
       key_id: KEY_ID.to_string(),
       secret: SECRET.to_string(),
     };
 
-    stream_insecure::<S>(api_info).await
+    stream::<S>(api_info).await
   }
 
   #[test(tokio::test)]
