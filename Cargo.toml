@@ -28,3 +28,4 @@ websocket-util = {version = "0.1", git = "ssh://rpigit/~/git/websocket-util.git"
 env_logger = {version = "0.7", default-features = false}
 test-env-log = "0.2"
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
+websocket-util = {version = "0.1", git = "ssh://rpigit/~/git/websocket-util.git", features = ["test"]}
