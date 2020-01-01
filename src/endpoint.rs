@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -201,10 +201,7 @@ macro_rules! EndpointDefImpl {
         match status {
           $(
             ::hyper::http::StatusCode::$ok_status => {
-              match $name::parse(&body) {
-                Ok(obj) => crate::endpoint::ConvertResult(Ok(obj)),
-                Err(err) => crate::endpoint::ConvertResult(Err(err)),
-              }
+              crate::endpoint::ConvertResult($name::parse(&body))
             },
           )*
           status => {
