@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use num_decimal::Num;
@@ -90,7 +90,7 @@ pub struct Position {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(PositionReq),
   Ok => Position, [
     /// The position with the given ID was retrieved successfully.
     /* 200 */ OK,
@@ -99,12 +99,6 @@ EndpointDef! {
     /// No position was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
   ]
-}
-
-impl Endpoint for Get {
-  type Input = PositionReq;
-  type Output = Position;
-  type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {
     format!("/v2/positions/{}", input.symbol).into()

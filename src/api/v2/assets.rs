@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -29,18 +29,12 @@ pub struct AssetsReq {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(AssetsReq),
   Ok => Vec<Asset>, [
     /// The list of assets was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []
-}
-
-impl Endpoint for Get {
-  type Input = AssetsReq;
-  type Output = Vec<Asset>;
-  type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
     "/v2/assets".into()

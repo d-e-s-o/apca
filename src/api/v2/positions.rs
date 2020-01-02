@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::api::v2::position::Position;
@@ -11,18 +11,12 @@ use crate::Str;
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(()),
   Ok => Vec<Position>, [
     /// The list of positions was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [ ]
-}
-
-impl Endpoint for Get {
-  type Input = ();
-  type Output = Vec<Position>;
-  type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
     "/v2/positions".into()

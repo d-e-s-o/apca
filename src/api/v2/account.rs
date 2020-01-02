@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -142,18 +142,12 @@ pub struct Account {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(()),
   Ok => Account, [
     /// The account information was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []
-}
-
-impl Endpoint for Get {
-  type Input = ();
-  type Output = Account;
-  type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
     "/v2/account".into()
