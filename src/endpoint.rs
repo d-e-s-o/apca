@@ -162,14 +162,15 @@ impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
 /// A macro used for defining the properties for a request to a
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
-  ( $name:ident,
+  ( $name:ident($in:ty),
     // We just ignore any documentation for success cases: there is
     // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
-    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*] ) => {
+    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
+    $($defs:tt)* ) => {
 
     EndpointDefImpl! {
-      $name,
+      $name($in),
       Ok => $out, [$($ok_status,)*],
       Err => $err, [
         // Every request can result in an authentication failure or fall
@@ -182,14 +183,16 @@ macro_rules! EndpointDef {
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($(#[$err_docs])* $err_status => $variant,)*
       ]
+      $($defs)*
     }
   };
 }
 
 macro_rules! EndpointDefImpl {
-  ( $name:ident,
+  ( $name:ident($in:ty),
     Ok => $out:ty, [$($ok_status:ident,)*],
-    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*] ) => {
+    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
+    $($defs:tt)* ) => {
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<(::hyper::http::StatusCode, ::std::vec::Vec<u8>)>
@@ -305,6 +308,15 @@ macro_rules! EndpointDefImpl {
           $err::Json(err) => crate::Error::Json(err),
         }
       }
+    }
+
+    #[allow(unused_qualifications)]
+    impl crate::endpoint::Endpoint for $name {
+      type Input = $in;
+      type Output = $out;
+      type Error = $err;
+
+      $($defs)*
     }
   };
 }
