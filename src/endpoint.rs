@@ -223,15 +223,27 @@ macro_rules! EndpointDefImpl {
             let message = format_message(message);
             write!(fmt, "Unexpected HTTP status {}: {}", status, message)
           },
-          $err::Http(err) => crate::error::fmt_err(err, fmt),
-          $err::Hyper(err) => crate::error::fmt_err(err, fmt),
-          $err::Json(err) => crate::error::fmt_err(err, fmt),
+          $err::Http(err) => write!(fmt, "{}", err),
+          $err::Hyper(err) => write!(fmt, "{}", err),
+          $err::Json(err) => write!(fmt, "{}", err),
         }
       }
     }
 
     #[allow(unused_qualifications)]
-    impl ::std::error::Error for $err {}
+    impl ::std::error::Error for $err {
+      fn source(&self) -> Option<&(dyn ::std::error::Error + 'static)> {
+        match self {
+          $(
+            $err::$variant(..) => None,
+          )*
+          $err::UnexpectedStatus(..) => None,
+          $err::Http(err) => err.source(),
+          $err::Hyper(err) => err.source(),
+          $err::Json(err) => err.source(),
+        }
+      }
+    }
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<::hyper::http::Error> for $err {
