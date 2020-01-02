@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Display;
@@ -295,7 +295,7 @@ pub struct AssetReq {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(AssetReq),
   Ok => Asset, [
     /// The asset object for the given symbol was retrieved successfully.
     /* 200 */ OK,
@@ -304,12 +304,6 @@ EndpointDef! {
     /// No asset was found for the given symbol.
     /* 404 */ NOT_FOUND => NotFound,
   ]
-}
-
-impl Endpoint for Get {
-  type Input = AssetReq;
-  type Output = Asset;
-  type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {
     format!("/v2/assets/{}", input.symbol).into()
