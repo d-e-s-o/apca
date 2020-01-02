@@ -1,6 +1,10 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+
 use hyper::Body;
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
@@ -22,6 +26,12 @@ pub struct ErrorMessage {
   /// A message as provided by Alpaca.
   #[serde(rename = "message")]
   pub message: String,
+}
+
+impl Display for ErrorMessage {
+  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    write!(fmt, "{} ({})", self.message, self.code)
+  }
 }
 
 
@@ -187,9 +197,7 @@ macro_rules! EndpointDefImpl {
       fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         fn format_message(message: &Result<crate::endpoint::ErrorMessage, Vec<u8>>) -> String {
           match message {
-            Ok(crate::endpoint::ErrorMessage { code, message }) => {
-              format!("{} ({})", message, code)
-            },
+            Ok(err) => err.to_string(),
             Err(body) => {
               match std::str::from_utf8(&body) {
                 Ok(body) => format!("{}", body),
