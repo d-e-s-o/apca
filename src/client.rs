@@ -29,6 +29,7 @@ use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
 use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
+use crate::endpoint::ErrorMessage;
 use crate::Error;
 use crate::events::EventStream;
 use crate::events::stream;
@@ -112,7 +113,7 @@ impl Client {
   /// Typically the default implementation is just fine.
   fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
   where
-    R: Endpoint,
+    R: Endpoint<ErrorMessage>,
   {
     let mut url = self.api_info.base_url.clone();
     url.set_path(&R::path(&input));
@@ -132,7 +133,7 @@ impl Client {
   /// Create and issue a request and decode the response.
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
-    R: Endpoint,
+    R: Endpoint<ErrorMessage>,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
     let req = self.request::<R>(&input)?;

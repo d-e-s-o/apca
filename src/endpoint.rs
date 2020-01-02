@@ -32,7 +32,7 @@ pub struct ErrorMessage {
 /// with an "authority" (scheme, host, and port) into a full URL. Query
 /// parameters are supported as well.
 /// An endpoint is used by the `Trader` who invokes the various methods.
-pub trait Endpoint {
+pub trait Endpoint<E> {
   /// The type of data being passed in as part of a request to this
   /// endpoint.
   type Input;
@@ -41,6 +41,8 @@ pub trait Endpoint {
   type Output: DeserializeOwned;
   /// The type of error this endpoint can report.
   type Error: From<HttpError> + From<HyperError> + From<JsonError>;
+  /// The error type reported by the underlying API.
+  type ApiError;
 
   /// Retrieve the HTTP method to use.
   ///
@@ -139,7 +141,7 @@ macro_rules! EndpointDefImpl {
         match status {
           $(
             ::hyper::http::StatusCode::$ok_status => {
-              crate::endpoint::ConvertResult($name::parse(&body))
+              crate::endpoint::ConvertResult(<$name as Endpoint<()>>::parse(&body))
             },
           )*
           status => {
@@ -257,10 +259,11 @@ macro_rules! EndpointDefImpl {
     }
 
     #[allow(unused_qualifications)]
-    impl crate::endpoint::Endpoint for $name {
+    impl<E> crate::endpoint::Endpoint<E> for $name {
       type Input = $in;
       type Output = $out;
       type Error = $err;
+      type ApiError = E;
 
       $($defs)*
     }
