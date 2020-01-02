@@ -51,6 +51,11 @@ pub trait Endpoint {
   type Output: DeserializeOwned;
   /// The type of error this endpoint can report.
   type Error: From<HttpError> + From<HyperError> + From<JsonError>;
+
+  /// A type encapsulating information needed for issuing requests.
+  ///
+  /// Examples include a base URL and authentication information.
+  type ApiInfo;
   /// An error emitted by the API.
   type ApiError: DeserializeOwned;
 
@@ -133,6 +138,7 @@ macro_rules! EndpointDef {
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($(#[$err_docs])* $err_status => $variant,)*
       ],
+      ApiInfo => crate::api_info::ApiInfo,
       ApiErr => crate::endpoint::ErrorMessage,
       $($defs)*
     }
@@ -145,6 +151,7 @@ macro_rules! EndpointDefImpl {
     // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*],
+    ApiInfo => $api_info:ty,
     ApiErr => $api_err:ty,
     $($defs:tt)* ) => {
 
@@ -288,6 +295,8 @@ macro_rules! EndpointDefImpl {
       type Input = $in;
       type Output = $out;
       type Error = $err;
+
+      type ApiInfo = $api_info;
       type ApiError = $api_err;
 
       $($defs)*
