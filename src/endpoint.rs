@@ -51,6 +51,8 @@ pub trait Endpoint {
   type Output: DeserializeOwned;
   /// The type of error this endpoint can report.
   type Error: From<HttpError> + From<HyperError> + From<JsonError>;
+  /// An error emitted by the API.
+  type ApiError: DeserializeOwned;
 
   /// Retrieve the HTTP method to use.
   ///
@@ -86,8 +88,8 @@ pub trait Endpoint {
   }
 
   /// Parse an API error.
-  fn parse_err(body: Vec<u8>) -> Result<ErrorMessage, Vec<u8>> {
-    from_slice::<ErrorMessage>(&body).map_err(|_| body)
+  fn parse_err(body: Vec<u8>) -> Result<Self::ApiError, Vec<u8>> {
+    from_slice::<Self::ApiError>(&body).map_err(|_| body)
   }
 }
 
@@ -130,7 +132,8 @@ macro_rules! EndpointDef {
         /// denied.
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($(#[$err_docs])* $err_status => $variant,)*
-      ]
+      ],
+      ApiErr => crate::endpoint::ErrorMessage,
       $($defs)*
     }
   };
@@ -141,7 +144,8 @@ macro_rules! EndpointDefImpl {
     // We just ignore any documentation for success cases: there is
     // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
-    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
+    Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*],
+    ApiErr => $api_err:ty,
     $($defs:tt)* ) => {
 
     #[allow(unused_qualifications)]
@@ -179,11 +183,11 @@ macro_rules! EndpointDefImpl {
     pub enum $err {
       $(
         $(#[$err_docs])*
-        $variant(Result<crate::endpoint::ErrorMessage, Vec<u8>>),
+        $variant(Result<$api_err, Vec<u8>>),
       )*
       /// An HTTP status not present in the endpoint's definition was
       /// encountered.
-      UnexpectedStatus(::hyper::http::StatusCode, Result<crate::endpoint::ErrorMessage, Vec<u8>>),
+      UnexpectedStatus(::hyper::http::StatusCode, Result<$api_err, Vec<u8>>),
       /// An HTTP related error.
       Http(::hyper::http::Error),
       /// An error reported by the `hyper` crate.
@@ -195,7 +199,7 @@ macro_rules! EndpointDefImpl {
     #[allow(unused_qualifications)]
     impl ::std::fmt::Display for $err {
       fn fmt(&self, fmt: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-        fn format_message(message: &Result<crate::endpoint::ErrorMessage, Vec<u8>>) -> String {
+        fn format_message(message: &Result<$api_err, Vec<u8>>) -> String {
           match message {
             Ok(err) => err.to_string(),
             Err(body) => {
@@ -272,6 +276,7 @@ macro_rules! EndpointDefImpl {
       type Input = $in;
       type Output = $out;
       type Error = $err;
+      type ApiError = $api_err;
 
       $($defs)*
     }
