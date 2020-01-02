@@ -8,6 +8,7 @@ use std::fmt::Result as FmtResult;
 use hyper::Body;
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
+use hyper::http::StatusCode;
 use hyper::Method;
 
 use serde::de::DeserializeOwned;
@@ -91,23 +92,13 @@ pub trait Endpoint {
   fn parse_err(body: Vec<u8>) -> Result<Self::ApiError, Vec<u8>> {
     from_slice::<Self::ApiError>(&body).map_err(|_| body)
   }
-}
 
-
-/// A result type used solely for the purpose of communicating
-/// the result of a conversion to the `Client`.
-///
-/// This type is pretty much a `Result`, but given that it is local to
-/// our crate we can implement non-local traits for it. We exploit this
-/// fact in the `Client` struct which relies on a From conversion from
-/// an (HTTP status, Body)-pair yielding such a result.
-#[derive(Debug)]
-pub struct ConvertResult<T, E>(pub Result<T, E>);
-
-impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
-  fn into(self) -> Result<T, E> {
-    self.0
-  }
+  /// Evaluate an HTTP status and body, converting it into an output or
+  /// error, depending on the status.
+  ///
+  /// This method is not meant to be implemented manually. It will be
+  /// auto-generated.
+  fn evaluate(status: StatusCode, body: Vec<u8>) -> Result<Self::Output, Self::Error>;
 }
 
 
@@ -147,34 +138,6 @@ macro_rules! EndpointDefImpl {
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*],
     ApiErr => $api_err:ty,
     $($defs:tt)* ) => {
-
-    #[allow(unused_qualifications)]
-    impl ::std::convert::From<(::hyper::http::StatusCode, ::std::vec::Vec<u8>)>
-      for crate::endpoint::ConvertResult<$out, $err> {
-
-      #[allow(unused)]
-      fn from(data: (::hyper::http::StatusCode, ::std::vec::Vec<u8>)) -> Self {
-        let (status, body) = data;
-        match status {
-          $(
-            ::hyper::http::StatusCode::$ok_status => {
-              crate::endpoint::ConvertResult(<$name as crate::endpoint::Endpoint>::parse(&body))
-            },
-          )*
-          status => {
-            let res = <$name as crate::endpoint::Endpoint>::parse_err(body);
-            match status {
-              $(
-                ::hyper::http::StatusCode::$err_status => {
-                  crate::endpoint::ConvertResult(Err($err::$variant(res)))
-                },
-              )*
-              _ => crate::endpoint::ConvertResult(Err($err::UnexpectedStatus(status, res))),
-            }
-          },
-        }
-      }
-    }
 
     /// An enum representing the various errors this endpoint may
     /// encounter.
@@ -291,6 +254,31 @@ macro_rules! EndpointDefImpl {
       type ApiError = $api_err;
 
       $($defs)*
+
+      #[allow(unused_qualifications)]
+      fn evaluate(
+        status: ::hyper::http::StatusCode,
+        body: ::std::vec::Vec<u8>,
+      ) -> Result<$out, $err> {
+        match status {
+          $(
+            ::hyper::http::StatusCode::$ok_status => {
+              <$name as crate::endpoint::Endpoint>::parse(&body)
+            },
+          )*
+          status => {
+            let res = <$name as crate::endpoint::Endpoint>::parse_err(body);
+            match status {
+              $(
+                ::hyper::http::StatusCode::$err_status => {
+                  Err($err::$variant(res))
+                },
+              )*
+              _ => Err($err::UnexpectedStatus(status, res)),
+            }
+          },
+        }
+      }
     }
   };
 }
