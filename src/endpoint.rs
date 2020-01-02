@@ -1,60 +1,15 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::error::Error as StdError;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Result as FmtResult;
-
 use hyper::Body;
-use hyper::http::Error as HttpError;
-use hyper::http::request::Builder;
 use hyper::Method;
-use hyper::Request;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_json::from_slice;
 
-use crate::api::HDR_KEY_ID;
-use crate::api::HDR_SECRET;
-use crate::api_info::ApiInfo;
-use crate::error::fmt_err;
 use crate::Str;
-
-
-/// An error type used by the `Endpoint` trait.
-#[derive(Debug)]
-pub enum EndpointError {
-  /// An HTTP related error.
-  Http(HttpError),
-  /// A JSON conversion error.
-  Json(JsonError),
-}
-
-impl Display for EndpointError {
-  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-    match self {
-      EndpointError::Http(err) => fmt_err(err, fmt),
-      EndpointError::Json(err) => fmt_err(err, fmt),
-    }
-  }
-}
-
-impl StdError for EndpointError {}
-
-impl From<HttpError> for EndpointError {
-  fn from(e: HttpError) -> Self {
-    EndpointError::Http(e)
-  }
-}
-
-impl From<JsonError> for EndpointError {
-  fn from(e: JsonError) -> Self {
-    EndpointError::Json(e)
-  }
-}
 
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -111,24 +66,6 @@ pub trait Endpoint {
     Ok(Body::empty())
   }
 
-  /// Create a `Request` to the endpoint.
-  ///
-  /// Typically the default implementation is just fine.
-  fn request(api_info: &ApiInfo, input: &Self::Input) -> Result<Request<Body>, EndpointError> {
-    let mut url = api_info.base_url.clone();
-    url.set_path(&Self::path(&input));
-    url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
-
-    Builder::new()
-      .method(Self::method())
-      .uri(url.as_str())
-      // Add required authentication information.
-      .header(HDR_KEY_ID, api_info.key_id.as_str())
-      .header(HDR_SECRET, api_info.secret.as_str())
-      .body(Self::body(input)?)
-      .map_err(EndpointError::from)
-  }
-
   /// Parse the body into the final result.
   ///
   /// By default this method directly parses the body as JSON.
@@ -163,8 +100,6 @@ impl<T, E> Into<Result<T, E>> for ConvertResult<T, E> {
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
   ( $name:ident($in:ty),
-    // We just ignore any documentation for success cases: there is
-    // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
     $($defs:tt)* ) => {
@@ -190,7 +125,9 @@ macro_rules! EndpointDef {
 
 macro_rules! EndpointDefImpl {
   ( $name:ident($in:ty),
-    Ok => $out:ty, [$($ok_status:ident,)*],
+    // We just ignore any documentation for success cases: there is
+    // nowhere we can put it.
+    Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
     $($defs:tt)* ) => {
 
@@ -236,6 +173,8 @@ macro_rules! EndpointDefImpl {
       /// An HTTP status not present in the endpoint's definition was
       /// encountered.
       UnexpectedStatus(::hyper::http::StatusCode, Result<crate::endpoint::ErrorMessage, Vec<u8>>),
+      /// An HTTP related error.
+      Http(::hyper::http::Error),
       /// An error reported by the `hyper` crate.
       Hyper(::hyper::Error),
       /// A JSON conversion error.
@@ -271,6 +210,7 @@ macro_rules! EndpointDefImpl {
             let message = format_message(message);
             write!(fmt, "Unexpected HTTP status {}: {}", status, message)
           },
+          $err::Http(err) => crate::error::fmt_err(err, fmt),
           $err::Hyper(err) => crate::error::fmt_err(err, fmt),
           $err::Json(err) => crate::error::fmt_err(err, fmt),
         }
@@ -279,6 +219,13 @@ macro_rules! EndpointDefImpl {
 
     #[allow(unused_qualifications)]
     impl ::std::error::Error for $err {}
+
+    #[allow(unused_qualifications)]
+    impl ::std::convert::From<::hyper::http::Error> for $err {
+      fn from(src: ::hyper::http::Error) -> Self {
+        $err::Http(src)
+      }
+    }
 
     #[allow(unused_qualifications)]
     impl ::std::convert::From<::hyper::Error> for $err {
@@ -304,6 +251,7 @@ macro_rules! EndpointDefImpl {
             },
           )*
           $err::UnexpectedStatus(status, _) => crate::Error::HttpStatus(status),
+          $err::Http(err) => crate::Error::Http(err),
           $err::Hyper(err) => crate::Error::Hyper(err),
           $err::Json(err) => crate::Error::Json(err),
         }
