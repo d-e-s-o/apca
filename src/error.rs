@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -13,7 +13,6 @@ use serde_json::Error as JsonError;
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
 
-use crate::endpoint::EndpointError;
 use crate::Str;
 
 
@@ -62,15 +61,6 @@ impl Display for Error {
 }
 
 impl StdError for Error {}
-
-impl From<EndpointError> for Error {
-  fn from(e: EndpointError) -> Self {
-    match e {
-      EndpointError::Http(e) => Error::Http(e),
-      EndpointError::Json(e) => Error::Json(e),
-    }
-  }
-}
 
 impl From<HttpError> for Error {
   fn from(e: HttpError) -> Self {
