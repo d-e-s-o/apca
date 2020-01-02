@@ -8,7 +8,6 @@ use url::form_urlencoded::Serializer;
 use crate::api::v2::asset::Asset;
 use crate::api::v2::asset::Class;
 use crate::api::v2::asset::Status;
-use crate::endpoint::Endpoint;
 use crate::Str;
 
 

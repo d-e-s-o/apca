@@ -14,7 +14,6 @@ use serde::Serializer;
 use uuid::Error as UuidError;
 use uuid::Uuid;
 
-use crate::endpoint::Endpoint;
 use crate::Str;
 
 
