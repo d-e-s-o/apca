@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -27,18 +27,12 @@ pub struct OrdersReq {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(OrdersReq),
   Ok => Vec<Order>, [
     /// The list of orders was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []
-}
-
-impl Endpoint for Get {
-  type Input = OrdersReq;
-  type Output = Vec<Order>;
-  type Error = GetError;
 
   fn path(_input: &Self::Input) -> Str {
     "/v2/orders".into()

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -253,7 +253,7 @@ pub struct Order {
 pub struct Get {}
 
 EndpointDef! {
-  Get,
+  Get(Id),
   Ok => Order, [
     /// The order object for the given ID was retrieved successfully.
     /* 200 */ OK,
@@ -262,12 +262,6 @@ EndpointDef! {
     /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
   ]
-}
-
-impl Endpoint for Get {
-  type Input = Id;
-  type Output = Order;
-  type Error = GetError;
 
   fn path(input: &Self::Input) -> Str {
     format!("/v2/orders/{}", input.to_simple()).into()
@@ -280,7 +274,7 @@ impl Endpoint for Get {
 pub struct Post {}
 
 EndpointDef! {
-  Post,
+  Post(OrderReq),
   Ok => Order, [
     /// The order was submitted successfully.
     /* 200 */ OK,
@@ -291,12 +285,6 @@ EndpointDef! {
     /// Some data in the request was invalid.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
-}
-
-impl Endpoint for Post {
-  type Input = OrderReq;
-  type Output = Order;
-  type Error = PostError;
 
   fn method() -> Method {
     Method::POST
@@ -320,7 +308,7 @@ impl Endpoint for Post {
 pub struct Delete {}
 
 EndpointDef! {
-  Delete,
+  Delete(Id),
   Ok => (), [
     /// The order was canceled successfully.
     /* 204 */ NO_CONTENT,
@@ -331,12 +319,6 @@ EndpointDef! {
     /// The order can no longer be canceled.
     /* 422 */ UNPROCESSABLE_ENTITY => NotCancelable,
   ]
-}
-
-impl Endpoint for Delete {
-  type Input = Id;
-  type Output = ();
-  type Error = DeleteError;
 
   fn method() -> Method {
     Method::DELETE

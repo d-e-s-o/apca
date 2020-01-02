@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::str::from_utf8;
@@ -186,15 +186,9 @@ mod tests {
   pub struct GetNotFound {}
 
   EndpointDef! {
-    GetNotFound,
+    GetNotFound(()),
     Ok => (), [],
     Err => GetNotFoundError, []
-  }
-
-  impl Endpoint for GetNotFound {
-    type Input = ();
-    type Output = ();
-    type Error = GetNotFoundError;
 
     fn path(_input: &Self::Input) -> Str {
       "/v2/foobarbaz".into()
