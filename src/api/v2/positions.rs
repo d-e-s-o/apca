@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::api::v2::position::Position;
-use crate::endpoint::Endpoint;
 use crate::Str;
 
 
