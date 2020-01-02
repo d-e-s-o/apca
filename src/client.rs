@@ -10,9 +10,7 @@ use hyper::body::to_bytes;
 use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
-use hyper::http::request::Builder as HttpRequestBuilder;
 use hyper::http::StatusCode;
-use hyper::Request;
 use hyper_tls::HttpsConnector;
 
 use log::debug;
@@ -24,8 +22,6 @@ use serde_json::Error as JsonError;
 
 use tungstenite::tungstenite::Error as WebSocketError;
 
-use crate::api::HDR_KEY_ID;
-use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
 use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
@@ -107,35 +103,13 @@ impl Client {
     Builder::default().build(api_info)
   }
 
-  /// Create a `Request` to the endpoint.
-  ///
-  /// Typically the default implementation is just fine.
-  fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
-  where
-    R: Endpoint,
-  {
-    let mut url = self.api_info.base_url.clone();
-    url.set_path(&R::path(&input));
-    url.set_query(R::query(&input).as_ref().map(AsRef::as_ref));
-
-    let request = HttpRequestBuilder::new()
-      .method(R::method())
-      .uri(url.as_str())
-      // Add required authentication information.
-      .header(HDR_KEY_ID, self.api_info.key_id.as_str())
-      .header(HDR_SECRET, self.api_info.secret.as_str())
-      .body(R::body(input)?)?;
-
-    Ok(request)
-  }
-
   /// Create and issue a request and decode the response.
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
-    R: Endpoint,
+    R: Endpoint<ApiInfo = ApiInfo>,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
-    let req = self.request::<R>(&input)?;
+    let req = R::request(&self.api_info, &input)?;
     if log_enabled!(Debug) {
       debug!("HTTP request: {:?}", req);
     } else {

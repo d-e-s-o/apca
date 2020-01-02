@@ -9,6 +9,7 @@ use hyper::Body;
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
 use hyper::Method;
+use hyper::Request;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -85,6 +86,11 @@ pub trait Endpoint {
     Ok(Body::empty())
   }
 
+  /// Create a `Request` to the endpoint.
+  ///
+  /// Typically the default implementation is just fine.
+  fn request(api_info: &Self::ApiInfo, input: &Self::Input) -> Result<Request<Body>, Self::Error>;
+
   /// Parse the body into the final result.
   ///
   /// By default this method directly parses the body as JSON.
@@ -140,6 +146,26 @@ macro_rules! EndpointDef {
       ],
       ApiInfo => crate::api_info::ApiInfo,
       ApiErr => crate::endpoint::ErrorMessage,
+
+      fn request(
+        api_info: &Self::ApiInfo,
+        input: &Self::Input,
+      ) -> Result<::hyper::Request<::hyper::Body>, Self::Error> {
+        let mut url = api_info.base_url.clone();
+        url.set_path(&Self::path(&input));
+        url.set_query(Self::query(&input).as_ref().map(AsRef::as_ref));
+
+        let request = hyper::http::request::Builder::new()
+          .method(Self::method())
+          .uri(url.as_str())
+          // Add required authentication information.
+          .header(crate::api::HDR_KEY_ID, api_info.key_id.as_str())
+          .header(crate::api::HDR_SECRET, api_info.secret.as_str())
+          .body(Self::body(input)?)?;
+
+        Ok(request)
+
+      }
       $($defs)*
     }
   };
