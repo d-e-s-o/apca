@@ -139,7 +139,7 @@ macro_rules! EndpointDefImpl {
         match status {
           $(
             ::hyper::http::StatusCode::$ok_status => {
-              crate::endpoint::ConvertResult($name::parse(&body))
+              crate::endpoint::ConvertResult(<$name as crate::endpoint::Endpoint>::parse(&body))
             },
           )*
           status => {
