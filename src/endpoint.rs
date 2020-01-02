@@ -89,8 +89,8 @@ pub trait Endpoint {
   }
 
   /// Parse an API error.
-  fn parse_err(body: Vec<u8>) -> Result<Self::ApiError, Vec<u8>> {
-    from_slice::<Self::ApiError>(&body).map_err(|_| body)
+  fn parse_err(body: &[u8]) -> Result<Self::ApiError, Vec<u8>> {
+    from_slice::<Self::ApiError>(body).map_err(|_| body.to_vec())
   }
 
   /// Evaluate an HTTP status and body, converting it into an output or
@@ -98,7 +98,7 @@ pub trait Endpoint {
   ///
   /// This method is not meant to be implemented manually. It will be
   /// auto-generated.
-  fn evaluate(status: StatusCode, body: Vec<u8>) -> Result<Self::Output, Self::Error>;
+  fn evaluate(status: StatusCode, body: &[u8]) -> Result<Self::Output, Self::Error>;
 }
 
 
@@ -258,7 +258,7 @@ macro_rules! EndpointDefImpl {
       #[allow(unused_qualifications)]
       fn evaluate(
         status: ::hyper::http::StatusCode,
-        body: ::std::vec::Vec<u8>,
+        body: &[u8],
       ) -> Result<$out, $err> {
         match status {
           $(
@@ -267,7 +267,7 @@ macro_rules! EndpointDefImpl {
             },
           )*
           status => {
-            let res = <$name as crate::endpoint::Endpoint>::parse_err(body);
+            let res = <$name as crate::endpoint::Endpoint>::parse_err(&body);
             match status {
               $(
                 ::hyper::http::StatusCode::$err_status => {
