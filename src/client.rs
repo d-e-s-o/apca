@@ -10,8 +10,6 @@ use hyper::body::to_bytes;
 use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
-use hyper::Error as HyperError;
-use hyper::http::Error as HttpError;
 use hyper::http::request::Builder as HttpRequestBuilder;
 use hyper::http::StatusCode;
 use hyper::Request;
@@ -115,8 +113,6 @@ impl Client {
   fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
   where
     R: Endpoint,
-    R::Error: From<HttpError>,
-    R::Error: From<JsonError>,
   {
     let mut url = self.api_info.base_url.clone();
     url.set_path(&R::path(&input));
@@ -137,9 +133,6 @@ impl Client {
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
     R: Endpoint,
-    R::Error: From<HttpError>,
-    R::Error: From<HyperError>,
-    R::Error: From<JsonError>,
     ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
     let req = self.request::<R>(&input)?;
