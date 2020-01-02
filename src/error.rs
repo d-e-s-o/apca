@@ -16,16 +16,6 @@ use url::ParseError;
 use crate::Str;
 
 
-pub fn fmt_err(err: &dyn StdError, fmt: &mut Formatter<'_>) -> FmtResult {
-  write!(fmt, "{}", err)?;
-  if let Some(src) = err.source() {
-    write!(fmt, ": ")?;
-    fmt_err(src, fmt)?;
-  }
-  Ok(())
-}
-
-
 /// The error type as used by this crate.
 #[derive(Debug)]
 pub enum Error {
@@ -49,18 +39,30 @@ pub enum Error {
 impl Display for Error {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Error::Http(err) => fmt_err(err, fmt),
+      Error::Http(err) => write!(fmt, "{}", err),
       Error::HttpStatus(status) => write!(fmt, "Received HTTP status: {}", status),
-      Error::Hyper(err) => fmt_err(err, fmt),
-      Error::Json(err) => fmt_err(err, fmt),
+      Error::Hyper(err) => write!(fmt, "{}", err),
+      Error::Json(err) => write!(fmt, "{}", err),
       Error::Str(err) => fmt.write_str(err),
-      Error::Url(err) => fmt_err(err, fmt),
-      Error::WebSocket(err) => fmt_err(err, fmt),
+      Error::Url(err) => write!(fmt, "{}", err),
+      Error::WebSocket(err) => write!(fmt, "{}", err),
     }
   }
 }
 
-impl StdError for Error {}
+impl StdError for Error {
+  fn source(&self) -> Option<&(dyn StdError + 'static)> {
+    match self {
+      Error::Http(err) => err.source(),
+      Error::HttpStatus(..) => None,
+      Error::Hyper(err) => err.source(),
+      Error::Json(err) => err.source(),
+      Error::Str(..) => None,
+      Error::Url(err) => err.source(),
+      Error::WebSocket(err) => err.source(),
+    }
+  }
+}
 
 impl From<HttpError> for Error {
   fn from(e: HttpError) -> Self {
