@@ -327,11 +327,6 @@ EndpointDef! {
   fn path(input: &Self::Input) -> Str {
     format!("/v2/orders/{}", input.to_simple()).into()
   }
-
-  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
-    debug_assert_eq!(body, b"");
-    Ok(())
-  }
 }
 
 

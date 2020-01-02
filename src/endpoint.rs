@@ -9,7 +9,6 @@ use hyper::Method;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
-use serde_json::from_slice;
 
 use crate::Str;
 
@@ -66,13 +65,6 @@ pub trait Endpoint {
   #[allow(unused)]
   fn body(input: &Self::Input) -> Result<Body, JsonError> {
     Ok(Body::empty())
-  }
-
-  /// Parse the body into the final result.
-  ///
-  /// By default this method directly parses the body as JSON.
-  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
-    from_slice::<Self::Output>(body).map_err(Self::Error::from)
   }
 }
 
@@ -139,7 +131,8 @@ macro_rules! EndpointDefImpl {
         match status {
           $(
             ::hyper::http::StatusCode::$ok_status => {
-              crate::endpoint::ConvertResult($name::parse(&body))
+              let res = ::serde_json::from_slice::<$out>(&body).map_err($err::from);
+              crate::endpoint::ConvertResult(res)
             },
           )*
           status => {
