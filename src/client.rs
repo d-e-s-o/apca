@@ -11,7 +11,6 @@ use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::http::request::Builder as HttpRequestBuilder;
-use hyper::http::StatusCode;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 
@@ -27,7 +26,6 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
-use crate::endpoint::ConvertResult;
 use crate::endpoint::Endpoint;
 use crate::Error;
 use crate::events::EventStream;
@@ -131,7 +129,6 @@ impl Client {
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
     R: Endpoint,
-    ConvertResult<R::Output, R::Error>: From<(StatusCode, Vec<u8>)>,
   {
     let req = self.request::<R>(&input)?;
     if log_enabled!(Debug) {
@@ -162,7 +159,7 @@ impl Client {
       }
     }
 
-    ConvertResult::<R::Output, R::Error>::from((status, body)).into()
+    R::evaluate(status, body)
   }
 
   /// Subscribe to the given stream in order to receive updates.
@@ -197,6 +194,8 @@ impl Client {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use hyper::http::StatusCode;
 
   use test_env_log::test;
 
