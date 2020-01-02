@@ -171,8 +171,7 @@ impl Client {
       }
     }
 
-    let res = ConvertResult::<R::Output, R::Error>::from((status, body));
-    Into::<Result<_, _>>::into(res)
+    ConvertResult::<R::Output, R::Error>::from((status, body)).into()
   }
 
   /// Subscribe to the given stream in order to receive updates.
