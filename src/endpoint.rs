@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use hyper::Body;
+use hyper::Error as HyperError;
+use hyper::http::Error as HttpError;
 use hyper::Method;
 
 use serde::de::DeserializeOwned;
@@ -36,9 +38,9 @@ pub trait Endpoint {
   type Input;
   /// The type of data being returned in the response from this
   /// endpoint.
-  type Output;
+  type Output: DeserializeOwned;
   /// The type of error this endpoint can report.
-  type Error;
+  type Error: From<HttpError> + From<HyperError> + From<JsonError>;
 
   /// Retrieve the HTTP method to use.
   ///
@@ -69,11 +71,7 @@ pub trait Endpoint {
   /// Parse the body into the final result.
   ///
   /// By default this method directly parses the body as JSON.
-  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error>
-  where
-    Self::Output: DeserializeOwned,
-    Self::Error: From<JsonError>,
-  {
+  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
     from_slice::<Self::Output>(body).map_err(Self::Error::from)
   }
 }
