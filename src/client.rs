@@ -149,11 +149,11 @@ impl Client {
     //       list of all orders it now needs to be stored in memory
     //       in its entirety. That may blow things.
     let bytes = to_bytes(result.into_body()).await?;
-    let body = Vec::from(bytes.as_ref());
+    let body = bytes.as_ref();
 
     info!("HTTP status: {}", status);
     if log_enabled!(Debug) {
-      match str::from_utf8(&body) {
+      match str::from_utf8(body) {
         Ok(s) => debug!("HTTP body: {}", s),
         Err(b) => debug!("HTTP body: {}", b),
       }
