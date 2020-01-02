@@ -74,6 +74,11 @@ pub trait Endpoint {
   fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
     from_slice::<Self::Output>(body).map_err(Self::Error::from)
   }
+
+  /// Parse an API error.
+  fn parse_err(body: Vec<u8>) -> Result<ErrorMessage, Vec<u8>> {
+    from_slice::<ErrorMessage>(&body).map_err(|_| body)
+  }
 }
 
 
@@ -143,9 +148,7 @@ macro_rules! EndpointDefImpl {
             },
           )*
           status => {
-            let res = ::serde_json::from_slice::<crate::endpoint::ErrorMessage>(&body)
-              .map_err(|_| body);
-
+            let res = <$name as crate::endpoint::Endpoint>::parse_err(body);
             match status {
               $(
                 ::hyper::http::StatusCode::$err_status => {
