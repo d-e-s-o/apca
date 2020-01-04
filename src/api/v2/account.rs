@@ -136,7 +136,7 @@ pub struct Account {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/accounts endpoint.
   pub Get(()),
   Ok => Account, [
@@ -157,6 +157,8 @@ mod tests {
 
   use std::time::Duration;
   use std::time::UNIX_EPOCH;
+
+  use http_endpoint::Error as EndpointError;
 
   use serde_json::from_str as from_json;
 
@@ -219,7 +221,7 @@ mod tests {
   async fn request_account() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info);
-    let account = client.issue::<Get>(()).await?;
+    let account = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
 
     assert_eq!(account.currency, "USD");
     assert!(!account.account_blocked);

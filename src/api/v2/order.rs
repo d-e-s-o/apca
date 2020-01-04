@@ -246,7 +246,7 @@ pub struct Order {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/orders/<order-id>
   /// endpoint.
   pub Get(Id),
@@ -265,7 +265,7 @@ EndpointDef! {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a POST request to the /v2/orders endpoint.
   pub Post(OrderReq),
   Ok => Order, [
@@ -295,7 +295,7 @@ EndpointDef! {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a DELETE request to the /v2/orders/<order-id>
   /// endpoint.
   pub Delete(Id),
@@ -328,6 +328,8 @@ EndpointDef! {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use http_endpoint::Error as EndpointError;
 
   use hyper::StatusCode;
 
@@ -413,8 +415,14 @@ mod tests {
       let api_info = ApiInfo::from_env()?;
       let client = Client::new(api_info);
 
-      let order = client.issue::<Post>(request).await?;
-      let _ = client.issue::<Delete>(order.id).await?;
+      let order = client
+        .issue::<Post>(request)
+        .await
+        .map_err(EndpointError::from)?;
+      let _ = client
+        .issue::<Delete>(order.id)
+        .await
+        .map_err(EndpointError::from)?;
 
       assert_eq!(order.symbol, "SPY");
       assert_eq!(order.quantity, Num::from_int(1));
@@ -489,8 +497,11 @@ mod tests {
     let client = Client::new(api_info);
     let posted = order_aapl(&client).await?;
     let result = client.issue::<Get>(posted.id).await;
-    let _ = client.issue::<Delete>(posted.id).await?;
-    let gotten = result?;
+    let _ = client
+      .issue::<Delete>(posted.id)
+      .await
+      .map_err(EndpointError::from)?;
+    let gotten = result.map_err(EndpointError::from)?;
 
     // We can't simply compare the two orders for equality, because some
     // time stamps may differ.

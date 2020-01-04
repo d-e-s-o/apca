@@ -5,7 +5,7 @@ use crate::api::v2::position::Position;
 use crate::Str;
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/positions endpoint.
   pub Get(()),
   Ok => Vec<Position>, [
@@ -24,6 +24,8 @@ EndpointDef! {
 mod tests {
   use super::*;
 
+  use http_endpoint::Error as EndpointError;
+
   use test_env_log::test;
 
   use crate::api_info::ApiInfo;
@@ -37,7 +39,7 @@ mod tests {
     // reporting any errors.
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info);
-    let _ = client.issue::<Get>(()).await?;
+    let _ = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
     Ok(())
   }
 }

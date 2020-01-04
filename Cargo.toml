@@ -13,6 +13,7 @@ async-std = "1.4"
 async-tls = "0.6"
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
+http-endpoint = {version = "0.1", git = "ssh://rpigit/~/git/http-endpoint.git"}
 num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 hyper = {version = "0.13", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
