@@ -203,9 +203,6 @@ mod tests {
   use crate::Str;
 
 
-  #[derive(Debug)]
-  pub struct GetNotFound {}
-
   EndpointDef! {
     GetNotFound(()),
     Ok => (), [],
