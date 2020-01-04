@@ -23,7 +23,7 @@ pub struct OrdersReq {
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/orders endpoint.
-  Get(OrdersReq),
+  pub Get(OrdersReq),
   Ok => Vec<Order>, [
     /// The list of orders was retrieved successfully.
     /* 200 */ OK,

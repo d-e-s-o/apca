@@ -29,7 +29,7 @@ pub struct Clock {
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
-  Get(()),
+  pub Get(()),
   Ok => Clock, [
     /// The clock object for the given symbol was retrieved successfully.
     /* 200 */ OK,

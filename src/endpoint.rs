@@ -105,13 +105,13 @@ pub trait Endpoint {
 /// A macro used for defining the properties for a request to a
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
-  ( $(#[$docs:meta])* $name:ident($in:ty),
+  ( $(#[$docs:meta])* $pub:vis $name:ident($in:ty),
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
     $($defs:tt)* ) => {
 
     EndpointDefImpl! {
-      $(#[$docs])* $name($in),
+      $(#[$docs])* $pub $name($in),
       Ok => $out, [$($ok_status,)*],
       Err => $err, [
         // Every request can result in an authentication failure or fall
@@ -131,7 +131,7 @@ macro_rules! EndpointDef {
 }
 
 macro_rules! EndpointDefImpl {
-  ( $(#[$docs:meta])* $name:ident($in:ty),
+  ( $(#[$docs:meta])* $pub:vis $name:ident($in:ty),
     // We just ignore any documentation for success cases: there is
     // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
@@ -141,13 +141,13 @@ macro_rules! EndpointDefImpl {
 
     $(#[$docs])*
     #[derive(Clone, Copy, Debug)]
-    pub struct $name;
+    $pub struct $name;
 
     /// An enum representing the various errors this endpoint may
     /// encounter.
     #[allow(unused_qualifications)]
     #[derive(Debug)]
-    pub enum $err {
+    $pub enum $err {
       $(
         $(#[$err_docs])*
         $variant(Result<$api_err, Vec<u8>>),
