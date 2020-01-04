@@ -86,7 +86,7 @@ pub struct Position {
 EndpointDef! {
   /// The representation of a GET request to the /v2/positions/<symbol>
   /// endpoint.
-  Get(PositionReq),
+  pub Get(PositionReq),
   Ok => Position, [
     /// The position with the given ID was retrieved successfully.
     /* 200 */ OK,

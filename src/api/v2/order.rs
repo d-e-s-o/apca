@@ -249,7 +249,7 @@ pub struct Order {
 EndpointDef! {
   /// The representation of a GET request to the /v2/orders/<order-id>
   /// endpoint.
-  Get(Id),
+  pub Get(Id),
   Ok => Order, [
     /// The order object for the given ID was retrieved successfully.
     /* 200 */ OK,
@@ -267,7 +267,7 @@ EndpointDef! {
 
 EndpointDef! {
   /// The representation of a POST request to the /v2/orders endpoint.
-  Post(OrderReq),
+  pub Post(OrderReq),
   Ok => Order, [
     /// The order was submitted successfully.
     /* 200 */ OK,
@@ -298,7 +298,7 @@ EndpointDef! {
 EndpointDef! {
   /// The representation of a DELETE request to the /v2/orders/<order-id>
   /// endpoint.
-  Delete(Id),
+  pub Delete(Id),
   Ok => (), [
     /// The order was canceled successfully.
     /* 204 */ NO_CONTENT,
