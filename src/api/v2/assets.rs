@@ -23,11 +23,8 @@ pub struct AssetsReq {
 }
 
 
-/// The representation of a GET request to the /v2/assets endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
-
 EndpointDef! {
+  /// The representation of a GET request to the /v2/assets endpoint.
   Get(AssetsReq),
   Ok => Vec<Asset>, [
     /// The list of assets was retrieved successfully.

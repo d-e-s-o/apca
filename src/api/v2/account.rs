@@ -136,11 +136,8 @@ pub struct Account {
 }
 
 
-/// The representation of a GET request to the /v2/accounts endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
-
 EndpointDef! {
+  /// The representation of a GET request to the /v2/accounts endpoint.
   Get(()),
   Ok => Account, [
     /// The account information was retrieved successfully.
