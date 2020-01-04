@@ -21,11 +21,8 @@ pub struct OrdersReq {
 }
 
 
-/// The representation of a GET request to the /v2/orders endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
-
 EndpointDef! {
+  /// The representation of a GET request to the /v2/orders endpoint.
   Get(OrdersReq),
   Ok => Vec<Order>, [
     /// The list of orders was retrieved successfully.

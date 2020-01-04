@@ -105,13 +105,13 @@ pub trait Endpoint {
 /// A macro used for defining the properties for a request to a
 /// particular HTTP endpoint.
 macro_rules! EndpointDef {
-  ( $name:ident($in:ty),
+  ( $(#[$docs:meta])* $name:ident($in:ty),
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*]
     $($defs:tt)* ) => {
 
     EndpointDefImpl! {
-      $name($in),
+      $(#[$docs])* $name($in),
       Ok => $out, [$($ok_status,)*],
       Err => $err, [
         // Every request can result in an authentication failure or fall
@@ -131,13 +131,17 @@ macro_rules! EndpointDef {
 }
 
 macro_rules! EndpointDefImpl {
-  ( $name:ident($in:ty),
+  ( $(#[$docs:meta])* $name:ident($in:ty),
     // We just ignore any documentation for success cases: there is
     // nowhere we can put it.
     Ok => $out:ty, [$($(#[$ok_docs:meta])* $ok_status:ident,)*],
     Err => $err:ident, [$($(#[$err_docs:meta])* $err_status:ident => $variant:ident,)*],
     ApiErr => $api_err:ty,
     $($defs:tt)* ) => {
+
+    $(#[$docs])*
+    #[derive(Clone, Copy, Debug)]
+    pub struct $name;
 
     /// An enum representing the various errors this endpoint may
     /// encounter.

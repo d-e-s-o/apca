@@ -26,11 +26,9 @@ pub struct Clock {
   pub next_close: SystemTime,
 }
 
-/// The representation of a GET request to the /v2/assets/<symbol> endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
 
 EndpointDef! {
+  /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
   Get(()),
   Ok => Clock, [
     /// The clock object for the given symbol was retrieved successfully.
