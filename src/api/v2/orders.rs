@@ -21,7 +21,7 @@ pub struct OrdersReq {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/orders endpoint.
   pub Get(OrdersReq),
   Ok => Vec<Order>, [
@@ -48,6 +48,8 @@ EndpointDef! {
 mod tests {
   use super::*;
 
+  use http_endpoint::Error as EndpointError;
+
   use test_env_log::test;
 
   use crate::api::v2::order;
@@ -65,9 +67,15 @@ mod tests {
 
     let order = order_aapl(&client).await?;
     let result = client.issue::<Get>(request.clone()).await;
-    let _ = client.issue::<order::Delete>(order.id).await?;
-    let before = result?;
-    let after = client.issue::<Get>(request.clone()).await?;
+    let _ = client
+      .issue::<order::Delete>(order.id)
+      .await
+      .map_err(EndpointError::from)?;
+    let before = result.map_err(EndpointError::from)?;
+    let after = client
+      .issue::<Get>(request.clone())
+      .await
+      .map_err(EndpointError::from)?;
 
     let before = Into::<Vec<_>>::into(before);
     let after = Into::<Vec<_>>::into(after);

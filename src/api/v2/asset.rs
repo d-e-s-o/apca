@@ -289,7 +289,7 @@ pub struct AssetReq {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
   pub Get(AssetReq),
   Ok => Asset, [
@@ -310,6 +310,8 @@ EndpointDef! {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use http_endpoint::Error as EndpointError;
 
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
@@ -410,7 +412,10 @@ mod tests {
       let api_info = ApiInfo::from_env()?;
       let client = Client::new(api_info);
       let request = AssetReq { symbol };
-      let asset = client.issue::<Get>(request).await?;
+      let asset = client
+        .issue::<Get>(request)
+        .await
+        .map_err(EndpointError::from)?;
 
       // The AAPL asset ID, retrieved out-of-band.
       let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());

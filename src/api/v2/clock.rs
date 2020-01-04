@@ -27,7 +27,7 @@ pub struct Clock {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
   pub Get(()),
   Ok => Clock, [
@@ -47,6 +47,8 @@ mod tests {
   use super::*;
 
   use std::time::Duration;
+
+  use http_endpoint::Error as EndpointError;
 
   use serde_json::from_str as from_json;
 
@@ -76,7 +78,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info);
-    let clock = client.issue::<Get>(()).await?;
+    let clock = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
 
     // We want to sanitize the current time being reported at least to a
     // certain degree. For that we assume that our local time is
