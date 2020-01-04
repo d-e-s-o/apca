@@ -5,11 +5,8 @@ use crate::api::v2::position::Position;
 use crate::Str;
 
 
-/// The representation of a GET request to the /v2/positions endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
-
 EndpointDef! {
+  /// The representation of a GET request to the /v2/positions endpoint.
   Get(()),
   Ok => Vec<Position>, [
     /// The list of positions was retrieved successfully.

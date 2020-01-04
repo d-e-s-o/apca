@@ -289,11 +289,8 @@ pub struct AssetReq {
 }
 
 
-/// The representation of a GET request to the /v2/assets/<symbol> endpoint.
-#[derive(Clone, Copy, Debug)]
-pub struct Get {}
-
 EndpointDef! {
+  /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
   Get(AssetReq),
   Ok => Asset, [
     /// The asset object for the given symbol was retrieved successfully.
