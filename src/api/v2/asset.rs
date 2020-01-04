@@ -291,7 +291,7 @@ pub struct AssetReq {
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
-  Get(AssetReq),
+  pub Get(AssetReq),
   Ok => Asset, [
     /// The asset object for the given symbol was retrieved successfully.
     /* 200 */ OK,

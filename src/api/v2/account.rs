@@ -138,7 +138,7 @@ pub struct Account {
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/accounts endpoint.
-  Get(()),
+  pub Get(()),
   Ok => Account, [
     /// The account information was retrieved successfully.
     /* 200 */ OK,
