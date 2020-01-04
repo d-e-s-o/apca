@@ -3,6 +3,7 @@
 - Migrated streaming functionality from `websocket` to
   `async-tungstenite`
 - Dropped dependency on `futures` `0.1`
+- Factored out `http-endpoint` crate
 - Factored out `websocket-util` crate
 - Correctly implemented `std::error::Error::source` for `Error type
 - Bumped `env_logger` dependency to `0.7`

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -146,6 +146,8 @@ mod tests {
   use futures::StreamExt;
   use futures::TryStreamExt;
 
+  use http_endpoint::Error as EndpointError;
+
   use test_env_log::test;
 
   use url::Url;
@@ -168,7 +170,10 @@ mod tests {
     let client = Client::new(api_info);
     let stream = client.subscribe::<TradeUpdates>().await?;
     let order = order_aapl(&client).await?;
-    let _ = client.issue::<order::Delete>(order.id).await?;
+    let _ = client
+      .issue::<order::Delete>(order.id)
+      .await
+      .map_err(EndpointError::from)?;
 
     // Unfortunately due to various braindeadnesses on the Rust &
     // futures side of things there is no sane way for us to provide a

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![warn(
@@ -46,6 +46,9 @@
 )]
 
 //! A create for interacting with the Alpaca API.
+
+#[macro_use]
+extern crate http_endpoint;
 
 #[macro_use]
 mod endpoint;

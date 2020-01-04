@@ -24,6 +24,7 @@ async-std = "1.4"
 async-tls = "0.6"
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
+http-endpoint = "0.1"
 hyper = {version = "0.13", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
 log = "0.4"

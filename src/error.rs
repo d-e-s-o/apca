@@ -6,6 +6,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
+use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
 use hyper::http::Error as HttpError;
 use hyper::http::StatusCode as HttpStatusCode;
@@ -60,6 +61,17 @@ impl StdError for Error {
       Error::Str(..) => None,
       Error::Url(err) => err.source(),
       Error::WebSocket(err) => err.source(),
+    }
+  }
+}
+
+impl From<EndpointError> for Error {
+  fn from(src: EndpointError) -> Self {
+    match src {
+      EndpointError::Http(err) => Error::Http(err),
+      EndpointError::HttpStatus(status) => Error::HttpStatus(status),
+      EndpointError::Hyper(err) => Error::Hyper(err),
+      EndpointError::Json(err) => Error::Json(err),
     }
   }
 }
