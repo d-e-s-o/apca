@@ -7,7 +7,7 @@ use crate::Str;
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/positions endpoint.
-  Get(()),
+  pub Get(()),
   Ok => Vec<Position>, [
     /// The list of positions was retrieved successfully.
     /* 200 */ OK,

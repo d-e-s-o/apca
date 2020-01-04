@@ -25,7 +25,7 @@ pub struct AssetsReq {
 
 EndpointDef! {
   /// The representation of a GET request to the /v2/assets endpoint.
-  Get(AssetsReq),
+  pub Get(AssetsReq),
   Ok => Vec<Asset>, [
     /// The list of assets was retrieved successfully.
     /* 200 */ OK,
