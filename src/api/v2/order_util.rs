@@ -1,5 +1,7 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
+
+use http_endpoint::Error as EndpointError;
 
 use num_decimal::Num;
 
@@ -12,7 +14,7 @@ use crate::api::v2::order::TimeInForce;
 use crate::api::v2::order::Type;
 use crate::Client;
 
-pub async fn order_aapl(client: &Client) -> Result<order::Order, order::PostError> {
+pub async fn order_aapl(client: &Client) -> Result<order::Order, EndpointError> {
   let request = order::OrderReq {
     symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
     quantity: 1,
@@ -23,5 +25,8 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, order::PostErro
     stop_price: None,
     extended_hours: false,
   };
-  client.issue::<order::Post>(request).await
+  client
+    .issue::<order::Post>(request)
+    .await
+    .map_err(EndpointError::from)
 }

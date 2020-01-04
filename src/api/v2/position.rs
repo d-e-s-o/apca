@@ -83,7 +83,7 @@ pub struct Position {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/positions/<symbol>
   /// endpoint.
   pub Get(PositionReq),

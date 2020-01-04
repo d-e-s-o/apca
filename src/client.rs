@@ -5,6 +5,8 @@ use std::str::from_utf8;
 
 use futures::stream::Stream;
 
+use http_endpoint::Endpoint;
+
 use hyper::Body;
 use hyper::body::to_bytes;
 use hyper::Client as HttpClient;
@@ -26,7 +28,6 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
-use crate::endpoint::Endpoint;
 use crate::Error;
 use crate::events::EventStream;
 use crate::events::stream;
@@ -203,7 +204,7 @@ mod tests {
   use crate::Str;
 
 
-  EndpointDef! {
+  Endpoint! {
     GetNotFound(()),
     Ok => (), [],
     Err => GetNotFoundError, []

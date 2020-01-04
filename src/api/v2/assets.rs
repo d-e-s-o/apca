@@ -23,7 +23,7 @@ pub struct AssetsReq {
 }
 
 
-EndpointDef! {
+Endpoint! {
   /// The representation of a GET request to the /v2/assets endpoint.
   pub Get(AssetsReq),
   Ok => Vec<Asset>, [
@@ -51,6 +51,8 @@ EndpointDef! {
 mod tests {
   use super::*;
 
+  use http_endpoint::Error as EndpointError;
+
   use test_env_log::test;
 
   use crate::api::v2::asset::Exchange;
@@ -67,7 +69,10 @@ mod tests {
       status: Status::Active,
       class: Class::UsEquity,
     };
-    let assets = client.issue::<Get>(request).await?;
+    let assets = client
+      .issue::<Get>(request)
+      .await
+      .map_err(EndpointError::from)?;
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
     assert_eq!(asset.class, Class::UsEquity);
     assert_eq!(asset.exchange, Exchange::Nasdaq);
