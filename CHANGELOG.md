@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `async-tungstenite` dependency to `0.3`
+
+
 0.2.2
 -----
 - Migrated streaming functionality from `websocket` to

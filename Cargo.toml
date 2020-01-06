@@ -20,7 +20,6 @@ A create for interacting with the Alpaca API.
 """
 
 [dependencies]
-async-tls = "0.6"
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
 http-endpoint = "0.1"
@@ -30,13 +29,13 @@ log = "0.4"
 num-decimal = {version = "0.1", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
-tungstenite = {package = "async-tungstenite", version = "0.2", features = ["tls"]}
+tungstenite = {package = "async-tungstenite", version = "0.3", features = ["tokio-runtime", "tokio-tls"]}
 url = "2.0"
 uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
-websocket-util = "0.1"
+websocket-util = "0.2"
 
 [dev-dependencies]
 env_logger = {version = "0.7", default-features = false}
 test-env-log = "0.2"
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
-websocket-util = {version = "0.1", features = ["test"]}
+websocket-util = {version = "0.2", features = ["test"]}
