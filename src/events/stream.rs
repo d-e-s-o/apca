@@ -1,8 +1,6 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use async_tls::TlsConnector;
-
 use futures::FutureExt;
 use futures::stream::Stream;
 use futures::StreamExt;
@@ -16,7 +14,7 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
 
-use tungstenite::connect_async_with_tls_connector;
+use tungstenite::tokio::connect_async_with_tls_connector;
 use tungstenite::tungstenite::Error as WebSocketError;
 
 use websocket_util::stream as do_stream;
@@ -68,14 +66,10 @@ where
 
   debug!("connecting to {}", &url);
 
-  let connector = Some(TlsConnector::default());
   // We just ignore the response & headers that are sent along after
   // the connection is made. Alpaca does not seem to be using them,
   // really.
-  // TODO: Ideally we'd want to establish a TCP connection ourselves and
-  //       use `client_async_tls_with_connector`. See implementation of
-  //       `connect_async_with_tls_connector_and_config`.
-  let (mut stream, response) = connect_async_with_tls_connector(url.clone(), connector).await?;
+  let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
   if log_enabled!(Trace) {
     trace!("connection successful, response: {:?}", response);
   } else {
