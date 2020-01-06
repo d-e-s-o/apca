@@ -1,7 +1,6 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use async_std::net::TcpStream;
 use async_tls::TlsConnector;
 
 use futures::FutureExt;
@@ -18,9 +17,7 @@ use serde::Deserialize;
 use serde_json::Error as JsonError;
 
 use tungstenite::connect_async_with_tls_connector;
-use tungstenite::MaybeTlsStream;
 use tungstenite::tungstenite::Error as WebSocketError;
-use tungstenite::WebSocketStream as TungsteniteStream;
 
 use websocket_util::stream as do_stream;
 
@@ -29,7 +26,6 @@ use crate::Error;
 use crate::events::handshake::StreamType;
 use crate::events::handshake::subscribe;
 
-pub type WebSocketStream = TungsteniteStream<MaybeTlsStream<TcpStream>>;
 
 /// A trait representing a particular event stream.
 pub trait EventStream {

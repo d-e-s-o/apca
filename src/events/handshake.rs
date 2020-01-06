@@ -1,9 +1,11 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::str::from_utf8;
 
+use futures::Sink;
 use futures::SinkExt;
+use futures::Stream;
 use futures::StreamExt;
 use futures::TryFutureExt;
 
@@ -21,7 +23,6 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use tungstenite::tungstenite::Message;
 
 use crate::Error;
-use crate::events::stream::WebSocketStream;
 
 
 /// An enumeration of the different event streams.
@@ -161,19 +162,16 @@ mod resp {
   }
 }
 
-
 type AuthRequest = req::Request<req::Auth, req::AuthData>;
 type AuthResponse = resp::Response<resp::Result>;
 type StreamRequest = req::Request<req::Listen, Streams>;
 type StreamResponse = resp::Response<Streams>;
 
-
 /// Authenticate with the streaming service.
-async fn auth(
-  stream: &mut WebSocketStream,
-  key_id: String,
-  secret: String,
-) -> Result<(), WebSocketError> {
+async fn auth<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), WebSocketError>
+where
+  S: Sink<Message, Error = WebSocketError> + Unpin,
+{
   let auth = req::AuthData::new(key_id, secret);
   let request = AuthRequest::new(auth);
   let json = to_json(&request).unwrap();
@@ -214,10 +212,10 @@ fn check_auth(msg: &[u8]) -> Result<(), Error> {
 }
 
 /// Subscribe to the given stream.
-async fn subscribe_stream(
-  stream: &mut WebSocketStream,
-  stream_type: StreamType,
-) -> Result<(), WebSocketError> {
+async fn subscribe_stream<S>(stream: &mut S, stream_type: StreamType) -> Result<(), WebSocketError>
+where
+  S: Sink<Message, Error = WebSocketError> + Unpin,
+{
   let request = StreamRequest::new([stream_type].as_ref().into());
   let json = to_json(&request).unwrap();
   debug!("stream subscribe request: {}", json);
@@ -283,12 +281,16 @@ where
 
 
 /// Authenticate with and subscribe to an Alpaca event stream.
-pub async fn subscribe(
-  stream: &mut WebSocketStream,
+pub async fn subscribe<S>(
+  stream: &mut S,
   key_id: String,
   secret: String,
   stream_type: StreamType,
-) -> Result<(), Error> {
+) -> Result<(), Error>
+where
+  S: Sink<Message, Error = WebSocketError>,
+  S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
+{
   // Authentication.
   auth(stream, key_id, secret).await?;
   let result = stream
