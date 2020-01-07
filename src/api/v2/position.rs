@@ -1,12 +1,15 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use hyper::Method;
+
 use num_decimal::Num;
 
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::api::v2::asset;
+use crate::api::v2::order;
 use crate::Str;
 
 
@@ -98,6 +101,29 @@ Endpoint! {
 
   fn path(input: &Self::Input) -> Str {
     format!("/v2/positions/{}", input.symbol).into()
+  }
+}
+
+
+Endpoint! {
+  /// The representation of a DELETE request to the
+  /// /v2/positions/<symbol> endpoint.
+  pub Delete(asset::Symbol),
+  Ok => order::Order, [
+    /// The position was liquidated successfully.
+    /* 200 */ OK,
+  ],
+  Err => DeleteError, [
+    /// No position was found for the given symbol/asset ID.
+    /* 404 */ NOT_FOUND => NotFound,
+  ]
+
+  fn method() -> Method {
+    Method::DELETE
+  }
+
+  fn path(input: &Self::Input) -> Str {
+    format!("/v2/positions/{}", input).into()
   }
 }
 
