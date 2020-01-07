@@ -6,20 +6,10 @@ use hyper::Method;
 use num_decimal::Num;
 
 use serde::Deserialize;
-use serde::Serialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
 use crate::Str;
-
-
-/// A GET request to be made to the /v2/positions/<symbol> endpoint.
-#[derive(Clone, Debug, Serialize, PartialEq)]
-pub struct PositionReq {
-  /// Symbol or asset ID to identify the asset to trade.
-  #[serde(rename = "symbol")]
-  pub symbol: asset::Symbol,
-}
 
 
 /// The side of a position.
@@ -89,7 +79,7 @@ pub struct Position {
 Endpoint! {
   /// The representation of a GET request to the /v2/positions/<symbol>
   /// endpoint.
-  pub Get(PositionReq),
+  pub Get(asset::Symbol),
   Ok => Position, [
     /// The position with the given ID was retrieved successfully.
     /* 200 */ OK,
@@ -100,7 +90,7 @@ Endpoint! {
   ]
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/positions/{}", input.symbol).into()
+    format!("/v2/positions/{}", input).into()
   }
 }
 
@@ -184,10 +174,8 @@ mod tests {
   async fn retrieve_position() -> Result<(), Error> {
     let api_info = ApiInfo::from_env()?;
     let client = Client::new(api_info);
-    let request = PositionReq {
-      symbol: asset::Symbol::Sym("SPY".to_string()),
-    };
-    let result = client.issue::<Get>(request).await;
+    let symbol = asset::Symbol::Sym("SPY".to_string());
+    let result = client.issue::<Get>(symbol).await;
 
     // We don't know whether there is an open position and we can't
     // simply create one as the market may be closed. So really the best
