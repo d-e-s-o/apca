@@ -281,17 +281,9 @@ pub struct Asset {
 }
 
 
-/// A GET request to be made to the /v2/assets endpoint.
-#[derive(Clone, Debug, Serialize, PartialEq)]
-pub struct AssetReq {
-  /// The symbol of the asset in question.
-  pub symbol: Symbol,
-}
-
-
 Endpoint! {
   /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
-  pub Get(AssetReq),
+  pub Get(Symbol),
   Ok => Asset, [
     /// The asset object for the given symbol was retrieved successfully.
     /* 200 */ OK,
@@ -302,7 +294,7 @@ Endpoint! {
   ]
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/assets/{}", input.symbol).into()
+    format!("/v2/assets/{}", input).into()
   }
 }
 
@@ -411,9 +403,8 @@ mod tests {
     async fn test(symbol: Symbol) -> Result<(), Error> {
       let api_info = ApiInfo::from_env()?;
       let client = Client::new(api_info);
-      let request = AssetReq { symbol };
       let asset = client
-        .issue::<Get>(request)
+        .issue::<Get>(symbol)
         .await
         .map_err(EndpointError::from)?;
 
