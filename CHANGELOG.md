@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.3.0
+-----
 - Added support for liquidating an existing position
 - Added support for short selling
 - Removed `AssetReq` and `PositionReq` types
