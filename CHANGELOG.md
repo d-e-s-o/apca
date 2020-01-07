@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for liquidating an existing position
+- Removed `AssetReq` and `PositionReq` types
 - Bumped `async-tungstenite` dependency to `0.3`
 
 
