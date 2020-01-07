@@ -18,6 +18,9 @@ pub enum Side {
   /// A long position of an asset.
   #[serde(rename = "long")]
   Long,
+  /// A short position of an asset.
+  #[serde(rename = "short")]
+  Short,
 }
 
 
