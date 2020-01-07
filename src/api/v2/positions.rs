@@ -20,6 +20,12 @@ Endpoint! {
 }
 
 
+// TODO: There is the possibility to issue a DELETE against the
+//       /v2/positions endpoint in order to liquidate all open
+//       positions, which may be interesting to use. However, that
+//       requires support for multi-status HTTP responses.
+
+
 #[cfg(test)]
 mod tests {
   use super::*;

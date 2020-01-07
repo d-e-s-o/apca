@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added support for liquidating an existing position
 - Bumped `async-tungstenite` dependency to `0.3`
 
 
