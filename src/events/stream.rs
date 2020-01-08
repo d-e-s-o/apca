@@ -5,10 +5,9 @@ use futures::FutureExt;
 use futures::stream::Stream;
 use futures::StreamExt;
 
-use log::debug;
-use log::Level::Trace;
-use log::log_enabled;
-use log::trace;
+use tracing::debug;
+use tracing::info;
+use tracing::info_span;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -21,8 +20,8 @@ use websocket_util::stream as do_stream;
 
 use crate::api_info::ApiInfo;
 use crate::Error;
+use crate::events::handshake::handshake;
 use crate::events::handshake::StreamType;
-use crate::events::handshake::subscribe;
 
 
 /// A trait representing a particular event stream.
@@ -64,19 +63,20 @@ where
     secret,
   } = api_info;
 
-  debug!("connecting to {}", &url);
+  let span = info_span!("stream", events = debug(&stream_type));
+  let _guard = span.enter();
+
+  info!(message = "connecting", url = display(&url));
 
   // We just ignore the response & headers that are sent along after
   // the connection is made. Alpaca does not seem to be using them,
   // really.
   let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
-  if log_enabled!(Trace) {
-    trace!("connection successful, response: {:?}", response);
-  } else {
-    debug!("connection successful");
-  }
+  info!("connection successful");
+  debug!(response = debug(&response));
 
-  subscribe(&mut stream, key_id, secret, stream_type).await?;
+  handshake(&mut stream, key_id, secret, stream_type).await?;
+  info!("subscription successful");
 
   let stream = do_stream::<_, stream::Event<I>>(stream)
     .map(|stream| {

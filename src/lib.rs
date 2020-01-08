@@ -1,6 +1,8 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![type_length_limit="2097152"]
+
 #![warn(
   bad_style,
   dead_code,
