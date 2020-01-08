@@ -9,10 +9,9 @@ use futures::Stream;
 use futures::StreamExt;
 use futures::TryFutureExt;
 
-use log::debug;
-use log::error;
-use log::Level::Debug;
-use log::log_enabled;
+use tracing::debug;
+use tracing::error;
+use tracing::instrument;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -175,7 +174,7 @@ where
   let auth = req::AuthData::new(key_id, secret);
   let request = AuthRequest::new(auth);
   let json = to_json(&request).unwrap();
-  debug!("stream auth request: {}", json);
+  debug!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -189,11 +188,9 @@ where
 
 /// Check the response to an authentication request.
 fn check_auth(msg: &[u8]) -> Result<(), Error> {
-  if log_enabled!(Debug) {
-    match from_utf8(msg) {
-      Ok(s) => debug!("stream auth response: {}", s),
-      Err(b) => debug!("stream auth response: {}", b),
-    }
+  match from_utf8(msg) {
+    Ok(s) => debug!(response = display(&s)),
+    Err(b) => debug!(response = display(&b)),
   }
 
   match from_json::<AuthResponse>(msg) {
@@ -218,7 +215,7 @@ where
 {
   let request = StreamRequest::new([stream_type].as_ref().into());
   let json = to_json(&request).unwrap();
-  debug!("stream subscribe request: {}", json);
+  debug!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -232,11 +229,9 @@ where
 
 /// Check the response to a stream subscription request.
 fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
-  if log_enabled!(Debug) {
-    match from_utf8(msg) {
-      Ok(s) => debug!("stream subscription response: {}", s),
-      Err(b) => debug!("stream subscription response: {}", b),
-    }
+  match from_utf8(msg) {
+    Ok(s) => debug!(response = display(&s)),
+    Err(b) => debug!(response = display(&b)),
   }
 
   match from_json::<StreamResponse>(&msg) {
@@ -280,8 +275,44 @@ where
 }
 
 
+#[instrument(level = "debug", skip(stream, key_id, secret))]
+async fn authenticate<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), Error>
+where
+  S: Sink<Message, Error = WebSocketError>,
+  S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
+{
+  auth(stream, key_id, secret).await?;
+  let result = stream
+    .next()
+    .await
+    .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, check_auth)?;
+  Ok(())
+}
+
+
+#[instrument(level = "debug", skip(stream, stream_type))]
+async fn subscribe<S>(stream: &mut S, stream_type: StreamType) -> Result<(), Error>
+where
+  S: Sink<Message, Error = WebSocketError>,
+  S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
+{
+  subscribe_stream(stream, stream_type).await?;
+  let result = stream
+    .next()
+    .await
+    .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
+  let msg = result?;
+
+  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
+  Ok(())
+}
+
+
 /// Authenticate with and subscribe to an Alpaca event stream.
-pub async fn subscribe<S>(
+pub async fn handshake<S>(
   stream: &mut S,
   key_id: String,
   secret: String,
@@ -291,25 +322,13 @@ where
   S: Sink<Message, Error = WebSocketError>,
   S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
 {
-  // Authentication.
-  auth(stream, key_id, secret).await?;
-  let result = stream
-    .next()
-    .await
-    .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
-  let msg = result?;
-
-  handle_only_data_msg(msg, check_auth)?;
-
-  // Subscription.
-  subscribe_stream(stream, stream_type).await?;
-  let result = stream
-    .next()
-    .await
-    .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
-  let msg = result?;
-
-  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
+  // Creating spans on the fly was not found to be working:
+  // - if we `enter` explicitly we seemingly never exit and two
+  //   subsequent spans appear as nested
+  // - if we use `in_scope` the output somehow lacks the span's name
+  // Because of that we use dedicated, `instrument`ed, functions.
+  authenticate(stream, key_id, secret).await?;
+  subscribe(stream, stream_type).await?;
   Ok(())
 }
 

@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Switched from using `log` to `tracing` as a logging/tracing provider
+
+
 0.3.0
 -----
 - Added support for liquidating an existing position
