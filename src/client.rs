@@ -16,12 +16,12 @@ use hyper::http::request::Builder as HttpRequestBuilder;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 
-use log::debug;
-use log::info;
-use log::Level::Debug;
-use log::log_enabled;
-
 use serde_json::Error as JsonError;
+
+use tracing::debug;
+use tracing::info;
+use tracing::info_span;
+use tracing::instrument;
 
 use tungstenite::tungstenite::Error as WebSocketError;
 
@@ -127,19 +127,26 @@ impl Client {
   }
 
   /// Create and issue a request and decode the response.
+  #[instrument(level = "info", skip(self, input))]
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
     R: Endpoint,
   {
     let req = self.request::<R>(&input)?;
-    if log_enabled!(Debug) {
-      debug!("HTTP request: {:?}", req);
-    } else {
-      info!("HTTP request: {} to {}", req.method(), req.uri());
-    }
+    let span = info_span!(
+      "request",
+      method = display(&req.method()),
+      url = display(&req.uri()),
+    );
+    let _guard = span.enter();
+    info!("requesting");
+    debug!(request = debug(&req));
 
     let result = self.client.request(req).await?;
     let status = result.status();
+    info!(status = debug(&status));
+    debug!(response = debug(&result));
+
     // We unconditionally wait for the full body to be received
     // before even evaluating the header. That is mostly done for
     // simplicity and it shouldn't really matter anyway because most
@@ -152,18 +159,16 @@ impl Client {
     let bytes = to_bytes(result.into_body()).await?;
     let body = bytes.as_ref();
 
-    info!("HTTP status: {}", status);
-    if log_enabled!(Debug) {
-      match from_utf8(body) {
-        Ok(s) => debug!("HTTP body: {}", s),
-        Err(b) => debug!("HTTP body: {}", b),
-      }
+    match from_utf8(body) {
+      Ok(s) => debug!(body = display(&s)),
+      Err(b) => debug!(body = display(&b)),
     }
 
     R::evaluate(status, body)
   }
 
   /// Subscribe to the given stream in order to receive updates.
+  #[instrument(level = "info", skip(self))]
   pub async fn subscribe<S>(
     &self,
   ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
