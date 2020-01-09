@@ -1,14 +1,13 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+
 use futures::FutureExt;
 use futures::stream::Stream;
 use futures::StreamExt;
-
-use log::debug;
-use log::Level::Trace;
-use log::log_enabled;
-use log::trace;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -51,6 +50,19 @@ mod stream {
 }
 
 
+/// A more or less ad-hoc implementation of a span for the streaming
+/// functionality.
+pub struct Span {
+  stream_type: StreamType,
+}
+
+impl Display for Span {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(f, "[stream {}]", self.stream_type.as_ref())
+  }
+}
+
+
 async fn stream_impl<I>(
   api_info: ApiInfo,
   stream_type: StreamType,
@@ -64,19 +76,18 @@ where
     secret,
   } = api_info;
 
-  debug!("connecting to {}", &url);
+  let span = Span { stream_type };
+  debug!(span, "connecting to {}", &url);
 
   // We just ignore the response & headers that are sent along after
   // the connection is made. Alpaca does not seem to be using them,
   // really.
   let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
-  if log_enabled!(Trace) {
-    trace!("connection successful, response: {:?}", response);
-  } else {
-    debug!("connection successful");
-  }
+  debug!(span, "connection successful");
+  trace!(span, "response: {:?}", response);
 
-  subscribe(&mut stream, key_id, secret, stream_type).await?;
+  subscribe(&span, &mut stream, key_id, secret, stream_type).await?;
+  debug!(span, "subscription successful");
 
   let stream = do_stream::<_, stream::Event<I>>(stream)
     .map(|stream| {

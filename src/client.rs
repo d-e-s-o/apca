@@ -1,6 +1,9 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::str;
 
 use futures::stream::Stream;
@@ -13,11 +16,11 @@ use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::http::request::Builder as HttpRequestBuilder;
+use hyper::Method;
 use hyper::Request;
+use hyper::Uri;
 use hyper_tls::HttpsConnector;
 
-use log::debug;
-use log::info;
 use log::Level::Debug;
 use log::log_enabled;
 
@@ -31,6 +34,18 @@ use crate::api_info::ApiInfo;
 use crate::Error;
 use crate::events::EventStream;
 use crate::events::stream;
+
+
+struct Span {
+  method: Method,
+  uri: Uri,
+}
+
+impl Display for Span {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    write!(f, "[{} {}]", self.method, self.uri)
+  }
+}
 
 
 /// A builder for creating customized `Client` objects.
@@ -132,10 +147,15 @@ impl Client {
     R: Endpoint,
   {
     let req = self.request::<R>(&input)?;
+    let span = Span {
+      method: req.method().clone(),
+      uri: req.uri().clone(),
+    };
+
     if log_enabled!(Debug) {
-      debug!("HTTP request: {:?}", req);
+      debug!(span, "issuing request: {:?}", req);
     } else {
-      info!("HTTP request: {} to {}", req.method(), req.uri());
+      info!(span, "issuing request");
     }
 
     let result = self.client.request(req).await?;
@@ -152,11 +172,11 @@ impl Client {
     let bytes = to_bytes(result.into_body()).await?;
     let body = bytes.as_ref();
 
-    info!("HTTP status: {}", status);
+    info!(span, "got status: {}", status);
     if log_enabled!(Debug) {
       match str::from_utf8(body) {
-        Ok(s) => debug!("HTTP body: {}", s),
-        Err(b) => debug!("HTTP body: {}", b),
+        Ok(s) => debug!(span, "body: {}", s),
+        Err(b) => debug!(span, "body: {}", b),
       }
     }
 

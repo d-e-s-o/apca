@@ -7,8 +7,6 @@ use futures::Stream;
 use futures::StreamExt;
 use futures::TryFutureExt;
 
-use log::debug;
-use log::error;
 use log::Level::Debug;
 use log::log_enabled;
 
@@ -21,6 +19,7 @@ use tungstenite::tungstenite::Error as WebSocketError;
 use tungstenite::tungstenite::Message;
 
 use crate::Error;
+use crate::events::stream::Span;
 
 
 /// An enumeration of the different event streams.
@@ -34,6 +33,14 @@ pub enum StreamType {
   TradeUpdates,
 }
 
+impl AsRef<str> for StreamType {
+  fn as_ref(&self) -> &'static str {
+    match *self {
+      Self::AccountUpdates => "account-updates",
+      Self::TradeUpdates => "trade-updates",
+    }
+  }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Streams {
@@ -166,19 +173,24 @@ type StreamRequest = req::Request<req::Listen, Streams>;
 type StreamResponse = resp::Response<Streams>;
 
 /// Authenticate with the streaming service.
-async fn auth<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), WebSocketError>
+async fn auth<S>(
+  span: &Span,
+  stream: &mut S,
+  key_id: String,
+  secret: String,
+) -> Result<(), WebSocketError>
 where
   S: Sink<Message, Error = WebSocketError> + Unpin,
 {
   let auth = req::AuthData::new(key_id, secret);
   let request = AuthRequest::new(auth);
   let json = to_json(&request).unwrap();
-  debug!("stream auth request: {}", json);
+  debug!(span, "stream auth request: {}", json);
 
   stream
     .send(Message::text(json).into())
     .map_err(|e| {
-      error!("failed to send stream auth request: {}", e);
+      error!(span, "failed to send stream auth request: {}", e);
       e
     })
     .await
@@ -186,11 +198,11 @@ where
 
 
 /// Check the response to an authentication request.
-fn check_auth(msg: &[u8]) -> Result<(), Error> {
+fn check_auth(span: &Span, msg: &[u8]) -> Result<(), Error> {
   if log_enabled!(Debug) {
     match String::from_utf8(msg.to_vec()) {
-      Ok(s) => debug!("stream auth response: {}", s),
-      Err(b) => debug!("stream auth response: {}", b),
+      Ok(s) => debug!(span, "stream auth response: {}", s),
+      Err(b) => debug!(span, "stream auth response: {}", b),
     }
   }
 
@@ -210,18 +222,22 @@ fn check_auth(msg: &[u8]) -> Result<(), Error> {
 }
 
 /// Subscribe to the given stream.
-async fn subscribe_stream<S>(stream: &mut S, stream_type: StreamType) -> Result<(), WebSocketError>
+async fn subscribe_stream<S>(
+  span: &Span,
+  stream: &mut S,
+  stream_type: StreamType,
+) -> Result<(), WebSocketError>
 where
   S: Sink<Message, Error = WebSocketError> + Unpin,
 {
   let request = StreamRequest::new([stream_type].as_ref().into());
   let json = to_json(&request).unwrap();
-  debug!("stream subscribe request: {}", json);
+  debug!(span, "stream subscribe request: {}", json);
 
   stream
     .send(Message::text(json).into())
     .map_err(|e| {
-      error!("failed to send stream subscribe request: {}", e);
+      error!(span, "failed to send stream subscribe request: {}", e);
       e
     })
     .await
@@ -229,11 +245,11 @@ where
 
 
 /// Check the response to a stream subscription request.
-fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
+fn check_subscribe(span: &Span, msg: &[u8], stream: StreamType) -> Result<(), Error> {
   if log_enabled!(Debug) {
     match String::from_utf8(msg.to_vec()) {
-      Ok(s) => debug!("stream subscription response: {}", s),
-      Err(b) => debug!("stream subscription response: {}", b),
+      Ok(s) => debug!(span, "stream subscription response: {}", s),
+      Err(b) => debug!(span, "stream subscription response: {}", b),
     }
   }
 
@@ -280,6 +296,7 @@ where
 
 /// Authenticate with and subscribe to an Alpaca event stream.
 pub async fn subscribe<S>(
+  span: &Span,
   stream: &mut S,
   key_id: String,
   secret: String,
@@ -290,24 +307,24 @@ where
   S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
 {
   // Authentication.
-  auth(stream, key_id, secret).await?;
+  auth(span, stream, key_id, secret).await?;
   let result = stream
     .next()
     .await
     .ok_or_else(|| Error::Str("no response to authentication request".into()))?;
   let msg = result?;
 
-  handle_only_data_msg(msg, check_auth)?;
+  handle_only_data_msg(msg, |msg| check_auth(span, msg))?;
 
   // Subscription.
-  subscribe_stream(stream, stream_type).await?;
+  subscribe_stream(span, stream, stream_type).await?;
   let result = stream
     .next()
     .await
     .ok_or_else(|| Error::Str("no response to subscription request".into()))?;
   let msg = result?;
 
-  handle_only_data_msg(msg, |dat| check_subscribe(dat, stream_type))?;
+  handle_only_data_msg(msg, |dat| check_subscribe(span, dat, stream_type))?;
   Ok(())
 }
 
