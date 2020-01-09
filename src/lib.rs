@@ -49,11 +49,11 @@
 
 #[macro_use]
 extern crate http_endpoint;
+#[macro_use]
+extern crate trace;
 
 #[macro_use]
 mod endpoint;
-#[macro_use]
-mod trace;
 
 /// A module comprising the functionality backing interactions with the
 /// API.
