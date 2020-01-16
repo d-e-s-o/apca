@@ -1,10 +1,8 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// Definitions for the second version of the Alpaca API.
 pub mod v2;
-
-mod time_util;
 
 /// The API base URL used for paper trading.
 pub(crate) const API_BASE_URL: &str = "https://paper-api.alpaca.markets";
