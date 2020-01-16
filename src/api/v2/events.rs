@@ -7,11 +7,11 @@ use num_decimal::Num;
 
 use serde::Deserialize;
 
-use crate::api::time_util::optional_system_time;
 use crate::api::v2::account;
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
+use crate::time_util::optional_system_time;
 
 
 /// A representation of an account update that we receive through the
