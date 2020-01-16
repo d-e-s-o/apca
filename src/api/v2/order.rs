@@ -18,12 +18,14 @@ use uuid::Uuid;
 
 use crate::api::v2::asset;
 use crate::time_util::optional_system_time_from_str;
+use crate::time_util::optional_system_time_to_rfc3339;
 use crate::time_util::system_time_from_str;
+use crate::time_util::system_time_to_rfc3339;
 use crate::Str;
 
 
 /// An ID uniquely identifying an order.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {
@@ -36,7 +38,7 @@ impl Deref for Id {
 
 
 /// The status an order can have.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Status {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution. This is the usual initial state of an order.
@@ -180,7 +182,7 @@ pub struct OrderReq {
 
 /// A single order as returned by the /v2/orders endpoint on a GET
 /// request.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Order {
   /// The order's ID.
   #[serde(rename = "id")]
@@ -192,36 +194,45 @@ pub struct Order {
   #[serde(rename = "status")]
   pub status: Status,
   /// Timestamp this order was created at.
-  #[serde(rename = "created_at", deserialize_with = "system_time_from_str")]
+  #[serde(
+    rename = "created_at",
+    deserialize_with = "system_time_from_str",
+    serialize_with = "system_time_to_rfc3339",
+  )]
   pub created_at: SystemTime,
   /// Timestamp this order was updated at last.
   #[serde(
     rename = "updated_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub updated_at: Option<SystemTime>,
   /// Timestamp this order was submitted at.
   #[serde(
     rename = "submitted_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub submitted_at: Option<SystemTime>,
   /// Timestamp this order was filled at.
   #[serde(
     rename = "filled_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub filled_at: Option<SystemTime>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "expired_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub expired_at: Option<SystemTime>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "canceled_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub canceled_at: Option<SystemTime>,
   /// The order's asset class.

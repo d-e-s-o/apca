@@ -6,17 +6,19 @@ use std::time::SystemTime;
 use num_decimal::Num;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use crate::api::v2::account;
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
 use crate::time_util::optional_system_time_from_str;
+use crate::time_util::optional_system_time_to_rfc3339;
 
 
 /// A representation of an account update that we receive through the
 /// "account_updates" stream.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct AccountUpdate {
   /// The corresponding account's ID.
   #[serde(rename = "id")]
@@ -25,18 +27,21 @@ pub struct AccountUpdate {
   #[serde(
     rename = "created_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub created_at: Option<SystemTime>,
   /// The time the account was updated last.
   #[serde(
     rename = "updated_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub updated_at: Option<SystemTime>,
   /// The time the account was deleted at.
   #[serde(
     rename = "deleted_at",
     deserialize_with = "optional_system_time_from_str",
+    serialize_with = "optional_system_time_to_rfc3339",
   )]
   pub deleted_at: Option<SystemTime>,
   /// The account's status.
@@ -69,7 +74,7 @@ impl EventStream for AccountUpdates {
 
 
 /// The status of a trade, as reported as part of a `TradeUpdate`.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum TradeStatus {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution.
@@ -122,7 +127,8 @@ pub enum TradeStatus {
 
 /// A representation of a trade update the we receive through the
 /// "trade_updates" stream.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+// TODO: There is also a timestamp field that we may want to hook up.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct TradeUpdate {
   /// The event that occurred.
   #[serde(rename = "event")]
@@ -157,6 +163,9 @@ mod tests {
 
   use http_endpoint::Error as EndpointError;
 
+  use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
+
   use test_env_log::test;
 
   use url::Url;
@@ -168,6 +177,52 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  #[test]
+  fn deserialize_and_serialize_trade_event() {
+    let response = r#"{
+  "event":"canceled",
+  "order":{
+    "asset_class":"us_equity",
+    "asset_id":"3ece3182-5903-4902-b963-f875a0f416e7",
+    "canceled_at":"2020-01-19T06:19:40.137087268Z",
+    "client_order_id":"be7d3030-a53e-47ee-9dd3-d9ff3460a174",
+    "created_at":"2020-01-19T06:19:34.344561Z",
+    "expired_at":null,
+    "extended_hours":false,
+    "failed_at":null,
+    "filled_at":null,
+    "filled_avg_price":null,
+    "filled_qty":"0",
+    "id":"7bb4a536-d59b-4e65-aacf-a8b118d815f4",
+    "legs":null,
+    "limit_price":"1",
+    "order_type":"limit",
+    "qty":"1",
+    "replaced_at":null,
+    "replaced_by":null,
+    "replaces":null,
+    "side":"buy",
+    "status":"canceled",
+    "stop_price":null,
+    "submitted_at":"2020-01-19T06:19:34.32909Z",
+    "symbol":"VMW",
+    "time_in_force":"opg",
+    "type":"limit",
+    "updated_at":"2020-01-19T06:19:40.147946209Z"
+  }
+}"#;
+
+    // It's hard to compare two JSON objects semantically when all we
+    // have is their textual representation (as white spaces may be
+    // different and map items reordered). So we just serialize,
+    // deserialize, and serialize again, checking that what we
+    // ultimately end up with is what we started off with.
+    let update = from_json::<TradeUpdate>(&response).unwrap();
+    let json = to_json(&update).unwrap();
+    let new = from_json::<TradeUpdate>(&json).unwrap();
+    assert_eq!(new, update);
+  }
 
   #[test(tokio::test)]
   async fn stream_trade_events() -> Result<(), Error> {
