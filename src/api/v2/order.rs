@@ -17,8 +17,8 @@ use serde_json::to_string as to_json;
 use uuid::Uuid;
 
 use crate::api::v2::asset;
-use crate::time_util::optional_system_time;
-use crate::time_util::system_time;
+use crate::time_util::optional_system_time_from_str;
+use crate::time_util::system_time_from_str;
 use crate::Str;
 
 
@@ -192,22 +192,37 @@ pub struct Order {
   #[serde(rename = "status")]
   pub status: Status,
   /// Timestamp this order was created at.
-  #[serde(rename = "created_at", deserialize_with = "system_time")]
+  #[serde(rename = "created_at", deserialize_with = "system_time_from_str")]
   pub created_at: SystemTime,
   /// Timestamp this order was updated at last.
-  #[serde(rename = "updated_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "updated_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub updated_at: Option<SystemTime>,
   /// Timestamp this order was submitted at.
-  #[serde(rename = "submitted_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "submitted_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub submitted_at: Option<SystemTime>,
   /// Timestamp this order was filled at.
-  #[serde(rename = "filled_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "filled_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub filled_at: Option<SystemTime>,
   /// Timestamp this order expired at.
-  #[serde(rename = "expired_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "expired_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub expired_at: Option<SystemTime>,
   /// Timestamp this order expired at.
-  #[serde(rename = "canceled_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "canceled_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub canceled_at: Option<SystemTime>,
   /// The order's asset class.
   #[serde(rename = "asset_class")]

@@ -11,7 +11,7 @@ use crate::api::v2::account;
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
-use crate::time_util::optional_system_time;
+use crate::time_util::optional_system_time_from_str;
 
 
 /// A representation of an account update that we receive through the
@@ -22,13 +22,22 @@ pub struct AccountUpdate {
   #[serde(rename = "id")]
   pub id: account::Id,
   /// The time the account was created at.
-  #[serde(rename = "created_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "created_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub created_at: Option<SystemTime>,
   /// The time the account was updated last.
-  #[serde(rename = "updated_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "updated_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub updated_at: Option<SystemTime>,
   /// The time the account was deleted at.
-  #[serde(rename = "deleted_at", deserialize_with = "optional_system_time")]
+  #[serde(
+    rename = "deleted_at",
+    deserialize_with = "optional_system_time_from_str"
+  )]
   pub deleted_at: Option<SystemTime>,
   /// The account's status.
   #[serde(rename = "status")]
