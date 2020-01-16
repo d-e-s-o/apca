@@ -81,6 +81,17 @@ where
 }
 
 
+/// Deserialize a `SystemTime` from a UNIX time stamp.
+pub fn system_time_from_secs<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let seconds = u64::deserialize(deserializer)?;
+  let time = UNIX_EPOCH + Duration::new(seconds, 0);
+  Ok(time)
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -110,6 +121,20 @@ mod tests {
       let time = from_json::<Time>(json)?;
       assert_eq!(time.time, UNIX_EPOCH + Duration::from_secs(1522584000));
     }
+    Ok(())
+  }
+
+
+  #[derive(Debug, Deserialize)]
+  struct OtherTime {
+    #[serde(deserialize_with = "system_time_from_secs")]
+    time: SystemTime,
+  }
+
+  #[test]
+  fn deserialize_system_time_from_secs() -> Result<(), JsonError> {
+    let time = from_json::<OtherTime>(r#"{"time": 1544129220}"#)?;
+    assert_eq!(time.time, UNIX_EPOCH + Duration::from_secs(1544129220));
     Ok(())
   }
 }
