@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
-
-use url::form_urlencoded::Serializer;
+use serde_urlencoded::to_string as to_query;
 
 use crate::api::v2::order::Order;
 use crate::Str;
@@ -35,11 +34,10 @@ Endpoint! {
   }
 
   fn query(input: &Self::Input) -> Option<Str> {
-    let query = Serializer::new(String::new())
-      .append_pair("limit", &input.limit.to_string())
-      .finish();
-
-    Some(query.into())
+    // TODO: Realistically there should be no way for this unwrap to
+    //       ever panic because our conversion to strings should not be
+    //       fallible. But still, ideally we would not have to unwrap.
+    Some(to_query(input).unwrap().into())
   }
 }
 

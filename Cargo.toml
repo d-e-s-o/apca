@@ -17,6 +17,7 @@ hyper-tls = {version = "0.4", default-features = false}
 num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = "1.0"
+serde_urlencoded = {version = "0.6", default-features = false}
 tracing = {version = "0.1", default-features = false, features = ["std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "async-tungstenite", version = "0.3", features = ["tokio-runtime", "tokio-tls"]}
