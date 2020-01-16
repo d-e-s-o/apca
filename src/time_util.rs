@@ -13,6 +13,7 @@ use chrono::ParseError;
 use serde::de::Deserializer;
 use serde::de::Error;
 use serde::de::Unexpected;
+use serde::ser::Serializer;
 use serde::Deserialize;
 
 type DateFn = fn(&str) -> Result<DateTime<FixedOffset>, ParseError>;
@@ -92,6 +93,19 @@ where
 }
 
 
+/// Serialize a `SystemTime` into a UNIX time stamp.
+pub fn system_time_to_secs<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  // It should be safe to unwrap here given that there is absolutely no
+  // way for a time stamp to ever point to a time before `UNIX_EPOCH`
+  // and that the only (documented) error case for `duration_since`.
+  let seconds = time.duration_since(UNIX_EPOCH).unwrap().as_secs();
+  serializer.serialize_u64(seconds)
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -99,8 +113,10 @@ mod tests {
   use std::time::SystemTime;
 
   use serde::Deserialize;
+  use serde::Serialize;
   use serde_json::Error as JsonError;
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
 
   #[derive(Debug, Deserialize)]
@@ -125,9 +141,12 @@ mod tests {
   }
 
 
-  #[derive(Debug, Deserialize)]
+  #[derive(Debug, Deserialize, Serialize)]
   struct OtherTime {
-    #[serde(deserialize_with = "system_time_from_secs")]
+    #[serde(
+      deserialize_with = "system_time_from_secs",
+      serialize_with = "system_time_to_secs",
+    )]
     time: SystemTime,
   }
 
@@ -135,6 +154,16 @@ mod tests {
   fn deserialize_system_time_from_secs() -> Result<(), JsonError> {
     let time = from_json::<OtherTime>(r#"{"time": 1544129220}"#)?;
     assert_eq!(time.time, UNIX_EPOCH + Duration::from_secs(1544129220));
+    Ok(())
+  }
+
+  #[test]
+  fn serialize_system_time_to_secs() -> Result<(), JsonError> {
+    let time = OtherTime {
+      time: UNIX_EPOCH + Duration::from_secs(1544129220),
+    };
+    let json = to_json(&time)?;
+    assert_eq!(json, r#"{"time":1544129220}"#);
     Ok(())
   }
 }
