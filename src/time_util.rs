@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::convert::TryInto;
 use std::time::Duration;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
@@ -8,11 +9,13 @@ use std::time::UNIX_EPOCH;
 use chrono::DateTime;
 use chrono::offset::FixedOffset;
 use chrono::offset::TimeZone;
+use chrono::offset::Utc;
 use chrono::ParseError;
 
 use serde::de::Deserializer;
 use serde::de::Error;
 use serde::de::Unexpected;
+use serde::ser::Serializer;
 use serde::Deserialize;
 
 type DateFn = fn(&str) -> Result<DateTime<FixedOffset>, ParseError>;
@@ -92,6 +95,34 @@ where
 }
 
 
+/// Serialize a `SystemTime` into a RFC3339 time stamp.
+pub fn system_time_to_rfc3339<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  let duration = time.duration_since(UNIX_EPOCH).unwrap();
+  let secs = duration.as_secs().try_into().unwrap();
+  let nanos = duration.subsec_nanos();
+  let string = Utc.timestamp(secs, nanos).to_rfc3339();
+
+  serializer.serialize_str(&string)
+}
+
+/// Serialize an optional `SystemTime` into a RFC3339 time stamp.
+pub fn optional_system_time_to_rfc3339<S>(
+  time: &Option<SystemTime>,
+  serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  match time {
+    Some(time) => system_time_to_rfc3339(time, serializer),
+    None => serializer.serialize_none(),
+  }
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -99,8 +130,10 @@ mod tests {
   use std::time::SystemTime;
 
   use serde::Deserialize;
+  use serde::Serialize;
   use serde_json::Error as JsonError;
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
 
   #[derive(Debug, Deserialize)]
@@ -125,9 +158,12 @@ mod tests {
   }
 
 
-  #[derive(Debug, Deserialize)]
+  #[derive(Debug, Deserialize, Serialize)]
   struct OtherTime {
-    #[serde(deserialize_with = "system_time_from_secs")]
+    #[serde(
+      deserialize_with = "system_time_from_secs",
+      serialize_with = "system_time_to_rfc3339",
+    )]
     time: SystemTime,
   }
 
@@ -135,6 +171,16 @@ mod tests {
   fn deserialize_system_time_from_secs() -> Result<(), JsonError> {
     let time = from_json::<OtherTime>(r#"{"time": 1544129220}"#)?;
     assert_eq!(time.time, UNIX_EPOCH + Duration::from_secs(1544129220));
+    Ok(())
+  }
+
+  #[test]
+  fn serialize_system_time_to_rfc3339() -> Result<(), JsonError> {
+    let time = OtherTime {
+      time: UNIX_EPOCH + Duration::from_secs(1544129220),
+    };
+    let json = to_json(&time)?;
+    assert_eq!(json, r#"{"time":"2018-12-06T20:47:00+00:00"}"#);
     Ok(())
   }
 }
