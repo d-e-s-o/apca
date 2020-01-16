@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use uuid::Uuid;
 
-use crate::time_util::system_time;
+use crate::time_util::system_time_from_str;
 use crate::Str;
 
 
@@ -87,7 +87,7 @@ pub struct Account {
   #[serde(rename = "account_blocked")]
   pub account_blocked: bool,
   /// Timestamp this account was created at.
-  #[serde(rename = "created_at", deserialize_with = "system_time")]
+  #[serde(rename = "created_at", deserialize_with = "system_time_from_str")]
   pub created_at: SystemTime,
   /// Flag to denote whether or not the account is permitted to short.
   #[serde(rename = "shorting_enabled")]

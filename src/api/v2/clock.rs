@@ -5,7 +5,7 @@ use std::time::SystemTime;
 
 use serde::Deserialize;
 
-use crate::time_util::system_time;
+use crate::time_util::system_time_from_str;
 use crate::Str;
 
 
@@ -16,13 +16,13 @@ pub struct Clock {
   #[serde(rename = "is_open")]
   pub open: bool,
   /// The current time.
-  #[serde(rename = "timestamp", deserialize_with = "system_time")]
+  #[serde(rename = "timestamp", deserialize_with = "system_time_from_str")]
   pub current: SystemTime,
   /// The next market opening time stamp.
-  #[serde(rename = "next_open", deserialize_with = "system_time")]
+  #[serde(rename = "next_open", deserialize_with = "system_time_from_str")]
   pub next_open: SystemTime,
   /// The next market closing time stamp.
-  #[serde(rename = "next_close", deserialize_with = "system_time")]
+  #[serde(rename = "next_close", deserialize_with = "system_time_from_str")]
   pub next_close: SystemTime,
 }
 

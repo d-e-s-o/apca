@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::Duration;
@@ -26,7 +26,7 @@ const PARSE_FNS: [DateFn; 3] = [
 
 
 /// Parse a `SystemTime` from a string.
-fn parse_system_time<'de, D>(time: &str) -> Result<SystemTime, D::Error>
+fn parse_system_time_from_str<'de, D>(time: &str) -> Result<SystemTime, D::Error>
 where
   D: Deserializer<'de>,
 {
@@ -58,22 +58,24 @@ where
 
 
 /// Deserialize a time stamp as a `SystemTime`.
-pub fn system_time<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+pub fn system_time_from_str<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
 where
   D: Deserializer<'de>,
 {
   let time = String::deserialize(deserializer)?;
-  parse_system_time::<D>(&time)
+  parse_system_time_from_str::<D>(&time)
 }
 
 
 /// Deserialize an optional time stamp.
-pub fn optional_system_time<'de, D>(deserializer: D) -> Result<Option<SystemTime>, D::Error>
+pub fn optional_system_time_from_str<'de, D>(
+  deserializer: D,
+) -> Result<Option<SystemTime>, D::Error>
 where
   D: Deserializer<'de>,
 {
   match Option::<String>::deserialize(deserializer)? {
-    Some(time) => Some(parse_system_time::<D>(&time)).transpose(),
+    Some(time) => Some(parse_system_time_from_str::<D>(&time)).transpose(),
     None => Ok(None),
   }
 }
@@ -92,12 +94,12 @@ mod tests {
 
   #[derive(Debug, Deserialize)]
   struct Time {
-    #[serde(deserialize_with = "system_time")]
+    #[serde(deserialize_with = "system_time_from_str")]
     time: SystemTime,
   }
 
   #[test]
-  fn deserialize_system_time() -> Result<(), JsonError> {
+  fn deserialize_system_time_from_str() -> Result<(), JsonError> {
     let times = [
       r#"{"time": "2018-04-01T12:00:00Z"}"#,
       r#"{"time": "2018-04-01T12:00:00.000Z"}"#,
