@@ -11,7 +11,7 @@ A create for interacting with the Alpaca API.
 [dependencies]
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
-http-endpoint = {version = "0.1", git = "ssh://rpigit/~/git/http-endpoint.git"}
+http-endpoint = {version = "0.1.1", git = "ssh://rpigit/~/git/http-endpoint.git"}
 hyper = {version = "0.13", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
 num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
