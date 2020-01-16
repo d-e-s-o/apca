@@ -26,6 +26,8 @@ use tracing::instrument;
 
 use tungstenite::tungstenite::Error as WebSocketError;
 
+use url::Url;
+
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
@@ -112,7 +114,10 @@ impl Client {
   where
     R: Endpoint,
   {
-    let mut url = self.api_info.base_url.clone();
+    let mut url = R::base_url()
+      .map(|url| Url::parse(url.as_ref()).expect("endpoint definition contains invalid URL"))
+      .unwrap_or_else(|| self.api_info.base_url.clone());
+
     url.set_path(&R::path(&input));
     url.set_query(R::query(&input).as_ref().map(AsRef::as_ref));
 

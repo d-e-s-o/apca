@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Added support for accessing `/v2/account/configurations` endpoint
 - Switched from using `log` to `tracing` as a logging/tracing provider
+- Bumped `http-endpoint` dependency to `0.1.1`
 
 
 0.3.0
