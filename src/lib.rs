@@ -58,6 +58,9 @@ mod endpoint;
 /// API.
 pub mod api;
 
+/// A module for retrieving market data.
+pub mod data;
+
 mod api_info;
 mod client;
 mod error;
