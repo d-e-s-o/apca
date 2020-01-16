@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added support for accessing `/v2/account/configurations` endpoint
 - Switched from using `log` to `tracing` as a logging/tracing provider
 
 
