@@ -7,6 +7,7 @@ use std::time::SystemTime;
 use num_decimal::Num;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use uuid::Uuid;
 
@@ -15,7 +16,7 @@ use crate::Str;
 
 
 /// A type representing an account ID.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {
