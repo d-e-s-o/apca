@@ -13,14 +13,15 @@ use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::http::request::Builder as HttpRequestBuilder;
+use hyper::Method;
 use hyper::Request;
+use hyper::Uri;
 use hyper_tls::HttpsConnector;
 
 use serde_json::Error as JsonError;
 
 use tracing::debug;
 use tracing::info;
-use tracing::info_span;
 use tracing::instrument;
 
 use tungstenite::tungstenite::Error as WebSocketError;
@@ -127,22 +128,34 @@ impl Client {
   }
 
   /// Create and issue a request and decode the response.
-  #[instrument(level = "info", skip(self, input))]
   pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
   where
     R: Endpoint,
   {
-    let req = self.request::<R>(&input)?;
-    let span = info_span!(
-      "request",
-      method = display(&req.method()),
-      url = display(&req.uri()),
-    );
-    let _guard = span.enter();
-    info!("requesting");
-    debug!(request = debug(&req));
+    let request = self.request::<R>(&input)?;
+    // TODO: Unfortunately we have to clone the members of interest
+    //       here. Ideally we would just create a span here directly,
+    //       but that endeavor was not successful so far.
+    let method = request.method().clone();
+    let uri = request.uri().clone();
+    self.issue_::<R>(request, method, uri).await
+  }
 
-    let result = self.client.request(req).await?;
+  /// Issue a request.
+  #[instrument(level = "info", skip(self, request))]
+  async fn issue_<R>(
+    &self,
+    request: Request<Body>,
+    method: Method,
+    url: Uri,
+  ) -> Result<R::Output, R::Error>
+  where
+    R: Endpoint,
+  {
+    info!("requesting");
+    debug!(request = debug(&request));
+
+    let result = self.client.request(request).await?;
     let status = result.status();
     info!(status = debug(&status));
     debug!(response = debug(&result));
