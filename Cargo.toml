@@ -18,6 +18,7 @@ num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", feat
 serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false}
 serde_urlencoded = {version = "0.6", default-features = false}
+time-util = {version = "0.1", git = "ssh://rpigit/~/git/time-util.git"}
 tracing = {version = "0.1", default-features = false, features = ["std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "async-tungstenite", version = "0.3", features = ["tokio-runtime", "tokio-tls"]}

@@ -8,12 +8,13 @@ use num_decimal::Num;
 use serde::Deserialize;
 use serde::Serialize;
 
+use time_util::optional_system_time_from_str;
+use time_util::optional_system_time_to_rfc3339;
+
 use crate::api::v2::account;
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
-use crate::time_util::optional_system_time_from_str;
-use crate::time_util::optional_system_time_to_rfc3339;
 
 
 /// A representation of an account update that we receive through the

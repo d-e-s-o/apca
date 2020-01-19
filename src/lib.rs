@@ -65,7 +65,6 @@ mod api_info;
 mod client;
 mod error;
 mod events;
-mod time_util;
 
 use std::borrow::Cow;
 
