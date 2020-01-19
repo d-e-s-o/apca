@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for opening and closing auction orders
+- Factored out `time-util` crate
 
 
 0.3.1
