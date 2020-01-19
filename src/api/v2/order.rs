@@ -145,6 +145,14 @@ pub enum TimeInForce {
   /// The order is good until canceled.
   #[serde(rename = "gtc")]
   UntilCanceled,
+  /// This order is eligible to execute only in the market opening
+  /// auction. Any unfilled orders after the open will be canceled.
+  #[serde(rename = "opg")]
+  UntilMarketOpen,
+  /// This order is eligible to execute only in the market closing
+  /// auction. Any unfilled orders after the close will be canceled.
+  #[serde(rename = "cls")]
+  UntilMarketClose,
 }
 
 
@@ -475,6 +483,44 @@ mod tests {
       Err(Error::HttpStatus(StatusCode::UNPROCESSABLE_ENTITY)) => (),
       err => panic!("unexpected error: {:?}", err),
     };
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn submit_other_order_types() -> Result<(), Error> {
+    async fn test(time_in_force: TimeInForce) -> Result<(), Error> {
+      let api_info = ApiInfo::from_env()?;
+      let client = Client::new(api_info);
+      let request = OrderReq {
+        symbol: asset::Symbol::Sym("AAPL".to_string()),
+        quantity: 1,
+        side: Side::Buy,
+        type_: Type::Limit,
+        time_in_force,
+        limit_price: Some(Num::from_int(1)),
+        stop_price: None,
+        extended_hours: false,
+      };
+
+      match client.issue::<Post>(request).await {
+        Ok(order) => {
+          let _ = client
+            .issue::<Delete>(order.id)
+            .await
+            .map_err(EndpointError::from)?;
+
+          assert_eq!(order.time_in_force, time_in_force);
+        },
+        // Submission of those orders may fail at certain times of the
+        // day as per the Alpaca documentation. So ignore those errors.
+        Err(PostError::InvalidInput(..)) => (),
+        Err(err) => panic!("Received unexpected error: {:?}", err),
+      }
+      Ok(())
+    }
+
+    test(TimeInForce::UntilMarketOpen).await?;
+    test(TimeInForce::UntilMarketClose).await?;
     Ok(())
   }
 

@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for opening and closing auction orders
+
+
 0.3.1
 -----
 - Added support for accessing `/v2/account/configurations` endpoint
