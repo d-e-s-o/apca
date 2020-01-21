@@ -45,6 +45,9 @@ pub enum Status {
   /// execution. This is the usual initial state of an order.
   #[serde(rename = "new")]
   New,
+  /// The order has changed.
+  #[serde(rename = "replaced")]
+  Replaced,
   /// The order has been partially filled.
   #[serde(rename = "partially_filled")]
   PartiallyFilled,
@@ -189,6 +192,25 @@ pub struct OrderReq {
   pub extended_hours: bool,
 }
 
+
+/// A PATCH request to be made to the /v2/orders/<order-id> endpoint.
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct ChangeReq {
+  /// Number of shares to trade.
+  #[serde(rename = "qty")]
+  pub quantity: u64,
+  /// How long the order will be valid.
+  #[serde(rename = "time_in_force")]
+  pub time_in_force: TimeInForce,
+  /// The limit price.
+  #[serde(rename = "limit_price")]
+  pub limit_price: Option<Num>,
+  /// The stop price.
+  #[serde(rename = "stop_price")]
+  pub stop_price: Option<Num>,
+}
+
+
 /// A single order as returned by the /v2/orders endpoint on a GET
 /// request.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -324,6 +346,41 @@ Endpoint! {
 
   fn body(input: &Self::Input) -> Result<Body, JsonError> {
     let json = to_json(input)?;
+    let body = Body::from(json);
+    Ok(body)
+  }
+}
+
+
+Endpoint! {
+  /// The representation of a PATCH request to the /v2/orders/<order-id>
+  /// endpoint.
+  pub Patch((Id, ChangeReq)),
+  Ok => Order, [
+    /// The order object for the given ID was changed successfully.
+    /* 200 */ OK,
+  ],
+  Err => PatchError, [
+    /// Not enough funds are available to submit the order.
+    /* 403 */ FORBIDDEN => InsufficientFunds,
+    /// No order was found with the given ID.
+    /* 404 */ NOT_FOUND => NotFound,
+    /// Some data in the request was invalid.
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
+  ]
+
+  fn method() -> Method {
+    Method::PATCH
+  }
+
+  fn path(input: &Self::Input) -> Str {
+    let (id, _) = input;
+    format!("/v2/orders/{}", id.to_simple()).into()
+  }
+
+  fn body(input: &Self::Input) -> Result<Body, JsonError> {
+    let (_, request) = input;
+    let json = to_json(request)?;
     let body = Body::from(json);
     Ok(body)
   }
@@ -629,6 +686,50 @@ mod tests {
       PostError::InvalidInput(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
+    Ok(())
+  }
+
+  #[test(tokio::test)]
+  async fn change_order() -> Result<(), Error> {
+    let request = OrderReq {
+      symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
+      quantity: 1,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(1)),
+      stop_price: None,
+      extended_hours: false,
+    };
+
+    let api_info = ApiInfo::from_env()?;
+    let client = Client::new(api_info);
+    let order = client
+      .issue::<Post>(request)
+      .await
+      .map_err(EndpointError::from)?;
+
+    let request = ChangeReq {
+      quantity: 2,
+      time_in_force: TimeInForce::UntilCanceled,
+      limit_price: Some(Num::from_int(2)),
+      stop_price: None,
+    };
+    let result = client
+      .issue::<Patch>((order.id, request))
+      .await
+      .map_err(EndpointError::from);
+
+    client
+      .issue::<Delete>(order.id)
+      .await
+      .map_err(EndpointError::from)?;
+
+    let order = result?;
+    assert_eq!(order.quantity, Num::from_int(2));
+    assert_eq!(order.time_in_force, TimeInForce::UntilCanceled);
+    assert_eq!(order.limit_price, Some(Num::from_int(2)));
+    assert_eq!(order.stop_price, None);
     Ok(())
   }
 }
