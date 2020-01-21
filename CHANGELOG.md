@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for changing an existing order
+
+
 0.4.0
 -----
 - Added support for opening and closing auction orders
