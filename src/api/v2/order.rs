@@ -634,9 +634,8 @@ mod tests {
     let gotten = result.map_err(EndpointError::from)?;
 
     // We can't simply compare the two orders for equality, because some
-    // time stamps may differ.
+    // time stamps as well as the status may differ.
     assert_eq!(posted.id, gotten.id);
-    assert_eq!(posted.status, gotten.status);
     assert_eq!(posted.asset_class, gotten.asset_class);
     assert_eq!(posted.asset_id, gotten.asset_id);
     assert_eq!(posted.symbol, gotten.symbol);
