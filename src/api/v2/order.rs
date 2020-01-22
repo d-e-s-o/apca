@@ -26,7 +26,7 @@ use crate::Str;
 
 
 /// An ID uniquely identifying an order.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {

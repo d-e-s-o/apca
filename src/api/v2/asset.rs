@@ -18,7 +18,7 @@ use crate::Str;
 
 
 /// An ID uniquely identifying an asset.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {

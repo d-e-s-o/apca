@@ -17,7 +17,7 @@ use crate::Str;
 
 
 /// A type representing an account ID.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {
