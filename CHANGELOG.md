@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for changing an existing order
+- Implemented `Eq` and `Hash` for the various `Id` types
 
 
 0.4.0
