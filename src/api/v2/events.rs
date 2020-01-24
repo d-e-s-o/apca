@@ -125,6 +125,26 @@ pub enum TradeStatus {
   Calculated,
 }
 
+impl TradeStatus {
+  /// Convert a `TradeStatus` into an `order::Status`.
+  pub fn to_order_status(self) -> order::Status {
+    match self {
+      Self::New => order::Status::New,
+      Self::PartialFill => order::Status::PartiallyFilled,
+      Self::Filled => order::Status::Filled,
+      Self::DoneForDay => order::Status::DoneForDay,
+      Self::Canceled => order::Status::Canceled,
+      Self::Expired => order::Status::Expired,
+      Self::PendingCancel => order::Status::PendingCancel,
+      Self::Stopped => order::Status::Stopped,
+      Self::Rejected => order::Status::Rejected,
+      Self::Suspended => order::Status::Suspended,
+      Self::PendingNew => order::Status::PendingNew,
+      Self::Calculated => order::Status::Calculated,
+    }
+  }
+}
+
 
 /// A representation of a trade update that we receive through the
 /// "trade_updates" stream.
