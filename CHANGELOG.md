@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.5.0
+-----
 - Added support for changing an existing order
 - Introduced `TradeStatus::to_order_status` helper method
 - Implemented `Eq` and `Hash` for the various `Id` types
