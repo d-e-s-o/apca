@@ -8,15 +8,42 @@ use crate::api::v2::order::Order;
 use crate::Str;
 
 
+/// The status of orders to list.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub enum Status {
+  /// List open orders only.
+  #[serde(rename = "open")]
+  Open,
+  /// List closed orders only.
+  #[serde(rename = "closed")]
+  Closed,
+  /// List all orders.
+  #[serde(rename = "all")]
+  All,
+}
+
+
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
+  /// The status of orders to list.
+  #[serde(rename = "status")]
+  pub status: Status,
   /// The maximum number of orders in response. Defaults to 50 and max
   /// is 500.
   #[serde(rename = "limit")]
   pub limit: u64,
+}
+
+impl Default for OrdersReq {
+  fn default() -> Self {
+    Self {
+      status: Status::Open,
+      limit: 50,
+    }
+  }
 }
 
 
@@ -59,27 +86,49 @@ mod tests {
 
   #[test(tokio::test)]
   async fn list_orders() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
-    let client = Client::new(api_info);
-    let request = OrdersReq { limit: 50 };
+    async fn test(status: Status) -> Result<(), Error> {
+      let api_info = ApiInfo::from_env()?;
+      let client = Client::new(api_info);
+      let request = OrdersReq {
+        status,
+        ..Default::default()
+      };
 
-    let order = order_aapl(&client).await?;
-    let result = client.issue::<Get>(request.clone()).await;
-    let _ = client
-      .issue::<order::Delete>(order.id)
-      .await
-      .map_err(EndpointError::from)?;
-    let before = result.map_err(EndpointError::from)?;
-    let after = client
-      .issue::<Get>(request.clone())
-      .await
-      .map_err(EndpointError::from)?;
+      let order = order_aapl(&client).await?;
+      let result = client.issue::<Get>(request.clone()).await;
+      let _ = client
+        .issue::<order::Delete>(order.id)
+        .await
+        .map_err(EndpointError::from)?;
+      let before = result.map_err(EndpointError::from)?;
+      let after = client
+        .issue::<Get>(request.clone())
+        .await
+        .map_err(EndpointError::from)?;
 
-    let before = Into::<Vec<_>>::into(before);
-    let after = Into::<Vec<_>>::into(after);
+      let before = Into::<Vec<_>>::into(before);
+      let after = Into::<Vec<_>>::into(after);
 
-    assert!(before.into_iter().find(|x| x.id == order.id).is_some());
-    assert!(after.into_iter().find(|x| x.id == order.id).is_none());
+      match status {
+        Status::Open => {
+          assert!(before.into_iter().find(|x| x.id == order.id).is_some());
+          assert!(after.into_iter().find(|x| x.id == order.id).is_none());
+        },
+        Status::Closed => {
+          assert!(before.into_iter().find(|x| x.id == order.id).is_none());
+          assert!(after.into_iter().find(|x| x.id == order.id).is_some());
+        },
+        Status::All => {
+          assert!(before.into_iter().find(|x| x.id == order.id).is_some());
+          assert!(after.into_iter().find(|x| x.id == order.id).is_some());
+        },
+      }
+      Ok(())
+    }
+
+    test(Status::Open).await?;
+    test(Status::Closed).await?;
+    test(Status::All).await?;
     Ok(())
   }
 }
