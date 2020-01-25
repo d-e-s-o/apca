@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for listing orders based on their status
+
+
 0.5.0
 -----
 - Added support for changing an existing order
