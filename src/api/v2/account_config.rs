@@ -89,15 +89,12 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -116,10 +113,10 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn retrieve_and_update_configuration() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_and_update_configuration() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let config = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
+    let config = client.issue::<Get>(()).await.unwrap();
 
     // We invert the trade confirmation strategy, which should be a
     // change not affecting any tests running concurrently.
@@ -132,24 +129,14 @@ mod tests {
       trade_confirmation: new_confirmation,
       ..config
     };
-
-    let patch_result = client
-      .issue::<Patch>(patched.clone())
-      .await
-      .map_err(EndpointError::from);
-
+    let patch_result = client.issue::<Patch>(patched.clone()).await;
     // Also retrieve the configuration again.
-    let get_result = client.issue::<Get>(()).await.map_err(EndpointError::from);
-
+    let get_result = client.issue::<Get>(()).await;
     // Revert back to the original setting.
-    let reverted = client
-      .issue::<Patch>(config)
-      .await
-      .map_err(EndpointError::from)?;
+    let reverted = client.issue::<Patch>(config).await.unwrap();
 
-    assert_eq!(patch_result?, patched);
-    assert_eq!(get_result?, patched);
+    assert_eq!(patch_result.unwrap(), patched);
+    assert_eq!(get_result.unwrap(), patched);
     assert_eq!(reverted, config);
-    Ok(())
   }
 }

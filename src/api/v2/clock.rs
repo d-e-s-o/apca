@@ -49,15 +49,12 @@ mod tests {
 
   use std::time::Duration;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -74,12 +71,12 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn current_market_clock() -> Result<(), Error> {
+  async fn current_market_clock() {
     const SECS_IN_HOUR: u64 = 60 * 60;
 
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let clock = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
+    let clock = client.issue::<Get>(()).await.unwrap();
 
     // We want to sanitize the current time being reported at least to a
     // certain degree. For that we assume that our local time is
@@ -99,6 +96,5 @@ mod tests {
     } else {
       assert!(clock.next_open < clock.next_close, "open: {}, close: {}");
     }
-    Ok(())
   }
 }

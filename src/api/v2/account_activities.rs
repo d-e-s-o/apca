@@ -409,15 +409,12 @@ mod tests {
   use std::time::Duration;
   use std::time::UNIX_EPOCH;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -473,8 +470,8 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn retrieve_some_activities() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_some_activities() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = ActivityReq {
       types: Some(vec![
@@ -483,10 +480,7 @@ mod tests {
         ActivityType::Dividend,
       ]),
     };
-    let activities = client
-      .issue::<Get>(request)
-      .await
-      .map_err(EndpointError::from)?;
+    let activities = client.issue::<Get>(request).await.unwrap();
 
     assert!(activities.len() > 0);
 
@@ -503,20 +497,16 @@ mod tests {
         },
       }
     }
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn retrieve_trade_activities() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_trade_activities() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = ActivityReq {
       types: Some(vec![ActivityType::Fill]),
     };
-    let activities = client
-      .issue::<Get>(request)
-      .await
-      .map_err(EndpointError::from)?;
+    let activities = client.issue::<Get>(request).await.unwrap();
 
     assert!(activities.len() > 0);
 
@@ -528,17 +518,15 @@ mod tests {
         },
       }
     }
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn retrieve_all_activities() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_all_activities() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = ActivityReq::default();
     let activities = client.issue::<Get>(request).await.unwrap();
 
     assert!(activities.len() > 0);
-    Ok(())
   }
 }

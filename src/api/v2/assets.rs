@@ -48,32 +48,26 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::api::v2::asset::Exchange;
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn list_assets() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn list_assets() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = AssetsReq {
       status: Status::Active,
       class: Class::UsEquity,
     };
-    let assets = client
-      .issue::<Get>(request)
-      .await
-      .map_err(EndpointError::from)?;
+    let assets = client.issue::<Get>(request).await.unwrap();
+
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
     assert_eq!(asset.class, Class::UsEquity);
     assert_eq!(asset.exchange, Exchange::Nasdaq);
     assert_eq!(asset.status, Status::Active);
-    Ok(())
   }
 }

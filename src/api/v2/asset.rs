@@ -303,8 +303,6 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
@@ -314,7 +312,6 @@ mod tests {
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -399,14 +396,11 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn retrieve_asset() -> Result<(), Error> {
-    async fn test(symbol: Symbol) -> Result<(), Error> {
-      let api_info = ApiInfo::from_env()?;
+  async fn retrieve_asset() {
+    async fn test(symbol: Symbol) {
+      let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
-      let asset = client
-        .issue::<Get>(symbol)
-        .await
-        .map_err(EndpointError::from)?;
+      let asset = client.issue::<Get>(symbol).await.unwrap();
 
       // The AAPL asset ID, retrieved out-of-band.
       let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
@@ -416,7 +410,6 @@ mod tests {
       assert_eq!(asset.symbol, "AAPL");
       assert_eq!(asset.status, Status::Active);
       assert_eq!(asset.tradable, true);
-      Ok(())
     }
 
     let symbols = [
@@ -427,8 +420,7 @@ mod tests {
     ];
 
     for symbol in symbols.into_iter().cloned() {
-      test(symbol).await?;
+      test(symbol).await;
     }
-    Ok(())
   }
 }

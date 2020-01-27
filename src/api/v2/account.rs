@@ -160,8 +160,6 @@ mod tests {
   use std::time::Duration;
   use std::time::UNIX_EPOCH;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
@@ -173,7 +171,6 @@ mod tests {
   use crate::api::API_BASE_URL;
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -220,10 +217,10 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn request_account() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn request_account() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let account = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
+    let account = client.issue::<Get>(()).await.unwrap();
 
     assert_eq!(account.currency, "USD");
     assert!(!account.account_blocked);
@@ -233,12 +230,11 @@ mod tests {
       multiplier == 1 || multiplier == 2 || multiplier == 4,
       multiplier,
     );
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn request_account_with_invalid_credentials() -> Result<(), Error> {
-    let api_base = Url::parse(API_BASE_URL)?;
+  async fn request_account_with_invalid_credentials() {
+    let api_base = Url::parse(API_BASE_URL).unwrap();
     let api_info = ApiInfo {
       base_url: api_base,
       key_id: "invalid".to_string(),
@@ -252,6 +248,5 @@ mod tests {
       GetError::AuthenticationFailed(_) => (),
       e @ _ => panic!("received unexpected error: {:?}", e),
     }
-    Ok(())
   }
 }
