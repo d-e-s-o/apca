@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for listing orders based on their status
+- Introduced `Replaced` variant to `TradeStatus` enum
 
 
 0.5.0
