@@ -3,6 +3,8 @@
 
 /// Definitions pertaining the user's account.
 pub mod account;
+/// Definitions pertaining account activities.
+pub mod account_activities;
 /// Definitions pertaining the user's account configuration.
 pub mod account_config;
 /// Definitions surrounding assets.
