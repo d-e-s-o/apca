@@ -419,7 +419,7 @@ mod tests {
       Symbol::Id(Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap())),
     ];
 
-    for symbol in symbols.into_iter().cloned() {
+    for symbol in symbols.iter().cloned() {
       test(symbol).await;
     }
   }
