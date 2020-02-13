@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `websocket-util` dependency to `0.3`
+
+
 0.6.0
 -----
 - Added support for querying `/v2/account/activities` endpoint
