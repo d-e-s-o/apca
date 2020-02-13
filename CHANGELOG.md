@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.6.0
+-----
 - Added support for querying `/v2/account/activities` endpoint
 - Added support for listing orders based on their status
 - Introduced `Replaced` variant to `TradeStatus` enum
