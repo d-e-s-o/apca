@@ -492,7 +492,7 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn submit_limit_order() -> Result<(), Error> {
+  async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), Error> {
       let request = OrderReq {
         symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
@@ -504,17 +504,14 @@ mod tests {
         stop_price: None,
         extended_hours,
       };
-      let api_info = ApiInfo::from_env()?;
+      let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
       let order = client
         .issue::<Post>(request)
         .await
         .map_err(EndpointError::from)?;
-      let _ = client
-        .issue::<Delete>(order.id)
-        .await
-        .map_err(EndpointError::from)?;
+      let _ = client.issue::<Delete>(order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
       assert_eq!(order.quantity, Num::from_int(1));
@@ -527,7 +524,7 @@ mod tests {
       Ok(())
     }
 
-    test(false).await?;
+    test(false).await.unwrap();
 
     // When an extended hours order is submitted between 6pm and 8pm,
     // the Alpaca API reports an error:
@@ -541,13 +538,12 @@ mod tests {
       Err(Error::HttpStatus(StatusCode::UNPROCESSABLE_ENTITY)) => (),
       err => panic!("unexpected error: {:?}", err),
     };
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn submit_other_order_types() -> Result<(), Error> {
-    async fn test(time_in_force: TimeInForce) -> Result<(), Error> {
-      let api_info = ApiInfo::from_env()?;
+  async fn submit_other_order_types() {
+    async fn test(time_in_force: TimeInForce) {
+      let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
       let request = OrderReq {
         symbol: asset::Symbol::Sym("AAPL".to_string()),
@@ -562,10 +558,7 @@ mod tests {
 
       match client.issue::<Post>(request).await {
         Ok(order) => {
-          let _ = client
-            .issue::<Delete>(order.id)
-            .await
-            .map_err(EndpointError::from)?;
+          let _ = client.issue::<Delete>(order.id).await.unwrap();
 
           assert_eq!(order.time_in_force, time_in_force);
         },
@@ -574,17 +567,15 @@ mod tests {
         Err(PostError::InvalidInput(..)) => (),
         Err(err) => panic!("Received unexpected error: {:?}", err),
       }
-      Ok(())
     }
 
-    test(TimeInForce::UntilMarketOpen).await?;
-    test(TimeInForce::UntilMarketClose).await?;
-    Ok(())
+    test(TimeInForce::UntilMarketOpen).await;
+    test(TimeInForce::UntilMarketClose).await;
   }
 
   #[test(tokio::test)]
-  async fn submit_unsatisfiable_order() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn submit_unsatisfiable_order() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = OrderReq {
       symbol: asset::Symbol::Sym("AAPL".to_string()),
@@ -603,13 +594,12 @@ mod tests {
       PostError::InsufficientFunds(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn cancel_invalid_order() -> Result<(), Error> {
+  async fn cancel_invalid_order() {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let result = client.issue::<Delete>(id).await;
     let err = result.unwrap_err();
@@ -618,20 +608,16 @@ mod tests {
       DeleteError::NotFound(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn retrieve_order_by_id() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_order_by_id() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let posted = order_aapl(&client).await?;
+    let posted = order_aapl(&client).await.unwrap();
     let result = client.issue::<Get>(posted.id).await;
-    let _ = client
-      .issue::<Delete>(posted.id)
-      .await
-      .map_err(EndpointError::from)?;
-    let gotten = result.map_err(EndpointError::from)?;
+    let _ = client.issue::<Delete>(posted.id).await.unwrap();
+    let gotten = result.unwrap();
 
     // We can't simply compare the two orders for equality, because some
     // time stamps as well as the status may differ.
@@ -643,13 +629,12 @@ mod tests {
     assert_eq!(posted.type_, gotten.type_);
     assert_eq!(posted.side, gotten.side);
     assert_eq!(posted.time_in_force, gotten.time_in_force);
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn retrieve_non_existent_order() -> Result<(), Error> {
+  async fn retrieve_non_existent_order() {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let result = client.issue::<Get>(id).await;
     let err = result.unwrap_err();
@@ -658,11 +643,10 @@ mod tests {
       GetError::NotFound(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn extended_hours_market_order() -> Result<(), Error> {
+  async fn extended_hours_market_order() {
     let request = OrderReq {
       symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
       quantity: 1,
@@ -673,7 +657,7 @@ mod tests {
       stop_price: None,
       extended_hours: true,
     };
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
     // We are submitting a market order with extended_hours, that is
@@ -685,11 +669,10 @@ mod tests {
       PostError::InvalidInput(_) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn change_order() -> Result<(), Error> {
+  async fn change_order() {
     let request = OrderReq {
       symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
       quantity: 1,
@@ -701,12 +684,9 @@ mod tests {
       extended_hours: false,
     };
 
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let order = client
-      .issue::<Post>(request)
-      .await
-      .map_err(EndpointError::from)?;
+    let order = client.issue::<Post>(request).await.unwrap();
 
     let request = ChangeReq {
       quantity: 2,
@@ -721,10 +701,7 @@ mod tests {
       order.id
     };
 
-    client
-      .issue::<Delete>(id)
-      .await
-      .map_err(EndpointError::from)?;
+    client.issue::<Delete>(id).await.unwrap();
 
     match result {
       Ok(order) => {
@@ -741,6 +718,5 @@ mod tests {
       },
       e @ _ => panic!("received unexpected error: {:?}", e),
     }
-    Ok(())
   }
 }

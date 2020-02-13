@@ -30,22 +30,18 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn list_positions() -> Result<(), Error> {
+  async fn list_positions() {
     // We can't do much here except check that the request is not
     // reporting any errors.
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let _ = client.issue::<Get>(()).await.map_err(EndpointError::from)?;
-    Ok(())
+    let _ = client.issue::<Get>(()).await.unwrap();
   }
 }

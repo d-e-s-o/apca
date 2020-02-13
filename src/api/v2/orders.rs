@@ -73,38 +73,29 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use http_endpoint::Error as EndpointError;
-
   use test_env_log::test;
 
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test(tokio::test)]
-  async fn list_orders() -> Result<(), Error> {
-    async fn test(status: Status) -> Result<(), Error> {
-      let api_info = ApiInfo::from_env()?;
+  async fn list_orders() {
+    async fn test(status: Status) {
+      let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
       let request = OrdersReq {
         status,
         ..Default::default()
       };
 
-      let order = order_aapl(&client).await?;
+      let order = order_aapl(&client).await.unwrap();
       let result = client.issue::<Get>(request.clone()).await;
-      let _ = client
-        .issue::<order::Delete>(order.id)
-        .await
-        .map_err(EndpointError::from)?;
-      let before = result.map_err(EndpointError::from)?;
-      let after = client
-        .issue::<Get>(request.clone())
-        .await
-        .map_err(EndpointError::from)?;
+      let _ = client.issue::<order::Delete>(order.id).await.unwrap();
+      let before = result.unwrap();
+      let after = client.issue::<Get>(request.clone()).await.unwrap();
 
       let before = Into::<Vec<_>>::into(before);
       let after = Into::<Vec<_>>::into(after);
@@ -123,12 +114,10 @@ mod tests {
           assert!(after.into_iter().find(|x| x.id == order.id).is_some());
         },
       }
-      Ok(())
     }
 
-    test(Status::Open).await?;
-    test(Status::Closed).await?;
-    test(Status::All).await?;
-    Ok(())
+    test(Status::Open).await;
+    test(Status::Closed).await;
+    test(Status::All).await;
   }
 }

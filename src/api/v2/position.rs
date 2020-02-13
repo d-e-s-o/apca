@@ -131,7 +131,6 @@ mod tests {
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -174,8 +173,8 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn retrieve_position() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn retrieve_position() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let symbol = asset::Symbol::Sym("SPY".to_string());
     let result = client.issue::<Get>(symbol).await;
@@ -194,6 +193,5 @@ mod tests {
         _ => panic!("Received unexpected error: {:?}", err),
       },
     }
-    Ok(())
   }
 }

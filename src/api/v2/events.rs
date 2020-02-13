@@ -186,8 +186,6 @@ mod tests {
   use futures::StreamExt;
   use futures::TryStreamExt;
 
-  use http_endpoint::Error as EndpointError;
-
   use serde_json::from_str as from_json;
   use serde_json::to_string as to_json;
 
@@ -250,19 +248,16 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn stream_trade_events() -> Result<(), Error> {
+  async fn stream_trade_events() {
     // TODO: There may be something amiss here. If we don't cancel the
     //       order we never get an event about a new trade. That does
     //       not seem to be in our code, though, as the behavior is the
     //       same when streaming events using Alpaca's Python client.
-    let api_info = ApiInfo::from_env()?;
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let stream = client.subscribe::<TradeUpdates>().await?;
-    let order = order_aapl(&client).await?;
-    let _ = client
-      .issue::<order::Delete>(order.id)
-      .await
-      .map_err(EndpointError::from)?;
+    let stream = client.subscribe::<TradeUpdates>().await.unwrap();
+    let order = order_aapl(&client).await.unwrap();
+    let _ = client.issue::<order::Delete>(order.id).await.unwrap();
 
     // Unfortunately due to various braindeadnesses on the Rust &
     // futures side of things there is no sane way for us to provide a
@@ -280,7 +275,8 @@ mod tests {
       .try_skip_while(|trade| ok(trade.order.id != order.id))
       .next()
       .await
-      .unwrap()?;
+      .unwrap()
+      .unwrap();
 
     assert_eq!(order.id, trade.order.id);
     assert_eq!(order.asset_id, trade.order.asset_id);
@@ -289,12 +285,11 @@ mod tests {
     assert_eq!(order.type_, trade.order.type_);
     assert_eq!(order.side, trade.order.side);
     assert_eq!(order.time_in_force, trade.order.time_in_force);
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn stream_with_invalid_credentials() -> Result<(), Error> {
-    let api_base = Url::parse(API_BASE_URL)?;
+  async fn stream_with_invalid_credentials() {
+    let api_base = Url::parse(API_BASE_URL).unwrap();
     let api_info = ApiInfo {
       base_url: api_base,
       key_id: "invalid".to_string(),
@@ -309,6 +304,5 @@ mod tests {
       Err(Error::Str(ref e)) if e == "authentication not successful" => (),
       Err(e) => panic!("received unexpected error: {}", e),
     }
-    Ok(())
   }
 }

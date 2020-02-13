@@ -238,8 +238,8 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn unexpected_status_code_return() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn unexpected_status_code_return() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::builder().max_idle_per_host(0).build(api_info);
     let result = client.issue::<GetNotFound>(()).await;
     let err = result.unwrap_err();
@@ -255,6 +255,5 @@ mod tests {
       },
       _ => panic!("Received unexpected error: {:?}", err),
     };
-    Ok(())
   }
 }

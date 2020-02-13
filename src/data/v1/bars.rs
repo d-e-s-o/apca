@@ -131,7 +131,6 @@ mod tests {
   use std::time::UNIX_EPOCH;
 
   use http_endpoint::Endpoint;
-  use http_endpoint::Error as EndpointError;
 
   use serde_json::from_str as from_json;
 
@@ -139,7 +138,6 @@ mod tests {
 
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
 
 
   #[test]
@@ -169,8 +167,8 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  async fn request_bars() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn request_bars() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let end = UNIX_EPOCH + Duration::from_secs(1544132820);
     let request = BarReq {
@@ -181,7 +179,7 @@ mod tests {
     let bars = client
       .issue::<Get>((TimeFrame::OneDay, request))
       .await
-      .map_err(EndpointError::from)?;
+      .unwrap();
 
     let aapl = bars.get("AAPL").unwrap();
     assert_eq!(aapl.len(), 2);
@@ -197,12 +195,11 @@ mod tests {
     assert_eq!(aapl[1].high, Num::new(17478, 100));
     assert_eq!(aapl[1].low, Num::new(17042, 100));
     assert_eq!(aapl[1].volume, 38911135);
-    Ok(())
   }
 
   #[test(tokio::test)]
-  async fn request_bars_without_end() -> Result<(), Error> {
-    let api_info = ApiInfo::from_env()?;
+  async fn request_bars_without_end() {
+    let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = BarReq {
       symbol: "AAPL".to_string(),
@@ -212,7 +209,7 @@ mod tests {
     let bars = client
       .issue::<Get>((TimeFrame::OneDay, request))
       .await
-      .map_err(EndpointError::from)?;
+      .unwrap();
 
     let now = SystemTime::now();
     // There may not be a time stamp available due to weekends and
@@ -224,6 +221,5 @@ mod tests {
     assert_eq!(aapl.len(), 1);
     assert!(aapl[0].time <= now, aapl[0].time);
     assert!(aapl[0].time >= earlier, aapl[0].time);
-    Ok(())
   }
 }
