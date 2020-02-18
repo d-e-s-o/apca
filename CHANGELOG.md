@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.7.0
+-----
 - Bumped `websocket-util` dependency to `0.3`
 
 
