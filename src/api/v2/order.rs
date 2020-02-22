@@ -427,6 +427,8 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
+  use time_util::parse_system_time_from_str;
+
   use test_env_log::test;
 
   use uuid::Uuid;
@@ -483,6 +485,10 @@ mod tests {
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
     let order = from_json::<Order>(&response).unwrap();
     assert_eq!(order.id, id);
+    assert_eq!(
+      order.created_at,
+      parse_system_time_from_str("2018-10-05T05:48:59Z").unwrap()
+    );
     assert_eq!(order.symbol, "AAPL");
     assert_eq!(order.quantity, Num::from_int(15));
     assert_eq!(order.type_, Type::Market);

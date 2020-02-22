@@ -410,10 +410,9 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
-  use std::time::UNIX_EPOCH;
-
   use serde_json::from_str as from_json;
+
+  use time_util::parse_system_time_from_date_str;
 
   use test_env_log::test;
 
@@ -472,7 +471,10 @@ mod tests {
       .unwrap();
 
     assert_eq!(non_trade.type_, ActivityType::Dividend);
-    assert_eq!(non_trade.date, UNIX_EPOCH + Duration::from_secs(1564617600));
+    assert_eq!(
+      non_trade.date,
+      parse_system_time_from_date_str("2019-08-01").unwrap()
+    );
     assert_eq!(non_trade.symbol, Some("T".into()));
     //assert_eq!(non_trade.quantity, Some(2));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));

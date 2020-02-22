@@ -157,12 +157,11 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
-  use std::time::UNIX_EPOCH;
-
   use serde_json::from_str as from_json;
 
   use test_env_log::test;
+
+  use time_util::parse_system_time_from_str;
 
   use url::Url;
 
@@ -207,7 +206,10 @@ mod tests {
     assert_eq!(acc.currency, "USD");
     assert_eq!(acc.buying_power, Num::from_int(0));
     assert_eq!(acc.trading_blocked, false);
-    assert_eq!(acc.created_at, UNIX_EPOCH + Duration::from_secs(1538400925));
+    assert_eq!(
+      acc.created_at,
+      parse_system_time_from_str("2018-10-01T13:35:25Z").unwrap()
+    );
     assert_eq!(acc.market_value_long, Num::from_int(7000));
     assert_eq!(acc.market_value_short, Num::from_int(-3000));
     assert_eq!(acc.equity, Num::from_int(5000));
