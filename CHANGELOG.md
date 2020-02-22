@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `time-util` dependency to `0.2`
+
+
 0.7.0
 -----
 - Bumped `websocket-util` dependency to `0.3`
