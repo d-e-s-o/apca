@@ -19,6 +19,7 @@ use serde_variant::to_variant_name;
 use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
+use crate::api::v2::order;
 use crate::Str;
 
 
@@ -195,6 +196,9 @@ pub struct TradeActivity {
   /// The traded symbol.
   #[serde(rename = "symbol")]
   pub symbol: String,
+  /// The ID of the order this trade activity belongs to.
+  #[serde(rename = "order_id")]
+  pub order_id: order::Id,
   /// The side of a trade.
   #[serde(rename = "side")]
   pub side: Side,
@@ -413,6 +417,8 @@ mod tests {
 
   use test_env_log::test;
 
+  use uuid::Uuid;
+
   use crate::api_info::ApiInfo;
   use crate::Client;
 
@@ -429,6 +435,7 @@ mod tests {
   "side": "buy",
   "symbol": "LPCN",
   "transaction_time": "2019-05-24T15:34:06.977Z",
+  "order_id": "904837e3-3b76-47ec-b432-046db621571b",
   "type": "fill"
 }"#;
 
@@ -437,7 +444,9 @@ mod tests {
       .into_trade()
       .unwrap();
 
+    let id = order::Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
     assert_eq!(trade.symbol, "LPCN");
+    assert_eq!(trade.order_id, id);
     assert_eq!(trade.side, Side::Buy);
     assert_eq!(trade.quantity, 1);
     assert_eq!(trade.cumulative_quantity, 1);
