@@ -11,7 +11,9 @@ use serde_json::Error as JsonError;
 
 use tracing::debug;
 use tracing::info;
-use tracing::info_span;
+use tracing::span;
+use tracing::Level;
+use tracing_futures::Instrument;
 
 use tungstenite::tokio::connect_async_with_tls_connector;
 use tungstenite::tungstenite::Error as WebSocketError;
@@ -63,31 +65,34 @@ where
     secret,
   } = api_info;
 
-  let span = info_span!("stream", events = debug(&stream_type));
-  let _guard = span.enter();
+  let span = span!(Level::INFO, "stream", events = debug(&stream_type));
 
-  info!(message = "connecting", url = display(&url));
+  async move {
+    info!(message = "connecting", url = display(&url));
 
-  // We just ignore the response & headers that are sent along after
-  // the connection is made. Alpaca does not seem to be using them,
-  // really.
-  let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
-  info!("connection successful");
-  debug!(response = debug(&response));
+    // We just ignore the response & headers that are sent along after
+    // the connection is made. Alpaca does not seem to be using them,
+    // really.
+    let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
+    info!("connection successful");
+    debug!(response = debug(&response));
 
-  handshake(&mut stream, key_id, secret, stream_type).await?;
-  info!("subscription successful");
+    handshake(&mut stream, key_id, secret, stream_type).await?;
+    info!("subscription successful");
 
-  let stream = do_stream::<_, stream::Event<I>>(stream)
-    .map(|stream| {
-      stream.map(|result| {
-        result.map(|result| {
-          result.map(|event| event.data.0)
+    let stream = do_stream::<_, stream::Event<I>>(stream)
+      .map(|stream| {
+        stream.map(|result| {
+          result.map(|result| {
+            result.map(|event| event.data.0)
+          })
         })
-      })
-    }).await;
+      }).await;
 
-  Ok(stream)
+    Ok(stream)
+  }
+  .instrument(span)
+  .await
 }
 
 /// Create a stream for decoded event data.
