@@ -9,6 +9,7 @@ use serde::Deserialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
+use crate::api::v2::util::u64_from_str;
 use crate::Str;
 
 
@@ -44,8 +45,8 @@ pub struct Position {
   #[serde(rename = "avg_entry_price")]
   pub average_entry_price: Num,
   /// The number of shares.
-  #[serde(rename = "qty")]
-  pub quantity: Num,
+  #[serde(rename = "qty", deserialize_with = "u64_from_str")]
+  pub quantity: u64,
   /// The side the position is on.
   #[serde(rename = "side")]
   pub side: Side,
@@ -159,7 +160,7 @@ mod tests {
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
     assert_eq!(pos.average_entry_price, Num::from_int(100));
-    assert_eq!(pos.quantity, Num::from_int(5));
+    assert_eq!(pos.quantity, 5);
     assert_eq!(pos.side, Side::Long);
     assert_eq!(pos.market_value, Num::from_int(600));
     assert_eq!(pos.cost_basis, Num::from_int(500));
