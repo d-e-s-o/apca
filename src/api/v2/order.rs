@@ -23,6 +23,8 @@ use time_util::system_time_from_str;
 use time_util::system_time_to_rfc3339;
 
 use crate::api::v2::asset;
+use crate::api::v2::util::u64_from_str;
+use crate::api::v2::util::u64_to_str;
 use crate::Str;
 
 
@@ -168,7 +170,7 @@ pub struct OrderReq {
   #[serde(rename = "symbol")]
   pub symbol: asset::Symbol,
   /// Number of shares to trade.
-  #[serde(rename = "qty")]
+  #[serde(rename = "qty", serialize_with = "u64_to_str")]
   pub quantity: u64,
   /// The side the order is on.
   #[serde(rename = "side")]
@@ -207,7 +209,7 @@ pub struct OrderReq {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ChangeReq {
   /// Number of shares to trade.
-  #[serde(rename = "qty")]
+  #[serde(rename = "qty", serialize_with = "u64_to_str")]
   pub quantity: u64,
   /// How long the order will be valid.
   #[serde(rename = "time_in_force")]
@@ -286,11 +288,19 @@ pub struct Order {
   #[serde(rename = "symbol")]
   pub symbol: String,
   /// The quantity being requested.
-  #[serde(rename = "qty")]
-  pub quantity: Num,
+  #[serde(
+    rename = "qty",
+    deserialize_with = "u64_from_str",
+    serialize_with = "u64_to_str"
+  )]
+  pub quantity: u64,
   /// The quantity that was filled.
-  #[serde(rename = "filled_qty")]
-  pub filled_quantity: Num,
+  #[serde(
+    rename = "filled_qty",
+    deserialize_with = "u64_from_str",
+    serialize_with = "u64_to_str"
+  )]
+  pub filled_quantity: u64,
   /// The type of order.
   #[serde(rename = "type")]
   pub type_: Type,
@@ -540,7 +550,7 @@ mod tests {
       parse_system_time_from_str("2018-10-05T05:48:59Z").unwrap()
     );
     assert_eq!(order.symbol, "AAPL");
-    assert_eq!(order.quantity, Num::from_int(15));
+    assert_eq!(order.quantity, 15);
     assert_eq!(order.type_, Type::Market);
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from_int(107)));
@@ -571,7 +581,7 @@ mod tests {
       let _ = client.issue::<Delete>(order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
-      assert_eq!(order.quantity, Num::from_int(1));
+      assert_eq!(order.quantity, 1);
       assert_eq!(order.side, Side::Buy);
       assert_eq!(order.type_, Type::Limit);
       assert_eq!(order.time_in_force, TimeInForce::Day);
@@ -760,7 +770,7 @@ mod tests {
     client.issue::<Delete>(order.id).await.unwrap();
 
     let order = result.unwrap();
-    assert_eq!(order.quantity, Num::from_int(2));
+    assert_eq!(order.quantity, 2);
     assert_eq!(order.time_in_force, TimeInForce::UntilCanceled);
     assert_eq!(order.limit_price, Some(Num::from_int(2)));
     assert_eq!(order.stop_price, None);
