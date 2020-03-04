@@ -24,6 +24,7 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, EndpointError> 
     limit_price: Some(Num::from_int(1)),
     stop_price: None,
     extended_hours: false,
+    client_order_id: None,
   };
   client
     .issue::<order::Post>(request)
