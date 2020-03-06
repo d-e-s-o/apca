@@ -13,6 +13,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Error as JsonError;
 use serde_json::to_string as to_json;
+use serde_urlencoded::to_string as to_query;
 
 use uuid::Uuid;
 
@@ -190,6 +191,15 @@ pub struct OrderReq {
   /// `TimeInForce::Day`).
   #[serde(rename = "extended_hours")]
   pub extended_hours: bool,
+  /// Client unique order ID (free form string).
+  ///
+  /// This ID is entirely under control of the client, but kept and
+  /// passed along by Alpaca. It can be used for associating additional
+  /// information with an order, from the client.
+  ///
+  /// The documented maximum length is 48 characters.
+  #[serde(rename = "client_order_id")]
+  pub client_order_id: Option<String>,
 }
 
 
@@ -323,6 +333,44 @@ Endpoint! {
 
 
 Endpoint! {
+  /// The representation of a GET request to the
+  /// /v2/orders:by_client_order_id endpoint.
+  pub GetByClientId(String),
+  Ok => Order, [
+    /// The order object for the given ID was retrieved successfully.
+    /* 200 */ OK,
+  ],
+  // TODO: We really should reuse `GetError` as it is defined for the
+  //       `Get` endpoint here, but that requires significant changes to
+  //       the `http-endpoint` crate.
+  Err => GetByClientIdError, [
+    /// No order was found with the given client ID.
+    /* 404 */ NOT_FOUND => NotFound,
+  ]
+
+  fn path(_input: &Self::Input) -> Str {
+    "/v2/orders:by_client_order_id".into()
+  }
+
+  fn query(input: &Self::Input) -> Option<Str> {
+    #[derive(Serialize)]
+    struct ClientOrderId<'s> {
+      #[serde(rename = "client_order_id")]
+      order_id: &'s str,
+    }
+
+    let order_id = ClientOrderId {
+      order_id: &input,
+    };
+    // TODO: Realistically there should be no way for this unwrap to
+    //       ever panic because our conversion to strings should not be
+    //       fallible. But still, ideally we would not have to unwrap.
+    Some(to_query(order_id).unwrap().into())
+  }
+}
+
+
+Endpoint! {
   /// The representation of a POST request to the /v2/orders endpoint.
   pub Post(OrderReq),
   Ok => Order, [
@@ -421,6 +469,8 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use futures::TryFutureExt;
+
   use http_endpoint::Error as EndpointError;
 
   use hyper::StatusCode;
@@ -509,6 +559,7 @@ mod tests {
         limit_price: Some(Num::from_int(1)),
         stop_price: None,
         extended_hours,
+        client_order_id: None,
       };
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
@@ -560,6 +611,7 @@ mod tests {
         limit_price: Some(Num::from_int(1)),
         stop_price: None,
         extended_hours: false,
+        client_order_id: None,
       };
 
       match client.issue::<Post>(request).await {
@@ -592,6 +644,7 @@ mod tests {
       limit_price: Some(Num::from_int(1000)),
       stop_price: None,
       extended_hours: false,
+      client_order_id: None,
     };
     let result = client.issue::<Post>(request).await;
     let err = result.unwrap_err();
@@ -662,6 +715,7 @@ mod tests {
       limit_price: None,
       stop_price: None,
       extended_hours: true,
+      client_order_id: None,
     };
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
@@ -688,6 +742,7 @@ mod tests {
       limit_price: Some(Num::from_int(1)),
       stop_price: None,
       extended_hours: false,
+      client_order_id: None,
     };
 
     let api_info = ApiInfo::from_env().unwrap();
@@ -724,5 +779,50 @@ mod tests {
       },
       e @ _ => panic!("received unexpected error: {:?}", e),
     }
+  }
+
+  #[test(tokio::test)]
+  async fn with_client_order_id() {
+    // We need a truly random identifier here, because Alpaca will never
+    // forget any client order ID and any ID previously used one cannot
+    // be reused again.
+    let client_order_id = Uuid::new_v4().to_simple().to_string();
+
+    let request = OrderReq {
+      symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
+      quantity: 1,
+      side: Side::Buy,
+      type_: Type::Limit,
+      time_in_force: TimeInForce::Day,
+      limit_price: Some(Num::from_int(1)),
+      stop_price: None,
+      extended_hours: true,
+      client_order_id: Some(client_order_id.clone()),
+    };
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let (issued, retrieved) = client
+      .issue::<Post>(request.clone())
+      .and_then(|order| async {
+        let retrieved = client.issue::<GetByClientId>(client_order_id.clone()).await;
+        client.issue::<Delete>(order.id).await.unwrap();
+        Ok((order, retrieved.unwrap()))
+      })
+      .await
+      .unwrap();
+
+    assert_eq!(issued.client_order_id, client_order_id);
+    assert_eq!(retrieved.client_order_id, client_order_id);
+    assert_eq!(retrieved.id, issued.id);
+
+    // We should not be able to submit another order with the same
+    // client ID.
+    let err = client.issue::<Post>(request).await.unwrap_err();
+
+    match err {
+      PostError::InvalidInput(_) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
   }
 }
