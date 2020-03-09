@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
-use crate::api::v2::util::u64_from_str;
+use crate::api::v2::util::u64_from_i64_from_str;
 use crate::Str;
 
 
@@ -58,7 +58,7 @@ pub struct Position {
   #[serde(rename = "avg_entry_price")]
   pub average_entry_price: Num,
   /// The number of shares.
-  #[serde(rename = "qty", deserialize_with = "u64_from_str")]
+  #[serde(rename = "qty", deserialize_with = "u64_from_i64_from_str")]
   pub quantity: u64,
   /// The side the position is on.
   #[serde(rename = "side")]
@@ -190,6 +190,32 @@ mod tests {
     assert_eq!(pos.current_price, Num::from_int(120));
     assert_eq!(pos.last_day_price, Num::from_int(119));
     assert_eq!(pos.change_today, Num::new(84, 10000));
+  }
+
+  #[test]
+  fn parse_short_position() {
+    let response = r#"{
+      "asset_id":"d704f4fd-c735-44f8-a7fa-7a50fef08fe4",
+      "symbol":"XLK",
+      "exchange":"ARCA",
+      "asset_class":"us_equity",
+      "qty":"-24",
+      "avg_entry_price":"82.69",
+      "side":"short",
+      "market_value":"-2011.44",
+      "cost_basis":"-1984.56",
+      "unrealized_pl":"-26.88",
+      "unrealized_plpc":"-0.0135445640343451",
+      "unrealized_intraday_pl":"-26.88",
+      "unrealized_intraday_plpc":"-0.0135445640343451",
+      "current_price":"83.81",
+      "lastday_price":"88.91",
+      "change_today":"-0.0573613766730402"
+    }"#;
+
+    let pos = from_json::<Position>(&response).unwrap();
+    assert_eq!(pos.symbol, "XLK");
+    assert_eq!(pos.quantity, 24);
   }
 
   #[test(tokio::test)]
