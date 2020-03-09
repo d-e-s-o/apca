@@ -25,16 +25,16 @@ where
   parse_u64::<D>(&String::deserialize(deserializer)?)
 }
 
-// /// Deserialize an optional `u64` from a string.
-// fn optional_u64_from_str<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
-// where
-//   D: Deserializer<'de>,
-// {
-//   match Option::<String>::deserialize(deserializer)? {
-//     Some(s) => Some(parse_u64::<D>(&s)).transpose(),
-//     None => Ok(None),
-//   }
-// }
+/// Deserialize an optional `u64` from a string.
+pub fn optional_u64_from_str<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  match Option::<String>::deserialize(deserializer)? {
+    Some(s) => Some(parse_u64::<D>(&s)).transpose(),
+    None => Ok(None),
+  }
+}
 
 /// Serialize a `u64` value as a string.
 pub fn u64_to_str<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
