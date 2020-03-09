@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for negating order and position `Side` types
+
+
 0.8.0
 -----
 - Added support for associating client IDs with orders
