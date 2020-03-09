@@ -81,6 +81,9 @@ pub enum TradeStatus {
   /// execution.
   #[serde(rename = "new")]
   New,
+  /// The order has changed.
+  #[serde(rename = "replaced")]
+  Replaced,
   /// The order has been partially filled.
   #[serde(rename = "partial_fill")]
   PartialFill,
@@ -130,6 +133,7 @@ impl TradeStatus {
   pub fn to_order_status(self) -> order::Status {
     match self {
       Self::New => order::Status::New,
+      Self::Replaced => order::Status::Replaced,
       Self::PartialFill => order::Status::PartiallyFilled,
       Self::Filled => order::Status::Filled,
       Self::DoneForDay => order::Status::DoneForDay,
