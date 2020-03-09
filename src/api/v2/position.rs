@@ -1,6 +1,8 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::ops::Not;
+
 use hyper::Method;
 
 use num_decimal::Num;
@@ -22,6 +24,17 @@ pub enum Side {
   /// A short position of an asset.
   #[serde(rename = "short")]
   Short,
+}
+
+impl Not for Side {
+  type Output = Self;
+
+  fn not(self) -> Self::Output {
+    match self {
+      Self::Long => Self::Short,
+      Self::Short => Self::Long,
+    }
+  }
 }
 
 
@@ -133,6 +146,12 @@ mod tests {
   use crate::api_info::ApiInfo;
   use crate::Client;
 
+
+  #[test]
+  fn negate_side() {
+    assert_eq!(!Side::Long, Side::Short);
+    assert_eq!(!Side::Short, Side::Long);
+  }
 
   #[test]
   fn parse_reference_position() {
