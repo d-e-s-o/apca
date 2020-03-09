@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `quantity` field to `NonTradeActivity` type
+- Use absolute values for quantity reported in `Position` objects
 
 
 0.8.1
