@@ -45,7 +45,7 @@ pub struct Builder {
 impl Builder {
   /// Adjust the maximum number of idle connections per host.
   pub fn max_idle_per_host(&mut self, max_idle: usize) -> &mut Self {
-    let _ = self.builder.max_idle_per_host(max_idle);
+    let _ = self.builder.pool_max_idle_per_host(max_idle);
     self
   }
 
@@ -70,7 +70,7 @@ impl Default for Builder {
     // While at it, also use the minimum number of threads for the
     // `HttpsConnector`.
     let mut builder = HttpClient::builder();
-    let _ = builder.max_idle_per_host(0);
+    let _ = builder.pool_max_idle_per_host(0);
 
     Self {
       builder,

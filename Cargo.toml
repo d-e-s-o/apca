@@ -23,7 +23,7 @@ A create for interacting with the Alpaca API.
 chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
 http-endpoint = "0.1.1"
-hyper = {version = "0.13", features = ["stream"]}
+hyper = {version = "0.13.3", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
 num-decimal = {version = "0.1", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
