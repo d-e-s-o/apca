@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
+use std::ops::Not;
 use std::time::SystemTime;
 
 use hyper::Body;
@@ -120,6 +121,17 @@ pub enum Side {
   /// Sell an asset.
   #[serde(rename = "sell")]
   Sell,
+}
+
+impl Not for Side {
+  type Output = Self;
+
+  fn not(self) -> Self::Output {
+    match self {
+      Self::Buy => Self::Sell,
+      Self::Sell => Self::Buy,
+    }
+  }
 }
 
 
@@ -506,6 +518,12 @@ mod tests {
   fn emit_side() {
     assert_eq!(to_json(&Side::Buy).unwrap(), r#""buy""#);
     assert_eq!(to_json(&Side::Sell).unwrap(), r#""sell""#);
+  }
+
+  #[test]
+  fn negate_side() {
+    assert_eq!(!Side::Buy, Side::Sell);
+    assert_eq!(!Side::Sell, Side::Buy);
   }
 
   #[test]
