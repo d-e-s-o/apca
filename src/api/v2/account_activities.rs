@@ -5,8 +5,6 @@ use std::time::SystemTime;
 
 use num_decimal::Num;
 
-use serde::de::Error as SerdeError;
-use serde::de::Unexpected;
 use serde::private::de::ContentDeserializer;
 use serde::private::de::TaggedContentVisitor;
 use serde::Deserialize;
@@ -20,6 +18,7 @@ use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
 use crate::api::v2::order;
+use crate::api::v2::util::u64_from_str;
 use crate::Str;
 
 
@@ -143,35 +142,6 @@ pub enum Side {
   #[serde(rename = "sell_short")]
   ShortSell,
 }
-
-
-/// Parse a `u64` from a string.
-fn parse_u64<'de, D>(s: &str) -> Result<u64, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  u64::from_str_radix(&s, 10)
-    .map_err(|_| SerdeError::invalid_value(Unexpected::Str(&s), &"an unsigned integer"))
-}
-
-/// Deserialize a string encoded `u64`.
-fn u64_from_str<'de, D>(deserializer: D) -> Result<u64, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  parse_u64::<D>(&String::deserialize(deserializer)?)
-}
-
-// /// Deserialize an optional `u64` from a string.
-// fn optional_u64_from_str<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
-// where
-//   D: Deserializer<'de>,
-// {
-//   match Option::<String>::deserialize(deserializer)? {
-//     Some(s) => Some(parse_u64::<D>(&s)).transpose(),
-//     None => Ok(None),
-//   }
-// }
 
 
 /// A trade related activity.

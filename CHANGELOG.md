@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for associating client IDs with orders
+- Converted various quantities from `Num` to `u64`
 - Hooked up `order_id` field to `TradeActivity` type
 - Bumped `time-util` dependency to `0.2`
 

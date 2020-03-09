@@ -24,5 +24,7 @@ pub mod position;
 /// Functionality for listing open positions.
 pub mod positions;
 
+mod util;
+
 #[cfg(test)]
 mod order_util;
