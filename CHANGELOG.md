@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.8.1
+-----
 - Added support for negating order and position `Side` types
 
 
