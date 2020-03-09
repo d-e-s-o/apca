@@ -18,6 +18,7 @@ use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
 use crate::api::v2::order;
+use crate::api::v2::util::optional_u64_from_str;
 use crate::api::v2::util::u64_from_str;
 use crate::Str;
 
@@ -203,14 +204,10 @@ pub struct NonTradeActivityImpl<T> {
   /// for all activity types.
   #[serde(rename = "symbol")]
   pub symbol: Option<String>,
-  // TODO: We should also read the quantity, but optional fields with
-  //       the `deserialize_with` attribute are not handled correctly
-  //       (see https://github.com/serde-rs/serde/issues/1728 for more
-  //       details).
-  // /// For dividend activities, the number of shares that contributed to
-  // /// the payment. Not present for other activity types.
-  // #[serde(rename = "qty", deserialize_with = "optional_u64_from_str")]
-  // pub quantity: Option<u64>,
+  /// For dividend activities, the number of shares that contributed to
+  /// the payment. Not present for other activity types.
+  #[serde(rename = "qty", deserialize_with = "optional_u64_from_str")]
+  pub quantity: Option<u64>,
   /// For dividend activities, the average amount paid per share. Not
   /// present for other activity types.
   #[serde(rename = "per_share_amount")]
@@ -227,7 +224,7 @@ impl<T> NonTradeActivityImpl<T> {
       date,
       net_amount,
       symbol,
-      //quantity,
+      quantity,
       per_share_amount,
       description,
     } = self;
@@ -237,7 +234,7 @@ impl<T> NonTradeActivityImpl<T> {
       date,
       net_amount,
       symbol,
-      //quantity,
+      quantity,
       per_share_amount,
       description,
     }
@@ -434,7 +431,7 @@ mod tests {
       parse_system_time_from_date_str("2019-08-01").unwrap()
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
-    //assert_eq!(non_trade.quantity, Some(2));
+    assert_eq!(non_trade.quantity, Some(2));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
   }
 
