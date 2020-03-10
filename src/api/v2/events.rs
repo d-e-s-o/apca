@@ -84,6 +84,9 @@ pub enum TradeStatus {
   /// The order has changed.
   #[serde(rename = "replaced")]
   Replaced,
+  /// The order replacement has been rejected.
+  #[serde(rename = "order_replace_rejected")]
+  ReplaceRejected,
   /// The order has been partially filled.
   #[serde(rename = "partial_fill")]
   PartialFill,
@@ -99,6 +102,9 @@ pub enum TradeStatus {
   /// the order.
   #[serde(rename = "canceled")]
   Canceled,
+  /// The order cancellation has been rejected.
+  #[serde(rename = "order_cancel_rejected")]
+  CancelRejected,
   /// The order has expired, and no further updates will occur.
   #[serde(rename = "expired")]
   Expired,
@@ -130,8 +136,8 @@ pub enum TradeStatus {
 
 impl TradeStatus {
   /// Convert a `TradeStatus` into an `order::Status`.
-  pub fn to_order_status(self) -> order::Status {
-    match self {
+  pub fn to_order_status(self) -> Option<order::Status> {
+    let status = match self {
       Self::New => order::Status::New,
       Self::Replaced => order::Status::Replaced,
       Self::PartialFill => order::Status::PartiallyFilled,
@@ -145,7 +151,10 @@ impl TradeStatus {
       Self::Suspended => order::Status::Suspended,
       Self::PendingNew => order::Status::PendingNew,
       Self::Calculated => order::Status::Calculated,
-    }
+      Self::ReplaceRejected | Self::CancelRejected => return None,
+    };
+
+    Some(status)
   }
 }
 
