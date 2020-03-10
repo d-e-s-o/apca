@@ -1,6 +1,8 @@
 Unreleased
 ----------
 - Added `quantity` field to `NonTradeActivity` type
+- Added `ReplaceRejected` and `CancelRejected` variants to `TradeStatus`
+  enum
 - Use absolute values for quantity reported in `Position` objects
 
 
