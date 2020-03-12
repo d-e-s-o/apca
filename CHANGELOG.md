@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.9.0
+-----
 - Added `quantity` field to `NonTradeActivity` type
 - Added `ReplaceRejected` and `CancelRejected` variants to `TradeStatus`
   enum
