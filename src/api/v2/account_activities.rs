@@ -206,7 +206,9 @@ pub struct NonTradeActivityImpl<T> {
   pub symbol: Option<String>,
   /// For dividend activities, the number of shares that contributed to
   /// the payment. Not present for other activity types.
-  #[serde(rename = "qty", deserialize_with = "optional_u64_from_str")]
+  // TODO: The `default` is there to work around
+  //       https://github.com/serde-rs/serde/issues/1728
+  #[serde(rename = "qty", deserialize_with = "optional_u64_from_str", default)]
   pub quantity: Option<u64>,
   /// For dividend activities, the average amount paid per share. Not
   /// present for other activity types.
@@ -416,7 +418,6 @@ mod tests {
   "date": "2019-08-01",
   "net_amount": "1.02",
   "symbol": "T",
-  "qty": "2",
   "per_share_amount": "0.51"
 }"#;
 
@@ -431,7 +432,6 @@ mod tests {
       parse_system_time_from_date_str("2019-08-01").unwrap()
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
-    assert_eq!(non_trade.quantity, Some(2));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
   }
 
