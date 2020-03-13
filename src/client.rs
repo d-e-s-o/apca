@@ -158,7 +158,7 @@ impl Client {
     R: Endpoint,
   {
     info!("requesting");
-    debug!(request = debug(&request));
+    debug!(body = debug(request.body()));
 
     let result = self.client.request(request).await?;
     let status = result.status();
