@@ -328,6 +328,9 @@ pub struct Order {
   /// The stop price.
   #[serde(rename = "stop_price")]
   pub stop_price: Option<Num>,
+  /// The average price at which the order was filled.
+  #[serde(rename = "filled_avg_price")]
+  pub average_fill_price: Option<Num>,
   /// If true, the order is eligible for execution outside regular
   /// trading hours.
   #[serde(rename = "extended_hours")]
@@ -555,7 +558,7 @@ mod tests {
     "time_in_force": "day",
     "limit_price": "107.00",
     "stop_price": "106.00",
-    "filled_avg_price": "106.00",
+    "filled_avg_price": "106.25",
     "status": "accepted",
     "extended_hours": false
 }"#;
@@ -573,6 +576,7 @@ mod tests {
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from_int(107)));
     assert_eq!(order.stop_price, Some(Num::from_int(106)));
+    assert_eq!(order.average_fill_price, Some(Num::new(10625, 100)));
   }
 
   #[test(tokio::test)]
