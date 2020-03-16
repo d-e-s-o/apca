@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.10.0
+------
 - Added `average_fill_price` to `Order` type
 - Fixed issue when deserializing non-trade activity object without a
   quantity
