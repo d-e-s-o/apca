@@ -178,17 +178,17 @@ mod tests {
     assert_eq!(pos.symbol, "AAPL");
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
-    assert_eq!(pos.average_entry_price, Num::from_int(100));
+    assert_eq!(pos.average_entry_price, Num::from(100));
     assert_eq!(pos.quantity, 5);
     assert_eq!(pos.side, Side::Long);
-    assert_eq!(pos.market_value, Num::from_int(600));
-    assert_eq!(pos.cost_basis, Num::from_int(500));
-    assert_eq!(pos.unrealized_gain_total, Num::from_int(100));
+    assert_eq!(pos.market_value, Num::from(600));
+    assert_eq!(pos.cost_basis, Num::from(500));
+    assert_eq!(pos.unrealized_gain_total, Num::from(100));
     assert_eq!(pos.unrealized_gain_total_percent, Num::new(20, 100));
-    assert_eq!(pos.unrealized_gain_today, Num::from_int(10));
+    assert_eq!(pos.unrealized_gain_today, Num::from(10));
     assert_eq!(pos.unrealized_gain_today_percent, Num::new(84, 10000));
-    assert_eq!(pos.current_price, Num::from_int(120));
-    assert_eq!(pos.last_day_price, Num::from_int(119));
+    assert_eq!(pos.current_price, Num::from(120));
+    assert_eq!(pos.last_day_price, Num::from(119));
     assert_eq!(pos.change_today, Num::new(84, 10000));
   }
 

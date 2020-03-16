@@ -574,8 +574,8 @@ mod tests {
     assert_eq!(order.quantity, 15);
     assert_eq!(order.type_, Type::Market);
     assert_eq!(order.time_in_force, TimeInForce::Day);
-    assert_eq!(order.limit_price, Some(Num::from_int(107)));
-    assert_eq!(order.stop_price, Some(Num::from_int(106)));
+    assert_eq!(order.limit_price, Some(Num::from(107)));
+    assert_eq!(order.stop_price, Some(Num::from(106)));
     assert_eq!(order.average_fill_price, Some(Num::new(10625, 100)));
   }
 
@@ -588,7 +588,7 @@ mod tests {
         side: Side::Buy,
         type_: Type::Limit,
         time_in_force: TimeInForce::Day,
-        limit_price: Some(Num::from_int(1)),
+        limit_price: Some(Num::from(1)),
         stop_price: None,
         extended_hours,
         client_order_id: None,
@@ -607,7 +607,7 @@ mod tests {
       assert_eq!(order.side, Side::Buy);
       assert_eq!(order.type_, Type::Limit);
       assert_eq!(order.time_in_force, TimeInForce::Day);
-      assert_eq!(order.limit_price, Some(Num::from_int(1)));
+      assert_eq!(order.limit_price, Some(Num::from(1)));
       assert_eq!(order.stop_price, None);
       assert_eq!(order.extended_hours, extended_hours);
       Ok(())
@@ -640,7 +640,7 @@ mod tests {
         side: Side::Buy,
         type_: Type::Limit,
         time_in_force,
-        limit_price: Some(Num::from_int(1)),
+        limit_price: Some(Num::from(1)),
         stop_price: None,
         extended_hours: false,
         client_order_id: None,
@@ -673,7 +673,7 @@ mod tests {
       side: Side::Buy,
       type_: Type::Limit,
       time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1000)),
+      limit_price: Some(Num::from(1000)),
       stop_price: None,
       extended_hours: false,
       client_order_id: None,
@@ -771,7 +771,7 @@ mod tests {
       side: Side::Buy,
       type_: Type::Limit,
       time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1)),
+      limit_price: Some(Num::from(1)),
       stop_price: None,
       extended_hours: false,
       client_order_id: None,
@@ -784,7 +784,7 @@ mod tests {
     let request = ChangeReq {
       quantity: 2,
       time_in_force: TimeInForce::UntilCanceled,
-      limit_price: Some(Num::from_int(2)),
+      limit_price: Some(Num::from(2)),
       stop_price: None,
     };
     let result = client.issue::<Patch>((order.id, request)).await;
@@ -793,7 +793,7 @@ mod tests {
     let order = result.unwrap();
     assert_eq!(order.quantity, 2);
     assert_eq!(order.time_in_force, TimeInForce::UntilCanceled);
-    assert_eq!(order.limit_price, Some(Num::from_int(2)));
+    assert_eq!(order.limit_price, Some(Num::from(2)));
     assert_eq!(order.stop_price, None);
   }
 
@@ -810,7 +810,7 @@ mod tests {
       side: Side::Buy,
       type_: Type::Limit,
       time_in_force: TimeInForce::Day,
-      limit_price: Some(Num::from_int(1)),
+      limit_price: Some(Num::from(1)),
       stop_price: None,
       extended_hours: true,
       client_order_id: Some(client_order_id.clone()),

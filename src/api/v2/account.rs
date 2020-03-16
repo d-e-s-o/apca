@@ -204,17 +204,17 @@ mod tests {
     assert_eq!(acc.id, id);
     assert_eq!(acc.status, Status::Active);
     assert_eq!(acc.currency, "USD");
-    assert_eq!(acc.buying_power, Num::from_int(0));
+    assert_eq!(acc.buying_power, Num::from(0));
     assert_eq!(acc.trading_blocked, false);
     assert_eq!(
       acc.created_at,
       parse_system_time_from_str("2018-10-01T13:35:25Z").unwrap()
     );
-    assert_eq!(acc.market_value_long, Num::from_int(7000));
-    assert_eq!(acc.market_value_short, Num::from_int(-3000));
-    assert_eq!(acc.equity, Num::from_int(5000));
-    assert_eq!(acc.last_equity, Num::from_int(5000));
-    assert_eq!(acc.maintenance_margin, Num::from_int(3000));
+    assert_eq!(acc.market_value_long, Num::from(7000));
+    assert_eq!(acc.market_value_short, Num::from(-3000));
+    assert_eq!(acc.equity, Num::from(5000));
+    assert_eq!(acc.last_equity, Num::from(5000));
+    assert_eq!(acc.maintenance_margin, Num::from(3000));
     assert_eq!(acc.daytrade_count, 0);
   }
 

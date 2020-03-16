@@ -14,7 +14,7 @@ futures = {version = "0.3", default-features = false}
 http-endpoint = {version = "0.1.1", git = "ssh://rpigit/~/git/http-endpoint.git"}
 hyper = {version = "0.13.3", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
-num-decimal = {version = "0.1", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
+num-decimal = {version = "0.2", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false}
 serde_urlencoded = {version = "0.6", default-features = false}
