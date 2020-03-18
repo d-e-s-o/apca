@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `num-decimal` dependency to `0.2`
+
+
 0.10.0
 ------
 - Added `average_fill_price` to `Order` type

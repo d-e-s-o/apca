@@ -21,7 +21,7 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, EndpointError> 
     side: Side::Buy,
     type_: Type::Limit,
     time_in_force: TimeInForce::Day,
-    limit_price: Some(Num::from_int(1)),
+    limit_price: Some(Num::from(1)),
     stop_price: None,
     extended_hours: false,
     client_order_id: None,
