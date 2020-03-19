@@ -19,9 +19,9 @@ use hyper_tls::HttpsConnector;
 use serde_json::Error as JsonError;
 
 use tracing::debug;
-use tracing::info;
 use tracing::instrument;
 use tracing::span;
+use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
@@ -153,13 +153,13 @@ impl Client {
   where
     R: Endpoint,
   {
-    info!("requesting");
-    debug!(body = debug(request.body()));
+    debug!("requesting");
+    trace!(body = debug(request.body()));
 
     let result = self.client.request(request).await?;
     let status = result.status();
-    info!(status = debug(&status));
-    debug!(response = debug(&result));
+    debug!(status = debug(&status));
+    trace!(response = debug(&result));
 
     // We unconditionally wait for the full body to be received
     // before even evaluating the header. That is mostly done for
@@ -174,15 +174,15 @@ impl Client {
     let body = bytes.as_ref();
 
     match from_utf8(body) {
-      Ok(s) => debug!(body = display(&s)),
-      Err(b) => debug!(body = display(&b)),
+      Ok(s) => trace!(body = display(&s)),
+      Err(b) => trace!(body = display(&b)),
     }
 
     R::evaluate(status, body)
   }
 
   /// Subscribe to the given stream in order to receive updates.
-  #[instrument(level = "info", skip(self))]
+  #[instrument(level = "debug", skip(self))]
   pub async fn subscribe<S>(
     &self,
   ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>

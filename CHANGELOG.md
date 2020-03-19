@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Decreased tracing verbosity by one level
 - Bumped `num-decimal` dependency to `0.2`
 
 

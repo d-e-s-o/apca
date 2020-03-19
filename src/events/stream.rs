@@ -10,8 +10,8 @@ use serde::Deserialize;
 use serde_json::Error as JsonError;
 
 use tracing::debug;
-use tracing::info;
 use tracing::span;
+use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
@@ -65,20 +65,20 @@ where
     secret,
   } = api_info;
 
-  let span = span!(Level::INFO, "stream", events = debug(&stream_type));
+  let span = span!(Level::DEBUG, "stream", events = debug(&stream_type));
 
   async move {
-    info!(message = "connecting", url = display(&url));
+    debug!(message = "connecting", url = display(&url));
 
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
     // really.
     let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
-    info!("connection successful");
-    debug!(response = debug(&response));
+    debug!("connection successful");
+    trace!(response = debug(&response));
 
     handshake(&mut stream, key_id, secret, stream_type).await?;
-    info!("subscription successful");
+    debug!("subscription successful");
 
     let stream = do_stream::<_, stream::Event<I>>(stream)
       .map(|stream| {

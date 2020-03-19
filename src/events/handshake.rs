@@ -9,9 +9,9 @@ use futures::Stream;
 use futures::StreamExt;
 use futures::TryFutureExt;
 
-use tracing::debug;
 use tracing::error;
 use tracing::instrument;
+use tracing::trace;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -174,7 +174,7 @@ where
   let auth = req::AuthData::new(key_id, secret);
   let request = AuthRequest::new(auth);
   let json = to_json(&request).unwrap();
-  debug!(request = display(&json));
+  trace!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -189,8 +189,8 @@ where
 /// Check the response to an authentication request.
 fn check_auth(msg: &[u8]) -> Result<(), Error> {
   match from_utf8(msg) {
-    Ok(s) => debug!(response = display(&s)),
-    Err(b) => debug!(response = display(&b)),
+    Ok(s) => trace!(response = display(&s)),
+    Err(b) => trace!(response = display(&b)),
   }
 
   match from_json::<AuthResponse>(msg) {
@@ -215,7 +215,7 @@ where
 {
   let request = StreamRequest::new([stream_type].as_ref().into());
   let json = to_json(&request).unwrap();
-  debug!(request = display(&json));
+  trace!(request = display(&json));
 
   stream
     .send(Message::text(json).into())
@@ -230,8 +230,8 @@ where
 /// Check the response to a stream subscription request.
 fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
   match from_utf8(msg) {
-    Ok(s) => debug!(response = display(&s)),
-    Err(b) => debug!(response = display(&b)),
+    Ok(s) => trace!(response = display(&s)),
+    Err(b) => trace!(response = display(&b)),
   }
 
   match from_json::<StreamResponse>(&msg) {
@@ -275,7 +275,7 @@ where
 }
 
 
-#[instrument(level = "debug", skip(stream, key_id, secret))]
+#[instrument(level = "trace", skip(stream, key_id, secret))]
 async fn authenticate<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), Error>
 where
   S: Sink<Message, Error = WebSocketError>,
@@ -293,7 +293,7 @@ where
 }
 
 
-#[instrument(level = "debug", skip(stream, stream_type))]
+#[instrument(level = "trace", skip(stream, stream_type))]
 async fn subscribe<S>(stream: &mut S, stream_type: StreamType) -> Result<(), Error>
 where
   S: Sink<Message, Error = WebSocketError>,
