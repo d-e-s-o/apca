@@ -16,6 +16,9 @@ use hyper::http::request::Builder as HttpRequestBuilder;
 use hyper::Request;
 use hyper_tls::HttpsConnector;
 
+use log::log_enabled;
+use log::Level::Trace;
+
 use serde_json::Error as JsonError;
 
 use tracing::debug;
@@ -153,13 +156,19 @@ impl Client {
   where
     R: Endpoint,
   {
-    debug!("requesting");
-    trace!(body = debug(request.body()));
+    if !log_enabled!(Trace) {
+      debug!("requesting");
+    } else {
+      trace!(body = debug(request.body()), "requesting");
+    }
 
     let result = self.client.request(request).await?;
     let status = result.status();
-    debug!(status = debug(&status));
-    trace!(response = debug(&result));
+    if !log_enabled!(Trace) {
+      debug!(status = debug(&status));
+    } else {
+      trace!(response = debug(&result));
+    }
 
     // We unconditionally wait for the full body to be received
     // before even evaluating the header. That is mostly done for

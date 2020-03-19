@@ -14,6 +14,7 @@ futures = {version = "0.3", default-features = false}
 http-endpoint = {version = "0.1.1", git = "ssh://rpigit/~/git/http-endpoint.git"}
 hyper = {version = "0.13.3", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
+log = {version = "0.4", default-features = false}
 num-decimal = {version = "0.2", git = "ssh://rpigit/~/git/num-decimal.git", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false}
@@ -28,7 +29,8 @@ uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
 websocket-util = {version = "0.3", git = "ssh://rpigit/~/git/websocket-util.git"}
 
 [dev-dependencies]
-test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
+env_logger = {version = "0.7", default-features = false}
+test-env-log = {version = "0.2.2", default-features = false, features = ["log", "trace"]}
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
 tracing-subscriber = {version = "0.1.6", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
 websocket-util = {version = "0.3", git = "ssh://rpigit/~/git/websocket-util.git", features = ["test"]}

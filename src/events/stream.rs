@@ -5,6 +5,9 @@ use futures::FutureExt;
 use futures::stream::Stream;
 use futures::StreamExt;
 
+use log::log_enabled;
+use log::Level::Trace;
+
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::Error as JsonError;
@@ -74,8 +77,11 @@ where
     // the connection is made. Alpaca does not seem to be using them,
     // really.
     let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
-    debug!("connection successful");
-    trace!(response = debug(&response));
+    if !log_enabled!(Trace) {
+      debug!("connection successful");
+    } else {
+      trace!(response = debug(&response), "connection successful");
+    }
 
     handshake(&mut stream, key_id, secret, stream_type).await?;
     debug!("subscription successful");
