@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Converted `Account::daytrade_count` to `u64`
 - Decreased tracing verbosity by one level
 - Bumped `num-decimal` dependency to `0.2`
 

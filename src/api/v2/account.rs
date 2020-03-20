@@ -134,7 +134,7 @@ pub struct Account {
   /// The current number of day trades that have been made in the last
   /// five trading days (including today).
   #[serde(rename = "daytrade_count")]
-  pub daytrade_count: u8,
+  pub daytrade_count: u64,
 }
 
 
