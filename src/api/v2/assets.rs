@@ -10,6 +10,28 @@ use crate::api::v2::asset::Status;
 use crate::Str;
 
 
+/// A helper for initializing `AssetsReq` objects.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct AssetsReqInit {
+  /// See `AssetsReq::status`.
+  pub status: Status,
+  /// See `AssetsReq::class`.
+  pub class: Class,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl AssetsReqInit {
+  /// Create an `AssetsReq` from an `AssetsReqInit`.
+  pub fn init(self) -> AssetsReq {
+    AssetsReq {
+      status: self.status,
+      class: self.class,
+    }
+  }
+}
+
+
 /// A GET request to be made to the /v2/assets endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq)]
 pub struct AssetsReq {
@@ -59,10 +81,7 @@ mod tests {
   async fn list_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = AssetsReq {
-      status: Status::Active,
-      class: Class::UsEquity,
-    };
+    let request = AssetsReqInit::default().init();
     let assets = client.issue::<Get>(request).await.unwrap();
 
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();

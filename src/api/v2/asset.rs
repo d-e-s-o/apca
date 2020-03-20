@@ -46,6 +46,12 @@ impl AsRef<str> for Class {
   }
 }
 
+impl Default for Class {
+  fn default() -> Self {
+    Self::UsEquity
+  }
+}
+
 impl FromStr for Class {
   type Err = ();
 
@@ -76,6 +82,12 @@ impl AsRef<str> for Status {
       Status::Active => "active",
       Status::Inactive => "inactive",
     }
+  }
+}
+
+impl Default for Status {
+  fn default() -> Self {
+    Self::Active
   }
 }
 
