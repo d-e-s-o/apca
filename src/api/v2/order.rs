@@ -269,6 +269,34 @@ pub struct OrderReq {
 }
 
 
+/// A helper for initializing `ChangeReq` objects.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ChangeReqInit {
+  /// See `ChangeReq::quantity`.
+  pub quantity: u64,
+  /// See `ChangeReq::time_in_force`.
+  pub time_in_force: TimeInForce,
+  /// See `ChangeReq::limit_price`.
+  pub limit_price: Option<Num>,
+  /// See `ChangeReq::stop_price`.
+  pub stop_price: Option<Num>,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl ChangeReqInit {
+  /// Create an `ChangeReq` from an `ChangeReqInit`.
+  pub fn init(self) -> ChangeReq {
+    ChangeReq {
+      quantity: self.quantity,
+      time_in_force: self.time_in_force,
+      limit_price: self.limit_price,
+      stop_price: self.stop_price,
+    }
+  }
+}
+
+
 /// A PATCH request to be made to the /v2/orders/<order-id> endpoint.
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ChangeReq {
@@ -815,12 +843,14 @@ mod tests {
     let client = Client::new(api_info);
     let order = client.issue::<Post>(request).await.unwrap();
 
-    let request = ChangeReq {
+    let request = ChangeReqInit {
       quantity: 2,
       time_in_force: TimeInForce::UntilCanceled,
       limit_price: Some(Num::from(2)),
-      stop_price: None,
-    };
+      ..Default::default()
+    }
+    .init();
+
     let result = client.issue::<Patch>((order.id, request)).await;
     let id = if let Ok(replaced) = &result {
       replaced.id
