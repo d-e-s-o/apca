@@ -153,6 +153,12 @@ pub enum Type {
   StopLimit,
 }
 
+impl Default for Type {
+  fn default() -> Self {
+    Self::Market
+  }
+}
+
 
 /// A description of the time for which an order is valid.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -172,6 +178,52 @@ pub enum TimeInForce {
   /// auction. Any unfilled orders after the close will be canceled.
   #[serde(rename = "cls")]
   UntilMarketClose,
+}
+
+impl Default for TimeInForce {
+  fn default() -> Self {
+    Self::Day
+  }
+}
+
+
+/// A helper for initializing `OrderReq` objects.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct OrderReqInit {
+  /// See `OrderReq::type_`.
+  pub type_: Type,
+  /// See `OrderReq::time_in_force`.
+  pub time_in_force: TimeInForce,
+  /// See `OrderReq::limit_price`.
+  pub limit_price: Option<Num>,
+  /// See `OrderReq::stop_price`.
+  pub stop_price: Option<Num>,
+  /// See `OrderReq::extended_hours`.
+  pub extended_hours: bool,
+  /// See `OrderReq::client_order_id`.
+  pub client_order_id: Option<String>,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl OrderReqInit {
+  /// Create an `OrderReq` from an `OrderReqInit`.
+  pub fn init<S>(self, symbol: S, side: Side, quantity: u64) -> OrderReq
+  where
+    S: Into<asset::Symbol>,
+  {
+    OrderReq {
+      symbol: symbol.into(),
+      quantity,
+      side,
+      type_: self.type_,
+      time_in_force: self.time_in_force,
+      limit_price: self.limit_price,
+      stop_price: self.stop_price,
+      extended_hours: self.extended_hours,
+      client_order_id: self.client_order_id,
+    }
+  }
 }
 
 
@@ -582,17 +634,15 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), Error> {
-      let request = OrderReq {
-        symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
-        quantity: 1,
-        side: Side::Buy,
+      let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity);
+      let request = OrderReqInit {
         type_: Type::Limit,
-        time_in_force: TimeInForce::Day,
         limit_price: Some(Num::from(1)),
-        stop_price: None,
         extended_hours,
-        client_order_id: None,
-      };
+        ..Default::default()
+      }
+      .init(symbol, Side::Buy, 1);
+
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
@@ -634,17 +684,14 @@ mod tests {
     async fn test(time_in_force: TimeInForce) {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
-      let request = OrderReq {
-        symbol: asset::Symbol::Sym("AAPL".to_string()),
-        quantity: 1,
-        side: Side::Buy,
+
+      let request = OrderReqInit {
         type_: Type::Limit,
         time_in_force,
         limit_price: Some(Num::from(1)),
-        stop_price: None,
-        extended_hours: false,
-        client_order_id: None,
-      };
+        ..Default::default()
+      }
+      .init("AAPL", Side::Buy, 1);
 
       match client.issue::<Post>(request).await {
         Ok(order) => {
@@ -667,17 +714,14 @@ mod tests {
   async fn submit_unsatisfiable_order() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = OrderReq {
-      symbol: asset::Symbol::Sym("AAPL".to_string()),
-      quantity: 100000,
-      side: Side::Buy,
+
+    let request = OrderReqInit {
       type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
       limit_price: Some(Num::from(1000)),
-      stop_price: None,
-      extended_hours: false,
-      client_order_id: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL", Side::Buy, 100000);
+
     let result = client.issue::<Post>(request).await;
     let err = result.unwrap_err();
 
@@ -738,17 +782,12 @@ mod tests {
 
   #[test(tokio::test)]
   async fn extended_hours_market_order() {
-    let request = OrderReq {
-      symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
-      quantity: 1,
-      side: Side::Buy,
-      type_: Type::Market,
-      time_in_force: TimeInForce::Day,
-      limit_price: None,
-      stop_price: None,
+    let request = OrderReqInit {
       extended_hours: true,
-      client_order_id: None,
-    };
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, 1);
+
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
@@ -765,17 +804,12 @@ mod tests {
 
   #[test(tokio::test)]
   async fn change_order() {
-    let request = OrderReq {
-      symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
-      quantity: 1,
-      side: Side::Buy,
+    let request = OrderReqInit {
       type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
       limit_price: Some(Num::from(1)),
-      stop_price: None,
-      extended_hours: false,
-      client_order_id: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL", Side::Buy, 1);
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
@@ -820,17 +854,15 @@ mod tests {
     // be reused again.
     let client_order_id = Uuid::new_v4().to_simple().to_string();
 
-    let request = OrderReq {
-      symbol: Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity),
-      quantity: 1,
-      side: Side::Buy,
+    let request = OrderReqInit {
       type_: Type::Limit,
-      time_in_force: TimeInForce::Day,
       limit_price: Some(Num::from(1)),
-      stop_price: None,
       extended_hours: true,
       client_order_id: Some(client_order_id.clone()),
-    };
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, 1);
+
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 

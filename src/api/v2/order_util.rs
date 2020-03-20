@@ -5,27 +5,19 @@ use http_endpoint::Error as EndpointError;
 
 use num_decimal::Num;
 
-use crate::api::v2::asset::Class;
-use crate::api::v2::asset::Exchange;
-use crate::api::v2::asset::Symbol;
 use crate::api::v2::order;
 use crate::api::v2::order::Side;
-use crate::api::v2::order::TimeInForce;
 use crate::api::v2::order::Type;
 use crate::Client;
 
 pub async fn order_aapl(client: &Client) -> Result<order::Order, EndpointError> {
-  let request = order::OrderReq {
-    symbol: Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
-    quantity: 1,
-    side: Side::Buy,
+  let request = order::OrderReqInit {
     type_: Type::Limit,
-    time_in_force: TimeInForce::Day,
     limit_price: Some(Num::from(1)),
-    stop_price: None,
-    extended_hours: false,
-    client_order_id: None,
-  };
+    ..Default::default()
+  }
+  .init("AAPL", Side::Buy, 1);
+
   client
     .issue::<order::Post>(request)
     .await
