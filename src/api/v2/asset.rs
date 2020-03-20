@@ -123,6 +123,21 @@ pub enum Symbol {
   Id(Id),
 }
 
+impl From<Id> for Symbol {
+  fn from(symbol: Id) -> Self {
+    Self::Id(symbol)
+  }
+}
+
+impl<S> From<S> for Symbol
+where
+  S: Into<String>,
+{
+  fn from(symbol: S) -> Self {
+    Self::Sym(symbol.into())
+  }
+}
+
 impl FromStr for Symbol {
   type Err = ParseSymbolError;
 
