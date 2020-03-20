@@ -10,8 +10,11 @@ use hyper::Method;
 
 use num_decimal::Num;
 
+use serde::ser::SerializeStruct;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde::Serializer;
 use serde_json::Error as JsonError;
 use serde_json::to_string as to_json;
 use serde_urlencoded::to_string as to_query;
@@ -109,6 +112,11 @@ pub enum Status {
   /// This state only occurs on rare occasions.
   #[serde(rename = "calculated")]
   Calculated,
+  /// The order is still being held. This may be the case for legs of
+  /// bracket-style orders that are not active yet because the primary
+  /// order has not filled yet.
+  #[serde(rename = "held")]
+  Held,
 }
 
 
@@ -131,6 +139,38 @@ impl Not for Side {
       Self::Buy => Self::Sell,
       Self::Sell => Self::Buy,
     }
+  }
+}
+
+
+/// The class an order belongs to.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+pub enum Class {
+  /// Any non-bracket order (i.e., regular market, limit, or stop loss
+  /// orders).
+  #[serde(rename = "simple")]
+  Simple,
+  /// A bracket order is a chain of three orders that can be used to manage your
+  /// position entry and exit. It is a common use case of an
+  /// one-triggers & one-cancels-other order.
+  #[serde(rename = "bracket")]
+  Bracket,
+  /// A One-cancels-other is a set of two orders with the same side
+  /// (buy/buy or sell/sell) and currently only exit order is supported.
+  /// Such an order can be used to add two legs to an already filled
+  /// order.
+  #[serde(rename = "oco")]
+  OneCancelsOther,
+  /// A one-triggers-other order that can either have a take-profit or
+  /// stop-loss leg set. It essentially attached a single leg to an
+  /// entry order.
+  #[serde(rename = "oto")]
+  OneTriggersOther,
+}
+
+impl Default for Class {
+  fn default() -> Self {
+    Self::Simple
   }
 }
 
@@ -187,9 +227,67 @@ impl Default for TimeInForce {
 }
 
 
+/// The take profit part of a bracket, one-cancels-other, or
+/// one-triggers-other order.
+#[derive(Clone, Debug, PartialEq)]
+pub enum TakeProfit {
+  /// The limit price to use.
+  Limit(Num),
+}
+
+impl Serialize for TakeProfit {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    match self {
+      TakeProfit::Limit(limit) => {
+        let mut state = serializer.serialize_struct("take_profit", 1)?;
+        state.serialize_field("limit_price", &limit)?;
+        state.end()
+      },
+    }
+  }
+}
+
+
+/// The stop loss part of a bracket, one-cancels-other, or
+/// one-triggers-other order.
+#[derive(Clone, Debug, PartialEq)]
+pub enum StopLoss {
+  /// The stop loss price to use.
+  Stop(Num),
+  /// The stop loss and stop limit price to use.
+  StopLimit(Num, Num),
+}
+
+impl Serialize for StopLoss {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    match self {
+      StopLoss::Stop(stop) => {
+        let mut state = serializer.serialize_struct("stop_loss", 1)?;
+        state.serialize_field("stop_price", stop)?;
+        state.end()
+      },
+      StopLoss::StopLimit(stop, limit) => {
+        let mut state = serializer.serialize_struct("stop_loss", 2)?;
+        state.serialize_field("stop_price", stop)?;
+        state.serialize_field("limit_price", limit)?;
+        state.end()
+      },
+    }
+  }
+}
+
+
 /// A helper for initializing `OrderReq` objects.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct OrderReqInit {
+  /// See `OrderReq::class`.
+  pub class: Class,
   /// See `OrderReq::type_`.
   pub type_: Type,
   /// See `OrderReq::time_in_force`.
@@ -198,6 +296,10 @@ pub struct OrderReqInit {
   pub limit_price: Option<Num>,
   /// See `OrderReq::stop_price`.
   pub stop_price: Option<Num>,
+  /// See `OrderReq::take_profit`.
+  pub take_profit: Option<TakeProfit>,
+  /// See `OrderReq::stop_loss`.
+  pub stop_loss: Option<StopLoss>,
   /// See `OrderReq::extended_hours`.
   pub extended_hours: bool,
   /// See `OrderReq::client_order_id`.
@@ -216,10 +318,13 @@ impl OrderReqInit {
       symbol: symbol.into(),
       quantity,
       side,
+      class: self.class,
       type_: self.type_,
       time_in_force: self.time_in_force,
       limit_price: self.limit_price,
       stop_price: self.stop_price,
+      take_profit: self.take_profit,
+      stop_loss: self.stop_loss,
       extended_hours: self.extended_hours,
       client_order_id: self.client_order_id,
     }
@@ -239,6 +344,9 @@ pub struct OrderReq {
   /// The side the order is on.
   #[serde(rename = "side")]
   pub side: Side,
+  /// The order class.
+  #[serde(rename = "order_class")]
+  pub class: Class,
   /// `market`, `limit`, `stop`, or `stop_limit`.
   #[serde(rename = "type")]
   pub type_: Type,
@@ -251,6 +359,12 @@ pub struct OrderReq {
   /// The stop price.
   #[serde(rename = "stop_price")]
   pub stop_price: Option<Num>,
+  /// Take profit information for bracket-style orders.
+  #[serde(rename = "take_profit")]
+  pub take_profit: Option<TakeProfit>,
+  /// Stop loss information for bracket-style orders.
+  #[serde(rename = "stop_loss")]
+  pub stop_loss: Option<StopLoss>,
   /// Whether or not the order is eligible to execute during
   /// pre-market/after hours. Note that a value of `true` can only be
   /// combined with limit orders that are good for the day (i.e.,
@@ -312,6 +426,17 @@ pub struct ChangeReq {
   /// The stop price.
   #[serde(rename = "stop_price")]
   pub stop_price: Option<Num>,
+}
+
+
+/// Deserialize a `Vec` from a string that could contain a `null`.
+fn vec_from_str<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
+where
+  D: Deserializer<'de>,
+  T: Deserialize<'de>,
+{
+  let vec = Option::<Vec<T>>::deserialize(deserializer)?;
+  Ok(vec.unwrap_or_else(Vec::new))
 }
 
 
@@ -415,6 +540,12 @@ pub struct Order {
   /// trading hours.
   #[serde(rename = "extended_hours")]
   pub extended_hours: bool,
+  /// Additional legs of the order.
+  ///
+  /// Such an additional leg could be, for example, the order for the
+  /// take profit part of a bracket-style order.
+  #[serde(rename = "legs", deserialize_with = "vec_from_str")]
+  pub legs: Vec<Order>,
 }
 
 
@@ -588,7 +719,7 @@ mod tests {
 
   use uuid::Uuid;
 
-  use crate::api::v2::asset::Class;
+  use crate::api::v2::asset;
   use crate::api::v2::asset::Exchange;
   use crate::api::v2::asset::Symbol;
   use crate::api::v2::order_util::order_aapl;
@@ -617,6 +748,21 @@ mod tests {
   }
 
   #[test]
+  fn emit_legs() {
+    let take_profit = TakeProfit::Limit(Num::new(3, 2));
+    let expected = r#"{"limit_price":"1.5"}"#;
+    assert_eq!(to_json(&take_profit).unwrap(), expected);
+
+    let stop_loss = StopLoss::Stop(Num::from(42));
+    let expected = r#"{"stop_price":"42"}"#;
+    assert_eq!(to_json(&stop_loss).unwrap(), expected);
+
+    let stop_loss = StopLoss::StopLimit(Num::from(13), Num::from(96));
+    let expected = r#"{"stop_price":"13","limit_price":"96"}"#;
+    assert_eq!(to_json(&stop_loss).unwrap(), expected);
+  }
+
+  #[test]
   fn parse_reference_order() {
     let response = r#"{
     "id": "904837e3-3b76-47ec-b432-046db621571b",
@@ -640,7 +786,8 @@ mod tests {
     "stop_price": "106.00",
     "filled_avg_price": "106.25",
     "status": "accepted",
-    "extended_hours": false
+    "extended_hours": false,
+    "legs": null
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
@@ -662,7 +809,7 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), Error> {
-      let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, Class::UsEquity);
+      let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
       let request = OrderReqInit {
         type_: Type::Limit,
         limit_price: Some(Num::from(1)),
@@ -708,6 +855,72 @@ mod tests {
   }
 
   #[test(tokio::test)]
+  async fn submit_bracket_order() {
+    let request = OrderReqInit {
+      class: Class::Bracket,
+      type_: Type::Limit,
+      limit_price: Some(Num::from(2)),
+      take_profit: Some(TakeProfit::Limit(Num::from(3))),
+      stop_loss: Some(StopLoss::Stop(Num::from(1))),
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, 1);
+
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let order = client.issue::<Post>(request).await.unwrap();
+    let _ = client.issue::<Delete>(order.id).await.unwrap();
+    for leg in &order.legs {
+      let _ = client.issue::<Delete>(leg.id).await.unwrap();
+    }
+
+    assert_eq!(order.symbol, "SPY");
+    assert_eq!(order.quantity, 1);
+    assert_eq!(order.side, Side::Buy);
+    assert_eq!(order.type_, Type::Limit);
+    assert_eq!(order.time_in_force, TimeInForce::Day);
+    assert_eq!(order.limit_price, Some(Num::from(2)));
+    assert_eq!(order.stop_price, None);
+    assert!(!order.extended_hours);
+    assert_eq!(order.legs.len(), 2);
+    assert_eq!(order.legs[0].status, Status::Held);
+    assert_eq!(order.legs[1].status, Status::Held);
+  }
+
+  #[test(tokio::test)]
+  async fn submit_one_triggers_other_order() {
+    let request = OrderReqInit {
+      class: Class::OneTriggersOther,
+      type_: Type::Limit,
+      limit_price: Some(Num::from(2)),
+      stop_loss: Some(StopLoss::Stop(Num::from(1))),
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, 1);
+
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let order = client.issue::<Post>(request).await.unwrap();
+    let _ = client.issue::<Delete>(order.id).await.unwrap();
+    for leg in &order.legs {
+      let _ = client.issue::<Delete>(leg.id).await.unwrap();
+    }
+
+    assert_eq!(order.symbol, "SPY");
+    assert_eq!(order.quantity, 1);
+    assert_eq!(order.side, Side::Buy);
+    assert_eq!(order.type_, Type::Limit);
+    assert_eq!(order.time_in_force, TimeInForce::Day);
+    assert_eq!(order.limit_price, Some(Num::from(2)));
+    assert_eq!(order.stop_price, None);
+    assert!(!order.extended_hours);
+    assert_eq!(order.legs.len(), 1);
+    assert_eq!(order.legs[0].status, Status::Held);
+  }
+
+  #[test(tokio::test)]
   async fn submit_other_order_types() {
     async fn test(time_in_force: TimeInForce) {
       let api_info = ApiInfo::from_env().unwrap();
@@ -715,6 +928,7 @@ mod tests {
 
       let request = OrderReqInit {
         type_: Type::Limit,
+        class: Class::Simple,
         time_in_force,
         limit_price: Some(Num::from(1)),
         ..Default::default()

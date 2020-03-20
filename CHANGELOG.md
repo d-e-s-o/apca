@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added support for bracket-style orders
 - Added `From` implementation for `asset::Symbol` type
 - Added support for almost-default construction of various request types
 - Converted `Account::daytrade_count` to `u64`
