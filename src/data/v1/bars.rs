@@ -42,6 +42,32 @@ impl AsRef<str> for TimeFrame {
 }
 
 
+/// A helper for initializing `BarReq` objects.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct BarReqInit {
+  /// See `BarReq::limit`.
+  pub limit: usize,
+  /// See `BarReq::end`.
+  pub end: Option<SystemTime>,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl BarReqInit {
+  /// Create an `BarReq` from an `BarReqInit`.
+  pub fn init<S>(self, symbol: S) -> BarReq
+  where
+    S: Into<String>,
+  {
+    BarReq {
+      symbol: symbol.into(),
+      limit: self.limit,
+      end: self.end,
+    }
+  }
+}
+
+
 /// A GET request to be issued to the /v1/bars/<timeframe> endpoint.
 // TODO: Not all fields are hooked up.
 // TODO: Strictly speaking the `symbols` member should be an array of
@@ -201,11 +227,12 @@ mod tests {
   async fn request_bars_without_end() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = BarReq {
-      symbol: "AAPL".to_string(),
+    let request = BarReqInit {
       limit: 1,
-      end: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL");
+
     let bars = client
       .issue::<Get>((TimeFrame::OneDay, request))
       .await
