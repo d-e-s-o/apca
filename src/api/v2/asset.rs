@@ -235,6 +235,11 @@ pub enum Exchange {
   /// NYSE Arca.
   #[serde(rename = "NYSEARCA")]
   Nysearca,
+  /// Any other exchange that we have not accounted for.
+  ///
+  /// Note that having any such status should be considered a bug.
+  #[serde(other)]
+  Unknown,
 }
 
 impl AsRef<str> for Exchange {
@@ -246,6 +251,7 @@ impl AsRef<str> for Exchange {
       Exchange::Nasdaq => "NASDAQ",
       Exchange::Nyse => "NYSE",
       Exchange::Nysearca => "NYSEARCA",
+      Exchange::Unknown => "unknown",
     }
   }
 }
@@ -267,6 +273,9 @@ impl FromStr for Exchange {
     } else if s == Exchange::Nysearca.as_ref() {
       Ok(Exchange::Nysearca)
     } else {
+      // Note that we do not support creating the `Unknown` variant
+      // here. This variant is really only meant to cover
+      // deserialization.
       Err(())
     }
   }
@@ -420,6 +429,24 @@ mod tests {
     assert_eq!(asset.marginable, true);
     assert_eq!(asset.shortable, true);
     assert_eq!(asset.easy_to_borrow, true);
+  }
+
+  #[test]
+  fn parse_with_unknown_exchange() {
+    let response = r#"{
+  "id": "904837e3-3b76-47ec-b432-046db621571b",
+  "class": "us_equity",
+  "exchange": "ABCDEF",
+  "symbol": "AAPL",
+  "status": "active",
+  "tradable": true,
+  "marginable": true,
+  "shortable": true,
+  "easy_to_borrow": true
+}"#;
+
+    let asset = from_json::<Asset>(&response).unwrap();
+    assert_eq!(asset.exchange, Exchange::Unknown);
   }
 
   #[test(tokio::test)]

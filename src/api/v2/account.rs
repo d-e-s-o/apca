@@ -53,6 +53,11 @@ pub enum Status {
   /// The account application has been rejected.
   #[serde(rename = "REJECTED")]
   Rejected,
+  /// Any other account status that we have not accounted for.
+  ///
+  /// Note that having any such status should be considered a bug.
+  #[serde(other)]
+  Unknown,
 }
 
 

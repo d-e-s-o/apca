@@ -132,6 +132,11 @@ pub enum TradeStatus {
   /// for day), but remaining settlement calculations are still pending.
   #[serde(rename = "calculated")]
   Calculated,
+  /// Any other status that we have not accounted for.
+  ///
+  /// Note that having any such status should be considered a bug.
+  #[serde(other, rename(serialize = "unknown"))]
+  Unknown,
 }
 
 impl TradeStatus {
@@ -151,6 +156,7 @@ impl TradeStatus {
       Self::Suspended => order::Status::Suspended,
       Self::PendingNew => order::Status::PendingNew,
       Self::Calculated => order::Status::Calculated,
+      Self::Unknown => order::Status::Unknown,
       Self::ReplaceRejected | Self::CancelRejected => return None,
     };
 
@@ -209,6 +215,12 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  #[test]
+  fn serialize_status() {
+    assert_eq!(to_json(&TradeStatus::New).unwrap(), r#""new""#);
+    assert_eq!(to_json(&TradeStatus::Unknown).unwrap(), r#""unknown""#);
+  }
 
   #[test]
   fn deserialize_and_serialize_trade_event() {

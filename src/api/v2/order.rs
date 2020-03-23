@@ -117,6 +117,11 @@ pub enum Status {
   /// order has not filled yet.
   #[serde(rename = "held")]
   Held,
+  /// Any other status that we have not accounted for.
+  ///
+  /// Note that having any such status should be considered a bug.
+  #[serde(other, rename(serialize = "unknown"))]
+  Unknown,
 }
 
 
@@ -745,6 +750,12 @@ mod tests {
     assert_eq!(to_json(&Type::Market).unwrap(), r#""market""#);
     assert_eq!(to_json(&Type::Limit).unwrap(), r#""limit""#);
     assert_eq!(to_json(&Type::Stop).unwrap(), r#""stop""#);
+  }
+
+  #[test]
+  fn emit_status() {
+    assert_eq!(to_json(&Status::Calculated).unwrap(), r#""calculated""#);
+    assert_eq!(to_json(&Status::Unknown).unwrap(), r#""unknown""#);
   }
 
   #[test]
