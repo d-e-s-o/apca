@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Removed serialization support for `Exchange` enum
+
+
 0.11.0
 ------
 - Added support for bracket-style orders
