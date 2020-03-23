@@ -93,6 +93,9 @@ pub enum Status {
   /// rare occasions.
   #[serde(rename = "pending_cancel")]
   PendingCancel,
+  /// The order is awaiting replacement.
+  #[serde(rename = "pending_replace")]
+  PendingReplace,
   /// The order has been stopped, and a trade is guaranteed for the
   /// order, usually at a stated price or better, but has not yet
   /// occurred. This state only occurs on rare occasions.

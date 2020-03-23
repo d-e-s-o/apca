@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Added support for handling unknown variants for `account::Status`,
   `asset::Exchange`, `events::TradeStatus`, and `order::Status`
+- Added `PendingReplace` order status variant
 - Removed serialization support for `Exchange` enum
 
 
