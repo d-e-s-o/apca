@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.12.0
+------
 - Added support for handling unknown variants for `account::Status`,
   `asset::Exchange`, `events::TradeStatus`, and `order::Status`
 - Added `PendingReplace` order status variant
