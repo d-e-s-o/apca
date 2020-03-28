@@ -77,6 +77,10 @@ pub use crate::error::Error;
 /// functionality needs to be used directly.
 pub mod event {
   pub use crate::events::stream;
+  pub use crate::events::stream_raw;
+  pub use crate::events::Event;
+  pub use crate::events::EventStream;
+  pub use crate::events::StreamType;
 }
 
 type Str = Cow<'static, str>;

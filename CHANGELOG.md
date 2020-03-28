@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added `stream_raw` function for interfacing with raw event streams
 - Removed `TradeStatus::to_order_status` method
 - Bumped `websocket-util` dependency to `0.4`
 

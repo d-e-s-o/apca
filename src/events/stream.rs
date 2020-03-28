@@ -48,7 +48,8 @@ pub struct Event<T> {
 }
 
 
-async fn stream_impl(
+/// Create a stream for the raw event data.
+pub async fn stream_raw(
   api_info: ApiInfo,
   stream_type: StreamType,
 ) -> Result<impl Stream<Item = Result<Vec<u8>, WebSocketError>>, Error> {
@@ -86,7 +87,7 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let stream = stream_impl(api_info, S::stream())
+  let stream = stream_raw(api_info, S::stream())
     .await?
     .map(|stream| stream.map(|data| from_json::<Event<S::Event>>(&data).map(|event| event.data)));
 
