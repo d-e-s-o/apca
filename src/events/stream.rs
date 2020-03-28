@@ -50,7 +50,7 @@ pub struct Event<T> {
 
 /// Create a stream for the raw event data.
 pub async fn stream_raw(
-  api_info: ApiInfo,
+  api_info: &ApiInfo,
   stream_type: StreamType,
 ) -> Result<impl Stream<Item = Result<Vec<u8>, WebSocketError>>, Error> {
   let ApiInfo {
@@ -58,6 +58,19 @@ pub async fn stream_raw(
     key_id,
     secret,
   } = api_info;
+
+  let mut url = url.clone();
+  // TODO: We really shouldn't need this conditional logic. Find a
+  //       better way.
+  match url.scheme() {
+    "ws" | "wss" => (),
+    _ => {
+      url.set_scheme("wss").map_err(|()| {
+        Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
+      })?;
+    },
+  }
+  url.set_path("stream");
 
   let span = span!(Level::DEBUG, "stream", events = debug(&stream_type));
 
@@ -67,7 +80,7 @@ pub async fn stream_raw(
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
     // really.
-    let (mut stream, response) = connect_async_with_tls_connector(url.clone(), None).await?;
+    let (mut stream, response) = connect_async_with_tls_connector(url, None).await?;
     debug!("connection successful");
     trace!(response = debug(&response));
 
@@ -82,7 +95,7 @@ pub async fn stream_raw(
 
 /// Create a stream for decoded event data.
 pub async fn stream<S>(
-  api_info: ApiInfo,
+  api_info: &ApiInfo,
 ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
 where
   S: EventStream,
@@ -158,7 +171,7 @@ mod tests {
       secret: SECRET.to_string(),
     };
 
-    stream::<S>(api_info).await
+    stream::<S>(&api_info).await
   }
 
   #[test]

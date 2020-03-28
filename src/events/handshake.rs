@@ -105,13 +105,13 @@ mod req {
 
 
   #[derive(Clone, Debug, Serialize)]
-  pub struct AuthData {
-    key_id: String,
-    secret_key: String,
+  pub struct AuthData<'d> {
+    key_id: &'d str,
+    secret_key: &'d str,
   }
 
-  impl AuthData {
-    pub fn new(key_id: String, secret_key: String) -> Self {
+  impl<'d> AuthData<'d> {
+    pub fn new(key_id: &'d str, secret_key: &'d str) -> Self {
       Self { key_id, secret_key }
     }
   }
@@ -161,13 +161,13 @@ mod resp {
   }
 }
 
-type AuthRequest = req::Request<req::Auth, req::AuthData>;
+type AuthRequest<'d> = req::Request<req::Auth, req::AuthData<'d>>;
 type AuthResponse = resp::Response<resp::Result>;
 type StreamRequest = req::Request<req::Listen, Streams>;
 type StreamResponse = resp::Response<Streams>;
 
 /// Authenticate with the streaming service.
-async fn auth<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), WebSocketError>
+async fn auth<S>(stream: &mut S, key_id: &str, secret: &str) -> Result<(), WebSocketError>
 where
   S: Sink<Message, Error = WebSocketError> + Unpin,
 {
@@ -276,7 +276,7 @@ where
 
 
 #[instrument(level = "trace", skip(stream, key_id, secret))]
-async fn authenticate<S>(stream: &mut S, key_id: String, secret: String) -> Result<(), Error>
+async fn authenticate<S>(stream: &mut S, key_id: &str, secret: &str) -> Result<(), Error>
 where
   S: Sink<Message, Error = WebSocketError>,
   S: Stream<Item = Result<Message, WebSocketError>> + Unpin,
@@ -314,8 +314,8 @@ where
 /// Authenticate with and subscribe to an Alpaca event stream.
 pub async fn handshake<S>(
   stream: &mut S,
-  key_id: String,
-  secret: String,
+  key_id: &str,
+  secret: &str,
   stream_type: StreamType,
 ) -> Result<(), Error>
 where
@@ -349,7 +349,7 @@ mod tests {
       r#"{"action":"authenticate","data":{"key_id":"some-key","secret_key":"super-secret-secret"}}"#
     };
 
-    let auth = req::AuthData::new(key_id, secret);
+    let auth = req::AuthData::new(&key_id, &secret);
     let request = AuthRequest::new(auth);
     let json = to_json(&request).unwrap();
 
