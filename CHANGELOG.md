@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Removed `TradeStatus::to_order_status` method
+
+
 0.12.0
 ------
 - Added support for handling unknown variants for `account::Status`,
