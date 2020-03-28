@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Removed `TradeStatus::to_order_status` method
+- Bumped `websocket-util` dependency to `0.4`
 
 
 0.12.0

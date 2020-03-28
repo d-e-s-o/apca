@@ -7,6 +7,7 @@ use futures::StreamExt;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde_json::from_slice as from_json;
 use serde_json::Error as JsonError;
 
 use tracing::debug;
@@ -80,14 +81,13 @@ where
     handshake(&mut stream, key_id, secret, stream_type).await?;
     debug!("subscription successful");
 
-    let stream = do_stream::<_, stream::Event<I>>(stream)
+    let stream = do_stream(stream)
       .map(|stream| {
         stream.map(|result| {
-          result.map(|result| {
-            result.map(|event| event.data.0)
-          })
+          result.map(|data| from_json::<stream::Event<I>>(&data).map(|event| event.data.0))
         })
-      }).await;
+      })
+      .await;
 
     Ok(stream)
   }

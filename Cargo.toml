@@ -27,7 +27,7 @@ hyper = {version = "0.13.3", features = ["stream"]}
 hyper-tls = {version = "0.4", default-features = false}
 num-decimal = {version = "0.2", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
-serde_json = {version = "1.0", default-features = false}
+serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.6", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
 time-util = {version = "0.2", features = ["chrono", "serde"]}
@@ -36,10 +36,10 @@ tracing-futures = {version = "0.2", default-features = false, features = ["std-f
 tungstenite = {package = "async-tungstenite", version = "0.4", features = ["tokio-runtime", "tokio-tls"]}
 url = "2.0"
 uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
-websocket-util = "0.3"
+websocket-util = "0.4"
 
 [dev-dependencies]
 test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
 tracing-subscriber = {version = "0.1.6", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
-websocket-util = {version = "0.3", features = ["test"]}
+websocket-util = {version = "0.4", features = ["test"]}
