@@ -1,7 +1,6 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use futures::FutureExt;
 use futures::stream::Stream;
 use futures::StreamExt;
 
@@ -53,13 +52,10 @@ mod stream {
 }
 
 
-async fn stream_impl<I>(
+async fn stream_impl(
   api_info: ApiInfo,
   stream_type: StreamType,
-) -> Result<impl Stream<Item = Result<Result<I, JsonError>, WebSocketError>>, Error>
-where
-  I: DeserializeOwned,
-{
+) -> Result<impl Stream<Item = Result<Vec<u8>, WebSocketError>>, Error> {
   let ApiInfo {
     base_url: url,
     key_id,
@@ -81,15 +77,7 @@ where
     handshake(&mut stream, key_id, secret, stream_type).await?;
     debug!("subscription successful");
 
-    let stream = do_stream(stream)
-      .map(|stream| {
-        stream.map(|result| {
-          result.map(|data| from_json::<stream::Event<I>>(&data).map(|event| event.data.0))
-        })
-      })
-      .await;
-
-    Ok(stream)
+    Ok(do_stream(stream).await)
   }
   .instrument(span)
   .await
@@ -102,7 +90,11 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  stream_impl(api_info, S::stream()).await
+  let stream = stream_impl(api_info, S::stream()).await?.map(|stream| {
+    stream.map(|data| from_json::<stream::Event<S::Event>>(&data).map(|event| event.data.0))
+  });
+
+  Ok(stream)
 }
 
 
