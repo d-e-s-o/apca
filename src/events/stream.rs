@@ -36,19 +36,15 @@ pub trait EventStream {
 }
 
 
-mod stream {
-  use super::*;
-
-  #[derive(Clone, Debug, Deserialize)]
-  pub struct Data<T>(pub T);
-
-  #[derive(Deserialize)]
-  pub struct Event<T> {
-    #[serde(rename = "stream")]
-    pub stream: StreamType,
-    #[serde(rename = "data")]
-    pub data: Data<T>,
-  }
+/// A type representing the outer most event encapsulating type.
+#[derive(Clone, Debug, Deserialize)]
+pub struct Event<T> {
+  /// The stream type reported by the server.
+  #[serde(rename = "stream")]
+  pub stream: StreamType,
+  /// The inner data.
+  #[serde(rename = "data")]
+  pub data: T,
 }
 
 
@@ -90,9 +86,9 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let stream = stream_impl(api_info, S::stream()).await?.map(|stream| {
-    stream.map(|data| from_json::<stream::Event<S::Event>>(&data).map(|event| event.data.0))
-  });
+  let stream = stream_impl(api_info, S::stream())
+    .await?
+    .map(|stream| stream.map(|data| from_json::<Event<S::Event>>(&data).map(|event| event.data)));
 
   Ok(stream)
 }
@@ -203,12 +199,12 @@ mod tests {
   }
 }"#;
 
-    let event = from_json::<stream::Event<events::TradeUpdate>>(&response).unwrap();
+    let event = from_json::<Event<events::TradeUpdate>>(&response).unwrap();
     assert_eq!(event.stream, StreamType::TradeUpdates);
-    assert_eq!(event.data.0.event, events::TradeStatus::Canceled);
-    assert_eq!(event.data.0.order.status, order::Status::Canceled);
+    assert_eq!(event.data.event, events::TradeStatus::Canceled);
+    assert_eq!(event.data.order.status, order::Status::Canceled);
     assert_eq!(
-      event.data.0.order.time_in_force,
+      event.data.order.time_in_force,
       order::TimeInForce::UntilCanceled
     );
   }
