@@ -118,8 +118,6 @@ mod tests {
   use futures::SinkExt;
   use futures::TryStreamExt;
 
-  use serde_json::from_str as from_json;
-
   use test_env_log::test;
 
   use tungstenite::tungstenite::Message;
@@ -128,9 +126,6 @@ mod tests {
 
   use websocket_util::test::mock_server;
   use websocket_util::test::WebSocketStream;
-
-  use crate::api::v2::events;
-  use crate::api::v2::order;
 
   const KEY_ID: &str = "USER12345678";
   const SECRET: &str = "justletmein";
@@ -172,55 +167,6 @@ mod tests {
     };
 
     stream::<S>(&api_info).await
-  }
-
-  #[test]
-  fn parse_trade_event() {
-    let response = r#"{
-  "stream":"trade_updates",
-  "data":{
-    "event":"canceled",
-    "order":{
-      "asset_class":"us_equity",
-      "asset_id":"3ece3182-5903-4902-b963-f875a0f416e7",
-      "canceled_at":"2020-01-19T06:19:40.137087268Z",
-      "client_order_id":"be7d3030-a53e-47ee-9dd3-d9ff3460a174",
-      "created_at":"2020-01-19T06:19:34.344561Z",
-      "expired_at":null,
-      "extended_hours":false,
-      "failed_at":null,
-      "filled_at":null,
-      "filled_avg_price":null,
-      "filled_qty":"0",
-      "id":"7bb4a536-d59b-4e65-aacf-a8b118d815f4",
-      "legs":null,
-      "limit_price":"1",
-      "order_type":"limit",
-      "qty":"1",
-      "replaced_at":null,
-      "replaced_by":null,
-      "replaces":null,
-      "side":"buy",
-      "status":"canceled",
-      "stop_price":null,
-      "submitted_at":"2020-01-19T06:19:34.32909Z",
-      "symbol":"VMW",
-      "time_in_force":"gtc",
-      "type":"limit",
-      "updated_at":"2020-01-19T06:19:40.147946209Z"
-    },
-    "timestamp":"2020-01-19T06:19:40.137087268Z"
-  }
-}"#;
-
-    let event = from_json::<Event<events::TradeUpdate>>(&response).unwrap();
-    assert_eq!(event.stream, StreamType::TradeUpdates);
-    assert_eq!(event.data.event, events::TradeStatus::Canceled);
-    assert_eq!(event.data.order.status, order::Status::Canceled);
-    assert_eq!(
-      event.data.order.time_in_force,
-      order::TimeInForce::UntilCanceled
-    );
   }
 
   #[test(tokio::test)]
