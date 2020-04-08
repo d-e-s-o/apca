@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use http::Method;
-
-use hyper::Body;
+use http_endpoint::Bytes;
 
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::to_string as to_json;
+use serde_json::to_vec as to_json;
 use serde_json::Error as JsonError;
 
 use crate::Str;
@@ -78,10 +77,10 @@ Endpoint! {
     "/v2/account/configurations".into()
   }
 
-  fn body(input: &Self::Input) -> Result<Body, JsonError> {
+  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
     let json = to_json(input)?;
-    let body = Body::from(json);
-    Ok(body)
+    let bytes = Bytes::from(json);
+    Ok(bytes)
   }
 }
 

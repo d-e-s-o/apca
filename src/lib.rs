@@ -70,6 +70,7 @@ use std::borrow::Cow;
 pub use crate::api_info::ApiInfo;
 pub use crate::client::Client;
 pub use crate::error::Error;
+pub use crate::error::RequestError;
 
 /// A module providing access to lower level event streaming.
 ///

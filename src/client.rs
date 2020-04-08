@@ -32,6 +32,7 @@ use url::Url;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
+use crate::error::RequestError;
 use crate::Error;
 use crate::events::EventStream;
 use crate::events::stream;
@@ -128,17 +129,17 @@ impl Client {
       // Add required authentication information.
       .header(HDR_KEY_ID, self.api_info.key_id.as_str())
       .header(HDR_SECRET, self.api_info.secret.as_str())
-      .body(R::body(input)?)?;
+      .body(Body::from(R::body(input)?))?;
 
     Ok(request)
   }
 
   /// Create and issue a request and decode the response.
-  pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, R::Error>
+  pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, RequestError<R::Error>>
   where
     R: Endpoint,
   {
-    let request = self.request::<R>(&input)?;
+    let request = self.request::<R>(&input).map_err(RequestError::Endpoint)?;
     let span = span!(
       Level::INFO,
       "issue",
@@ -149,7 +150,7 @@ impl Client {
   }
 
   /// Issue a request.
-  async fn issue_<R>(&self, request: Request<Body>) -> Result<R::Output, R::Error>
+  async fn issue_<R>(&self, request: Request<Body>) -> Result<R::Output, RequestError<R::Error>>
   where
     R: Endpoint,
   {
@@ -178,7 +179,7 @@ impl Client {
       Err(b) => trace!(body = display(&b)),
     }
 
-    R::evaluate(status, body)
+    R::evaluate(status, body).map_err(RequestError::Endpoint)
   }
 
   /// Subscribe to the given stream in order to receive updates.
@@ -229,7 +230,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      GetNotFoundError::UnexpectedStatus(status, message) => {
+      RequestError::Endpoint(GetNotFoundError::UnexpectedStatus(status, message)) => {
         let expected = ErrorMessage {
           code: 40410000,
           message: "endpoint not found".to_string(),

@@ -6,8 +6,7 @@ use std::ops::Not;
 use std::time::SystemTime;
 
 use http::Method;
-
-use hyper::Body;
+use http_endpoint::Bytes;
 
 use num_decimal::Num;
 
@@ -17,7 +16,7 @@ use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 use serde_json::Error as JsonError;
-use serde_json::to_string as to_json;
+use serde_json::to_vec as to_json;
 use serde_urlencoded::to_string as to_query;
 
 use uuid::Uuid;
@@ -626,10 +625,10 @@ Endpoint! {
     "/v2/orders".into()
   }
 
-  fn body(input: &Self::Input) -> Result<Body, JsonError> {
+  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
     let json = to_json(input)?;
-    let body = Body::from(json);
-    Ok(body)
+    let bytes = Bytes::from(json);
+    Ok(bytes)
   }
 }
 
@@ -660,11 +659,11 @@ Endpoint! {
     format!("/v2/orders/{}", id.to_simple()).into()
   }
 
-  fn body(input: &Self::Input) -> Result<Body, JsonError> {
+  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
     let (_, request) = input;
     let json = to_json(request)?;
-    let body = Body::from(json);
-    Ok(body)
+    let bytes = Bytes::from(json);
+    Ok(bytes)
   }
 }
 
@@ -705,10 +704,6 @@ mod tests {
 
   use futures::TryFutureExt;
 
-  use http_endpoint::Error as EndpointError;
-
-  use hyper::StatusCode;
-
   use serde_json::from_str as from_json;
 
   use time_util::parse_system_time_from_str;
@@ -723,13 +718,13 @@ mod tests {
   use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use crate::Error;
+  use crate::RequestError;
 
 
   #[test]
   fn emit_side() {
-    assert_eq!(to_json(&Side::Buy).unwrap(), r#""buy""#);
-    assert_eq!(to_json(&Side::Sell).unwrap(), r#""sell""#);
+    assert_eq!(to_json(&Side::Buy).unwrap(), br#""buy""#);
+    assert_eq!(to_json(&Side::Sell).unwrap(), br#""sell""#);
   }
 
   #[test]
@@ -740,24 +735,24 @@ mod tests {
 
   #[test]
   fn emit_type() {
-    assert_eq!(to_json(&Type::Market).unwrap(), r#""market""#);
-    assert_eq!(to_json(&Type::Limit).unwrap(), r#""limit""#);
-    assert_eq!(to_json(&Type::Stop).unwrap(), r#""stop""#);
+    assert_eq!(to_json(&Type::Market).unwrap(), br#""market""#);
+    assert_eq!(to_json(&Type::Limit).unwrap(), br#""limit""#);
+    assert_eq!(to_json(&Type::Stop).unwrap(), br#""stop""#);
   }
 
   #[test]
   fn emit_legs() {
     let take_profit = TakeProfit::Limit(Num::new(3, 2));
-    let expected = r#"{"limit_price":"1.5"}"#;
+    let expected = br#"{"limit_price":"1.5"}"#;
     assert_eq!(to_json(&take_profit).unwrap(), expected);
 
     let stop_loss = StopLoss::Stop(Num::from(42));
-    let expected = r#"{"stop_price":"42"}"#;
+    let expected = br#"{"stop_price":"42"}"#;
     assert_eq!(to_json(&stop_loss).unwrap(), expected);
 
     let stop_loss = StopLoss::StopLimit(Num::from(13), Num::from(96));
-    let expected = r#"{"stop_price":"13","limit_price":"96"}"#;
-    assert_eq!(to_json(&stop_loss).unwrap(), expected);
+    let expected = br#"{"stop_price":"13","limit_price":"96"}"#;
+    assert_eq!(to_json(&stop_loss).unwrap(), &expected[..]);
   }
 
   #[test]
@@ -806,7 +801,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn submit_limit_order() {
-    async fn test(extended_hours: bool) -> Result<(), Error> {
+    async fn test(extended_hours: bool) -> Result<(), RequestError<PostError>> {
       let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
       let request = OrderReqInit {
         type_: Type::Limit,
@@ -819,10 +814,7 @@ mod tests {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
-      let order = client
-        .issue::<Post>(request)
-        .await
-        .map_err(EndpointError::from)?;
+      let order = client.issue::<Post>(request).await?;
       let _ = client.issue::<Delete>(order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
@@ -847,7 +839,7 @@ mod tests {
     let result = test(true).await;
     match result {
       Ok(()) |
-      Err(Error::HttpStatus(StatusCode::UNPROCESSABLE_ENTITY)) => (),
+      Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
       err => panic!("unexpected error: {:?}", err),
     };
   }
@@ -941,7 +933,7 @@ mod tests {
         },
         // Submission of those orders may fail at certain times of the
         // day as per the Alpaca documentation. So ignore those errors.
-        Err(PostError::InvalidInput(..)) => (),
+        Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
         Err(err) => panic!("Received unexpected error: {:?}", err),
       }
     }
@@ -966,7 +958,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      PostError::InsufficientFunds(_) => (),
+      RequestError::Endpoint(PostError::InsufficientFunds(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -980,7 +972,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      DeleteError::NotFound(_) => (),
+      RequestError::Endpoint(DeleteError::NotFound(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -1015,7 +1007,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      GetError::NotFound(_) => (),
+      RequestError::Endpoint(GetError::NotFound(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -1037,7 +1029,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      PostError::InvalidInput(_) => (),
+      RequestError::Endpoint(PostError::InvalidInput(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -1079,7 +1071,7 @@ mod tests {
         assert_eq!(order.limit_price, Some(Num::from(2)));
         assert_eq!(order.stop_price, None);
       },
-      Err(PatchError::InvalidInput(..)) => {
+      Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => {
         // When the market is closed a patch request will never succeed
         // and always report an error along the lines of:
         // "unable to replace order, order isn't sent to exchange yet".
@@ -1127,7 +1119,7 @@ mod tests {
     let err = client.issue::<Post>(request).await.unwrap_err();
 
     match err {
-      PostError::InvalidInput(_) => (),
+      RequestError::Endpoint(PostError::InvalidInput(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }

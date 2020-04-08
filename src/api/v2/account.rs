@@ -174,6 +174,7 @@ mod tests {
   use crate::api::API_BASE_URL;
   use crate::api_info::ApiInfo;
   use crate::Client;
+  use crate::RequestError;
 
 
   #[test]
@@ -251,7 +252,7 @@ mod tests {
 
     let err = result.unwrap_err();
     match err {
-      GetError::AuthenticationFailed(_) => (),
+      RequestError::Endpoint(GetError::AuthenticationFailed(_)) => (),
       e @ _ => panic!("received unexpected error: {:?}", e),
     }
   }

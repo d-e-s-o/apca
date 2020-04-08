@@ -145,6 +145,7 @@ mod tests {
 
   use crate::api_info::ApiInfo;
   use crate::Client;
+  use crate::RequestError;
 
 
   #[test]
@@ -235,7 +236,7 @@ mod tests {
         assert_eq!(pos.asset_class, asset::Class::UsEquity);
       },
       Err(err) => match err {
-        GetError::NotFound(_) => (),
+        RequestError::Endpoint(GetError::NotFound(..)) => (),
         _ => panic!("Received unexpected error: {:?}", err),
       },
     }

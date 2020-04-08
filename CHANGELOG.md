@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `http-endpoint` dependency to `0.2`
+
+
 0.13.0
 ------
 - Added `stream_raw` function for interfacing with raw event streams
