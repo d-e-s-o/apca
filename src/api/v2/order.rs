@@ -5,8 +5,9 @@ use std::ops::Deref;
 use std::ops::Not;
 use std::time::SystemTime;
 
+use http::Method;
+
 use hyper::Body;
-use hyper::Method;
 
 use num_decimal::Num;
 

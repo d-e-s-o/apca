@@ -6,10 +6,10 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
+use http::Error as HttpError;
+use http::StatusCode as HttpStatusCode;
 use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
-use hyper::http::Error as HttpError;
-use hyper::http::StatusCode as HttpStatusCode;
 use serde_json::Error as JsonError;
 use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;

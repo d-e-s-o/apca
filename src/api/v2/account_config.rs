@@ -1,8 +1,9 @@
 // Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use http::Method;
+
 use hyper::Body;
-use hyper::Method;
 
 use serde::Deserialize;
 use serde::Serialize;

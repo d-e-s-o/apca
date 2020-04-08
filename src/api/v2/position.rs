@@ -3,7 +3,7 @@
 
 use std::ops::Not;
 
-use hyper::Method;
+use http::Method;
 
 use num_decimal::Num;
 
