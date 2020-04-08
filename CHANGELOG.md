@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.13.0
+------
 - Added `stream_raw` function for interfacing with raw event streams
 - Adjusted streaming function to expect reference to `ApiInfo` object
 - Removed serialization support for account & trade events
