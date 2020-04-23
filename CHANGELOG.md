@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.14.0
+------
 - Added example illustrating how to submit a limit order
 - Bumped `http-endpoint` dependency to `0.2`
 
