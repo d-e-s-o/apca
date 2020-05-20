@@ -815,7 +815,7 @@ mod tests {
       let client = Client::new(api_info);
 
       let order = client.issue::<Post>(request).await?;
-      let _ = client.issue::<Delete>(order.id).await.unwrap();
+      client.issue::<Delete>(order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
       assert_eq!(order.quantity, 1);
@@ -860,9 +860,10 @@ mod tests {
     let client = Client::new(api_info);
 
     let order = client.issue::<Post>(request).await.unwrap();
-    let _ = client.issue::<Delete>(order.id).await.unwrap();
+    client.issue::<Delete>(order.id).await.unwrap();
+
     for leg in &order.legs {
-      let _ = client.issue::<Delete>(leg.id).await.unwrap();
+      client.issue::<Delete>(leg.id).await.unwrap();
     }
 
     assert_eq!(order.symbol, "SPY");
@@ -893,9 +894,10 @@ mod tests {
     let client = Client::new(api_info);
 
     let order = client.issue::<Post>(request).await.unwrap();
-    let _ = client.issue::<Delete>(order.id).await.unwrap();
+    client.issue::<Delete>(order.id).await.unwrap();
+
     for leg in &order.legs {
-      let _ = client.issue::<Delete>(leg.id).await.unwrap();
+      client.issue::<Delete>(leg.id).await.unwrap();
     }
 
     assert_eq!(order.symbol, "SPY");
@@ -927,7 +929,7 @@ mod tests {
 
       match client.issue::<Post>(request).await {
         Ok(order) => {
-          let _ = client.issue::<Delete>(order.id).await.unwrap();
+          client.issue::<Delete>(order.id).await.unwrap();
 
           assert_eq!(order.time_in_force, time_in_force);
         },
@@ -983,7 +985,7 @@ mod tests {
     let client = Client::new(api_info);
     let posted = order_aapl(&client).await.unwrap();
     let result = client.issue::<Get>(posted.id).await;
-    let _ = client.issue::<Delete>(posted.id).await.unwrap();
+    client.issue::<Delete>(posted.id).await.unwrap();
     let gotten = result.unwrap();
 
     // We can't simply compare the two orders for equality, because some
@@ -1077,7 +1079,7 @@ mod tests {
         // "unable to replace order, order isn't sent to exchange yet".
         // We can't do much more than accept this behavior.
       },
-      e @ _ => panic!("received unexpected error: {:?}", e),
+      e => panic!("received unexpected error: {:?}", e),
     }
   }
 

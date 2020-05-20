@@ -177,7 +177,7 @@ where
   trace!(request = display(&json));
 
   stream
-    .send(Message::text(json).into())
+    .send(Message::text(json))
     .map_err(|e| {
       error!("failed to send stream auth request: {}", e);
       e
@@ -218,7 +218,7 @@ where
   trace!(request = display(&json));
 
   stream
-    .send(Message::text(json).into())
+    .send(Message::text(json))
     .map_err(|e| {
       error!("failed to send stream subscribe request: {}", e);
       e

@@ -170,19 +170,19 @@ impl FromStr for Symbol {
           if let Err(c) = invalid {
             return Err(ParseSymbolError::InvalidSymbol(c))
           }
-          Self::Sym(sym.to_string())
+          Self::Sym((*sym).to_string())
         }
       },
       [sym, exchg] => {
         let exchg = Exchange::from_str(exchg).map_err(|_| ParseSymbolError::UnknownExchange)?;
 
-        Self::SymExchg(sym.to_string(), exchg)
+        Self::SymExchg((*sym).to_string(), exchg)
       },
       [sym, exchg, cls] => {
         let exchg = Exchange::from_str(exchg).map_err(|_| ParseSymbolError::UnknownExchange)?;
         let cls = Class::from_str(cls).map_err(|_| ParseSymbolError::UnknownClass)?;
 
-        Self::SymExchgCls(sym.to_string(), exchg, cls)
+        Self::SymExchgCls((*sym).to_string(), exchg, cls)
       },
       _ => return Err(ParseSymbolError::InvalidFormat),
     };

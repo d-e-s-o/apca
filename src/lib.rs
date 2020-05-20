@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![type_length_limit = "536870912"]
+#![allow(clippy::unreadable_literal)]
 #![warn(
   bad_style,
   dead_code,

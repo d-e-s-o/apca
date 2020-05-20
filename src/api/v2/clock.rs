@@ -85,16 +85,16 @@ mod tests {
     // time (mainly to rule out wrong time zone handling).
     let now = SystemTime::now();
     let hour = Duration::from_secs(SECS_IN_HOUR);
-    assert!(now > clock.current - hour, "now: {}, current: {}");
-    assert!(now < clock.current + hour, "now: {}, current: {}");
+    assert!(now > clock.current - hour);
+    assert!(now < clock.current + hour);
 
-    assert!(clock.current < clock.next_open, "current: {}, open: {}");
-    assert!(clock.current < clock.next_close, "current: {}, close: {}");
+    assert!(clock.current < clock.next_open);
+    assert!(clock.current < clock.next_close);
 
     if clock.open {
-      assert!(clock.next_open > clock.next_close, "open: {}, close: {}");
+      assert!(clock.next_open > clock.next_close);
     } else {
-      assert!(clock.next_open < clock.next_close, "open: {}, close: {}");
+      assert!(clock.next_open < clock.next_close);
     }
   }
 }

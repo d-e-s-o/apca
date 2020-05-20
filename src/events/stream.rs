@@ -297,7 +297,7 @@ mod tests {
     }
 
     let stream = mock_stream::<DummyStream, _, _>(test).await.unwrap();
-    let _ = stream
+    stream
       .map_err(Error::from)
       .try_for_each(|_| ready(Ok(())))
       .await
@@ -331,7 +331,7 @@ mod tests {
     }
 
     let stream = mock_stream::<DummyStream, _, _>(test).await.unwrap();
-    let _ = stream
+    stream
       .map_err(Error::from)
       .try_for_each(|_| ready(Ok(())))
       .await

@@ -94,7 +94,8 @@ mod tests {
 
       let order = order_aapl(&client).await.unwrap();
       let result = client.issue::<Get>(request.clone()).await;
-      let _ = client.issue::<order::Delete>(order.id).await.unwrap();
+      client.issue::<order::Delete>(order.id).await.unwrap();
+
       let before = result.unwrap();
       let after = client.issue::<Get>(request.clone()).await.unwrap();
 
@@ -103,16 +104,16 @@ mod tests {
 
       match status {
         Status::Open => {
-          assert!(before.into_iter().find(|x| x.id == order.id).is_some());
-          assert!(after.into_iter().find(|x| x.id == order.id).is_none());
+          assert!(before.into_iter().any(|x| x.id == order.id));
+          assert!(!after.into_iter().any(|x| x.id == order.id));
         },
         Status::Closed => {
-          assert!(before.into_iter().find(|x| x.id == order.id).is_none());
-          assert!(after.into_iter().find(|x| x.id == order.id).is_some());
+          assert!(!before.into_iter().any(|x| x.id == order.id));
+          assert!(after.into_iter().any(|x| x.id == order.id));
         },
         Status::All => {
-          assert!(before.into_iter().find(|x| x.id == order.id).is_some());
-          assert!(after.into_iter().find(|x| x.id == order.id).is_some());
+          assert!(before.into_iter().any(|x| x.id == order.id));
+          assert!(after.into_iter().any(|x| x.id == order.id));
         },
       }
     }

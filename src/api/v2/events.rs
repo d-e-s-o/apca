@@ -192,7 +192,7 @@ mod tests {
     let client = Client::new(api_info);
     let stream = client.subscribe::<TradeUpdates>().await.unwrap();
     let order = order_aapl(&client).await.unwrap();
-    let _ = client.issue::<order::Delete>(order.id).await.unwrap();
+    client.issue::<order::Delete>(order.id).await.unwrap();
 
     // Unfortunately due to various braindeadnesses on the Rust &
     // futures side of things there is no sane way for us to provide a
@@ -201,8 +201,8 @@ mod tests {
     // the stream on the heap.
     let trade = Box::pin(stream)
       .try_filter_map(|res| {
-        assert!(res.is_ok(), "error: {:?}", res.unwrap_err());
-        ok(res.ok())
+        let trade = res.unwrap();
+        ok(Some(trade))
       })
       // There could be other trades happening concurrently but we
       // are only interested in ones belonging to the order we

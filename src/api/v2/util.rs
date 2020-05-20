@@ -56,6 +56,7 @@ where
 }
 
 /// Serialize a `u64` value as a string.
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn u64_to_str<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
 where
   S: Serializer,

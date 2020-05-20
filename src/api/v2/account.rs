@@ -253,7 +253,7 @@ mod tests {
     let err = result.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::AuthenticationFailed(_)) => (),
-      e @ _ => panic!("received unexpected error: {:?}", e),
+      e => panic!("received unexpected error: {:?}", e),
     }
   }
 }

@@ -150,6 +150,7 @@ impl Client {
   }
 
   /// Issue a request.
+  #[allow(clippy::cognitive_complexity)]
   async fn issue_<R>(&self, request: Request<Body>) -> Result<R::Output, RequestError<R::Error>>
   where
     R: Endpoint,

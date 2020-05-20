@@ -222,13 +222,13 @@ pub struct NonTradeActivityImpl<T> {
 impl<T> NonTradeActivityImpl<T> {
   fn into_other<U>(self, activity_type: U) -> NonTradeActivityImpl<U> {
     let Self {
-      type_: _,
       date,
       net_amount,
       symbol,
       quantity,
       per_share_amount,
       description,
+      ..
     } = self;
 
     NonTradeActivityImpl::<U> {
@@ -448,7 +448,7 @@ mod tests {
     };
     let activities = client.issue::<Get>(request).await.unwrap();
 
-    assert!(activities.len() > 0);
+    assert!(!activities.is_empty());
 
     for activity in activities {
       match activity {
@@ -474,7 +474,7 @@ mod tests {
     };
     let activities = client.issue::<Get>(request).await.unwrap();
 
-    assert!(activities.len() > 0);
+    assert!(!activities.is_empty());
 
     for activity in activities {
       match activity {
@@ -493,6 +493,9 @@ mod tests {
     let request = ActivityReq::default();
     let activities = client.issue::<Get>(request).await.unwrap();
 
-    assert!(activities.len() > 0);
+    // We don't really have a better way to test this than testing that
+    // we parsed something. Note that this may not work for newly
+    // created accounts, an order may have to be filled first.
+    assert!(!activities.is_empty());
   }
 }
