@@ -1,5 +1,7 @@
+[![pipeline](https://gitlab.com/d-e-s-o/apca/badges/master/pipeline.svg)](https://gitlab.com/d-e-s-o/apca/commits/master)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
 [![Docs](https://docs.rs/apca/badge.svg)](https://docs.rs/apca)
+[![rustc](https://img.shields.io/badge/rustc-1.41+-blue.svg)](https://blog.rust-lang.org/2020/01/30/Rust-1.41.0.html)
 
 apca
 ====
