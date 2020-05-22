@@ -34,3 +34,27 @@ lint:clippy:
   script:
   - rustup component add clippy
   - cargo clippy --all-targets --all-features -- -D warnings
+
+coverage:kcov:
+  stage: test
+  dependencies:
+    - build:cargo
+  artifacts:
+    paths:
+    - kcov/
+  coverage: '/^Coverage+:\s(\d+(?:\.\d+)?)/'
+  script:
+  - echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
+  - echo 'deb-src http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
+  - apt-get update
+  - apt-get install --assume-yes kcov
+  - files=$(find target/debug -maxdepth 1 -type f -executable -iname "*-????????????????");
+    covs="";
+    for file in ${files}; do
+      cov="kcov-$(basename ${file})";
+      kcov --exclude-pattern=/usr/ --verify "${cov}" "${file}";
+      covs+=" ${cov}";
+    done;
+    kcov --merge kcov/ ${covs};
+    COVERAGE=$(grep --only-matching 'covered":"[^"]\+"' kcov/index.js | awk -F'"' '{print $3}');
+    echo "Coverage:" ${COVERAGE};

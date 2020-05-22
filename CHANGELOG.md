@@ -1,8 +1,8 @@
 Unreleased
 ----------
-- Enabled CI pipeline comprising building, testing, and linting of the
-  project
-  - Added badge indicating pipeline status
+- Enabled CI pipeline comprising building, testing, linting, and
+  coverage collection of the project
+  - Added badges indicating pipeline status and code coverage percentage
 
 
 0.14.0
