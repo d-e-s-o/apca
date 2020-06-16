@@ -3,6 +3,8 @@ Unreleased
 - Enabled CI pipeline comprising building, testing, linting, and
   coverage collection of the project
   - Added badges indicating pipeline status and code coverage percentage
+- Bumped `websocket-util` dependency to `0.5`
+- Bumped `async-tungstenite` dependency to `0.5`
 
 
 0.14.0

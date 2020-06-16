@@ -37,13 +37,13 @@ serde_variant = {version = "0.1", default-features = false}
 time-util = {version = "0.2", features = ["chrono", "serde"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "async-tungstenite", version = "0.4", features = ["tokio-runtime", "tokio-tls"]}
+tungstenite = {package = "async-tungstenite", version = "0.5", features = ["tokio-runtime", "tokio-tls"]}
 url = "2.0"
 uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
-websocket-util = "0.4"
+websocket-util = "0.5"
 
 [dev-dependencies]
 test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
 tracing-subscriber = {version = "0.1.6", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
-websocket-util = {version = "0.4", features = ["test"]}
+websocket-util = {version = "0.5", features = ["test"]}
