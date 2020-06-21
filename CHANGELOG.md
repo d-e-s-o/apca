@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.15.0
+------
 - Enabled CI pipeline comprising building, testing, linting, and
   coverage collection of the project
   - Added badges indicating pipeline status and code coverage percentage
