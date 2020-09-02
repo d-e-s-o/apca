@@ -45,7 +45,7 @@ coverage:kcov:
   coverage: '/^Coverage+:\s(\d+(?:\.\d+)?)/'
   script:
   - echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
-  - echo 'deb-src http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
+  - echo 'deb http://deb.debian.org/debian unstable main' >> /etc/apt/sources.list
   - apt-get update
   - apt-get install --assume-yes kcov
   - files=$(find target/debug -maxdepth 1 -type f -executable -iname "*-????????????????");

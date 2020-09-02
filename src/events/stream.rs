@@ -49,6 +49,7 @@ pub struct Event<T> {
 
 
 /// Create a stream for the raw event data.
+#[allow(clippy::cognitive_complexity)]
 pub async fn stream_raw(
   api_info: &ApiInfo,
   stream_type: StreamType,
