@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `http-endpoint` dependency to `0.2`
+
+
 0.15.0
 ------
 - Enabled CI pipeline comprising building, testing, linting, and
