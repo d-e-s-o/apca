@@ -18,7 +18,6 @@ use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
 use crate::api::v2::order;
-use crate::api::v2::util::optional_u64_from_str;
 use crate::api::v2::util::u64_from_str;
 use crate::Str;
 
@@ -206,10 +205,8 @@ pub struct NonTradeActivityImpl<T> {
   pub symbol: Option<String>,
   /// For dividend activities, the number of shares that contributed to
   /// the payment. Not present for other activity types.
-  // TODO: The `default` is there to work around
-  //       https://github.com/serde-rs/serde/issues/1728
-  #[serde(rename = "qty", deserialize_with = "optional_u64_from_str", default)]
-  pub quantity: Option<u64>,
+  #[serde(rename = "qty")]
+  pub quantity: Option<Num>,
   /// For dividend activities, the average amount paid per share. Not
   /// present for other activity types.
   #[serde(rename = "per_share_amount")]
@@ -433,6 +430,36 @@ mod tests {
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
+  }
+
+
+  #[test]
+  fn parse_dividend() {
+    let response = r#"{
+      "id":"20200626000000000::e3163618-f82b-4568-af54-b30404484224",
+      "activity_type":"DIV",
+      "date":"2020-01-01",
+      "net_amount":"21.97",
+      "description":"DIV",
+      "symbol":"SPY",
+      "qty":"201.9617035750071243",
+      "per_share_amount":"0.108783"
+}"#;
+    let non_trade = from_json::<Activity>(&response)
+      .unwrap()
+      .into_non_trade()
+      .unwrap();
+    assert_eq!(non_trade.type_, ActivityType::Dividend);
+    assert_eq!(
+      non_trade.date,
+      parse_system_time_from_date_str("2020-01-01").unwrap()
+    );
+    assert_eq!(non_trade.symbol, Some("SPY".into()));
+    assert_eq!(
+      non_trade.quantity,
+      Some(Num::new(2019617035750071243u64, 10000000000000000u64))
+    );
+    assert_eq!(non_trade.per_share_amount, Some(Num::new(108783, 1000000)));
   }
 
   #[test(tokio::test)]

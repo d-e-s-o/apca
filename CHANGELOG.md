@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Converted `NonTradeActivity::quantity` from `u64` to `Num`
 - Bumped `http-endpoint` dependency to `0.2`
 
 
