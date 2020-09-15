@@ -45,5 +45,5 @@ websocket-util = "0.5"
 [dev-dependencies]
 test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
 tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
-tracing-subscriber = {version = "0.1.6", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
+tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
 websocket-util = {version = "0.5", features = ["test"]}
