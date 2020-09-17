@@ -4,6 +4,7 @@ Unreleased
 - Bumped `http-endpoint` dependency to `0.2`
 - Bumped `websocket-util` dependency to `0.6`
 - Bumped `async-tungstenite` dependency to `0.8`
+- Bumped `serde_urlencoded` dependency to `0.7`
 
 
 0.15.0
