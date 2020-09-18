@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.16.0
+------
 - Converted `NonTradeActivity::quantity` from `u64` to `Num`
 - Bumped `http-endpoint` dependency to `0.2`
 - Bumped `websocket-util` dependency to `0.6`
