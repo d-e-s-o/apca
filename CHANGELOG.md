@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.42`
+
+
 0.16.0
 ------
 - Converted `NonTradeActivity::quantity` from `u64` to `Num`
