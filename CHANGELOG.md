@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added `PendingReplace` variant to `TradeStatus` enum
 - Bumped minimum supported Rust version to `1.42`
 
 

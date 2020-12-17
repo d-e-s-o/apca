@@ -119,10 +119,13 @@ pub enum TradeStatus {
   /// This state only occurs on rare occasions.
   #[serde(rename = "suspended")]
   Suspended,
-  #[serde(rename = "pending_new")]
   /// The order has been received by Alpaca, and routed to the
   /// exchanges, but has not yet been accepted for execution.
+  #[serde(rename = "pending_new")]
   PendingNew,
+  /// The order is awaiting replacement.
+  #[serde(rename = "pending_replace")]
+  PendingReplace,
   /// The order has been completed for the day (either filled or done
   /// for day), but remaining settlement calculations are still pending.
   #[serde(rename = "calculated")]
