@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `PendingReplace` variant to `TradeStatus` enum
+- Added support for listing nested orders
 - Bumped minimum supported Rust version to `1.42`
 
 

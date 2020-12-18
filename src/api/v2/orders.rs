@@ -36,6 +36,10 @@ pub struct OrdersReq {
   /// is 500.
   #[serde(rename = "limit")]
   pub limit: u64,
+  /// If false the result will not roll up multi-leg orders under the
+  /// legs field of the primary order.
+  #[serde(rename = "nested")]
+  pub nested: bool,
 }
 
 impl Default for OrdersReq {
@@ -43,6 +47,10 @@ impl Default for OrdersReq {
     Self {
       status: Status::Open,
       limit: 50,
+      // Nested orders merely appear as legs in each order being
+      // returned. As such, having them included is very non-intrusive
+      // and should be a reasonable default.
+      nested: true,
     }
   }
 }
@@ -73,6 +81,8 @@ Endpoint! {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use num_decimal::Num;
 
   use test_env_log::test;
 
@@ -121,5 +131,36 @@ mod tests {
     test(Status::Open).await;
     test(Status::Closed).await;
     test(Status::All).await;
+  }
+
+  #[test(tokio::test)]
+  async fn list_nested_order() {
+    let request = order::OrderReqInit {
+      class: order::Class::OneTriggersOther,
+      type_: order::Type::Limit,
+      limit_price: Some(Num::from(2)),
+      take_profit: Some(order::TakeProfit::Limit(Num::from(3))),
+      ..Default::default()
+    }
+    .init("SPY", order::Side::Buy, 1);
+
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let order = client.issue::<order::Post>(request).await.unwrap();
+    assert_eq!(order.legs.len(), 1);
+
+    let request = OrdersReq {
+      status: Status::Open,
+      ..Default::default()
+    };
+    let list = client.issue::<Get>(request).await.unwrap();
+    client.issue::<order::Delete>(order.id).await.unwrap();
+
+    let mut filtered = list.into_iter().filter(|o| o.id == order.id);
+    let listed = filtered.next().unwrap();
+    assert_eq!(listed.legs.len(), 1);
+    // There shouldn't be any other orders with the given ID.
+    assert_eq!(filtered.next(), None);
   }
 }
