@@ -23,7 +23,6 @@ A create for interacting with the Alpaca API.
 gitlab = { repository = "d-e-s-o/apca", branch = "master" }
 
 [dependencies]
-chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.4"

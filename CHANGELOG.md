@@ -4,6 +4,7 @@ Unreleased
 - Added support for listing nested orders
 - Bumped minimum supported Rust version to `1.44`
 - Replaced `async-tungstenite` dependency with `tokio-tungstenite`
+- Removed `chrono` dependency
 - Bumped `hyper` dependency to `0.14`
 - Bumped `hyper-tls` dependency to `0.5`
 - Bumped `tokio` dependency to `1.0`
