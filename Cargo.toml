@@ -27,8 +27,8 @@ chrono = {version = "0.4", default-features = false}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.4"
-hyper = {version = "0.13.3", features = ["stream"]}
-hyper-tls = {version = "0.4", default-features = false}
+hyper = {version = "0.14", features = ["client", "http1", "stream"]}
+hyper-tls = {version = "0.5", default-features = false}
 num-decimal = {version = "0.2", features = ["serde"]}
 serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
@@ -37,13 +37,13 @@ serde_variant = {version = "0.1", default-features = false}
 time-util = {version = "0.2", features = ["chrono", "serde"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "async-tungstenite", version = "0.8", features = ["tokio-runtime", "tokio-native-tls"]}
+tungstenite = {package = "tokio-tungstenite", version = "0.13", features = ["connect", "tls"]}
 url = "2.0"
 uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
-websocket-util = "0.6"
+websocket-util = "0.7"
 
 [dev-dependencies]
 test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
-tokio = {version = "0.2", default-features = false, features = ["rt-core", "macros"]}
+tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread", "macros"]}
 tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
-websocket-util = {version = "0.6", features = ["test"]}
+websocket-util = {version = "0.7", features = ["test"]}

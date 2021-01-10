@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
@@ -13,8 +13,8 @@ use http::StatusCode as HttpStatusCode;
 use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
-use tungstenite::tungstenite::Error as WebSocketError;
 use url::ParseError;
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::Str;
 

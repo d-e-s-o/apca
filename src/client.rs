@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::str::from_utf8;
@@ -25,7 +25,7 @@ use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
-use tungstenite::tungstenite::Error as WebSocketError;
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use url::Url;
 

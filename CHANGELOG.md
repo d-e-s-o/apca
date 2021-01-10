@@ -3,6 +3,11 @@ Unreleased
 - Added `PendingReplace` variant to `TradeStatus` enum
 - Added support for listing nested orders
 - Bumped minimum supported Rust version to `1.44`
+- Replaced `async-tungstenite` dependency with `tokio-tungstenite`
+- Bumped `hyper` dependency to `0.14`
+- Bumped `hyper-tls` dependency to `0.5`
+- Bumped `tokio` dependency to `1.0`
+- Bumped `websocket-util` dependency to `0.7`
 
 
 0.16.0

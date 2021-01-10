@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use futures::stream::Stream;
@@ -15,10 +15,10 @@ use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
-use tungstenite::tokio::connect_async_with_tls_connector;
-use tungstenite::tungstenite::Error as WebSocketError;
+use tungstenite::connect_async;
 
 use websocket_util::stream as do_stream;
+use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
 use crate::Error;
@@ -81,7 +81,7 @@ pub async fn stream_raw(
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
     // really.
-    let (mut stream, response) = connect_async_with_tls_connector(url, None).await?;
+    let (mut stream, response) = connect_async(url).await?;
     debug!("connection successful");
     trace!(response = debug(&response));
 
@@ -121,12 +121,11 @@ mod tests {
 
   use test_env_log::test;
 
-  use tungstenite::tungstenite::Message;
-
   use url::Url;
 
   use websocket_util::test::mock_server;
   use websocket_util::test::WebSocketStream;
+  use websocket_util::tungstenite::Message;
 
   const KEY_ID: &str = "USER12345678";
   const SECRET: &str = "justletmein";
