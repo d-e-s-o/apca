@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -103,11 +103,11 @@ mod tests {
       };
 
       let order = order_aapl(&client).await.unwrap();
-      let result = client.issue::<Get>(request.clone()).await;
+      let result = client.issue::<Get>(request).await;
       client.issue::<order::Delete>(order.id).await.unwrap();
 
       let before = result.unwrap();
-      let after = client.issue::<Get>(request.clone()).await.unwrap();
+      let after = client.issue::<Get>(request).await.unwrap();
 
       let before = Into::<Vec<_>>::into(before);
       let after = Into::<Vec<_>>::into(after);

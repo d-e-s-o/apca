@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use http::Method;
@@ -129,7 +129,7 @@ mod tests {
       trade_confirmation: new_confirmation,
       ..config
     };
-    let patch_result = client.issue::<Patch>(patched.clone()).await;
+    let patch_result = client.issue::<Patch>(patched).await;
     // Also retrieve the configuration again.
     let get_result = client.issue::<Get>(()).await;
     // Revert back to the original setting.
