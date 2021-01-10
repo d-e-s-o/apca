@@ -39,11 +39,12 @@ tracing = {version = "0.1", default-features = false, features = ["attributes", 
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "tokio-tungstenite", version = "0.13", features = ["connect", "tls"]}
 url = "2.0"
-uuid = {version = "0.8", default-features = false, features = ["serde", "v4"]}
+uuid = {version = "0.8", default-features = false, features = ["serde"]}
 websocket-util = "0.7"
 
 [dev-dependencies]
 test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
 tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread", "macros"]}
 tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
+uuid = {version = "0.8", default-features = false, features = ["v4"]}
 websocket-util = {version = "0.7", features = ["test"]}
