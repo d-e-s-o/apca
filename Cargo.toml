@@ -18,6 +18,7 @@ keywords = ["trading", "finance", "async", "stocks"]
 description = """
 A create for interacting with the Alpaca API.
 """
+include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
 [badges]
 gitlab = { repository = "d-e-s-o/apca", branch = "master" }
