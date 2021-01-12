@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Added `PendingReplace` variant to `TradeStatus` enum
 - Added support for listing nested orders
+- Replaced usage of private `serde` API with inline code
 - Bumped minimum supported Rust version to `1.44`
 - Replaced `async-tungstenite` dependency with `tokio-tungstenite`
 - Removed `chrono` dependency

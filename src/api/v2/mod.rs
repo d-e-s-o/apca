@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// Definitions pertaining the user's account.
@@ -24,6 +24,7 @@ pub mod position;
 /// Functionality for listing open positions.
 pub mod positions;
 
+mod de;
 mod util;
 
 #[cfg(test)]

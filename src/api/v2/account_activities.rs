@@ -1,12 +1,10 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
 
 use num_decimal::Num;
 
-use serde::private::de::ContentDeserializer;
-use serde::private::de::TaggedContentVisitor;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -17,6 +15,8 @@ use serde_variant::to_variant_name;
 use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
+use crate::api::v2::de::ContentDeserializer;
+use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
 use crate::api::v2::util::u64_from_str;
 use crate::Str;
