@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.17.0
+------
 - Added `PendingReplace` variant to `TradeStatus` enum
 - Added support for listing nested orders
 - Replaced usage of private `serde` API with inline code

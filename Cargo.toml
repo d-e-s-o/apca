@@ -1,6 +1,6 @@
 [package]
 name = "apca"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2018"
 authors = ["Daniel Mueller <deso@posteo.net>"]
 license = "GPL-3.0-or-later"
