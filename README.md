@@ -35,7 +35,7 @@ Usage
 -----
 
 The following example illustrates how to create a `Client` object and
-then submit an limit order for `AAPL` with a limit price of USD 100:
+then submit a limit order for `AAPL` with a limit price of USD 100:
 ```rust
 let api_info = ApiInfo::from_env().unwrap();
 let client = Client::new(api_info);
