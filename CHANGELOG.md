@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `time-util` dependency to `0.3`
+
+
 0.17.0
 ------
 - Added `PendingReplace` variant to `TradeStatus` enum
