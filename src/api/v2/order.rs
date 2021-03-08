@@ -1,7 +1,7 @@
 // Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::ops::Deref;
+use std::{fmt, ops::Deref};
 use std::ops::Not;
 use std::time::SystemTime;
 
@@ -40,6 +40,12 @@ impl Deref for Id {
   fn deref(&self) -> &Self::Target {
     &self.0
   }
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+       write!(f, "{}", self.0.to_string()) 
+    }
 }
 
 
@@ -125,6 +131,31 @@ pub enum Status {
   Unknown,
 }
 
+impl fmt::Display for Status {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Status::New => write!(f, "new"),
+            Status::Replaced => write!(f, "replaced"),
+            Status::PartiallyFilled => write!(f, "partially_filled"),
+            Status::Filled => write!(f, "filled"),
+            Status::DoneForDay => write!(f, "done_for_day"),
+            Status::Canceled => write!(f, "canceled"),
+            Status::Expired => write!(f, "expired"),
+            Status::Accepted => write!(f, "accepted"),
+            Status::PendingNew => write!(f, "pending_new"),
+            Status::AcceptedForBidding => write!(f, "accepted_for_bidding"),
+            Status::PendingCancel => write!(f, "pending_cancel"),
+            Status::PendingReplace => write!(f, "pending_replace"),
+            Status::Stopped => write!(f, "stopped"),
+            Status::Rejected => write!(f, "rejected"),
+            Status::Suspended => write!(f, "suspended"),
+            Status::Calculated => write!(f, "calculated"),
+            Status::Held => write!(f, "held"),
+            Status::Unknown => write!(f, "unknown")
+        }
+    }
+}
+
 
 /// The side an order is on.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -146,6 +177,15 @@ impl Not for Side {
       Self::Sell => Self::Buy,
     }
   }
+}
+
+impl fmt::Display for Side {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Buy => write!(f, "buy"),
+            Self::Sell => write!(f, "sell")
+        }
+    }
 }
 
 
@@ -180,6 +220,17 @@ impl Default for Class {
   }
 }
 
+impl fmt::Display for Class {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Simple => write!(f, "simple"),
+            Self::Bracket => write!(f, "bracket"),
+            Self::OneCancelsOther => write!(f, "oco"),
+            Self::OneTriggersOther => write!(f, "oto")
+        }
+    }
+}
+
 
 /// The type of an order.
 // Note that we currently do not support `stop_limit` orders.
@@ -205,6 +256,17 @@ impl Default for Type {
   }
 }
 
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Market => write!(f, "market"),
+            Self::Limit => write!(f, "limit"),
+            Self::Stop => write!(f, "stop"),
+            Self::StopLimit => write!(f, "stop_limit")
+        }
+    }
+}
+
 
 /// A description of the time for which an order is valid.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
@@ -224,12 +286,37 @@ pub enum TimeInForce {
   /// auction. Any unfilled orders after the close will be canceled.
   #[serde(rename = "cls")]
   UntilMarketClose,
+  /// An Immediate Or Cancel (IOC) order requires all or part of the order to be executed
+  /// immediately. Any unfilled portion of the order is canceled. Only available with API v2. Most
+  /// market makers who receive IOC orders will attempt to fill the order on a principal basis
+  /// only, and cancel any unfilled balance. On occasion, this can result in the entire order being
+  /// cancelled if the market maker does not have any existing inventory of the security in
+  /// question.
+  #[serde(rename = "ioc")]
+  ImmediateOrCancel,
+  /// A Fill or Kill (FOK) order is only executed if the entire 
+  /// order quantity can be filled, otherwise the order is canceled.
+  #[serde(rename = "fok")]
+  FillOrKill
 }
 
 impl Default for TimeInForce {
   fn default() -> Self {
     Self::Day
   }
+}
+
+impl fmt::Display for TimeInForce {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Day => write!(f, "day"),
+            Self::UntilCanceled => write!(f, "gtc"),
+            Self::UntilMarketOpen => write!(f, "opg"),
+            Self::UntilMarketClose => write!(f, "cls"),
+            Self::ImmediateOrCancel => write!(f, "ioc"),
+            Self::FillOrKill => write!(f, "fok"),
+        }
+    }
 }
 
 
