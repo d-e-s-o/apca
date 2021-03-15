@@ -248,6 +248,9 @@ pub enum Type {
   /// A stop limit order.
   #[serde(rename = "stop_limit")]
   StopLimit,
+  /// Trailing Stop
+  #[serde(rename = "trailing_stop")]
+  TrailingStop
 }
 
 impl Default for Type {
@@ -262,7 +265,8 @@ impl fmt::Display for Type {
             Self::Market => write!(f, "market"),
             Self::Limit => write!(f, "limit"),
             Self::Stop => write!(f, "stop"),
-            Self::StopLimit => write!(f, "stop_limit")
+            Self::StopLimit => write!(f, "stop_limit"),
+            Self::TrailingStop => write!(f, "trailing_stop")
         }
     }
 }
@@ -389,6 +393,10 @@ pub struct OrderReqInit {
   pub limit_price: Option<Num>,
   /// See `OrderReq::stop_price`.
   pub stop_price: Option<Num>,
+  /// See `OrderReq::trail_price`.
+  pub trail_price: Option<Num>,
+  /// See `OrderReq::trail_percent`.
+  pub trail_percent: Option<Num>,
   /// See `OrderReq::take_profit`.
   pub take_profit: Option<TakeProfit>,
   /// See `OrderReq::stop_loss`.
@@ -420,6 +428,8 @@ impl OrderReqInit {
       stop_loss: self.stop_loss,
       extended_hours: self.extended_hours,
       client_order_id: self.client_order_id,
+      trail_price: self.trail_price,
+      trail_percent: self.trail_percent
     }
   }
 }
@@ -452,6 +462,12 @@ pub struct OrderReq {
   /// The stop price.
   #[serde(rename = "stop_price")]
   pub stop_price: Option<Num>,
+  /// The trailing stop offset in dollars
+  #[serde(rename = "trail_price")]
+  pub trail_price: Option<Num>,
+  /// The trailing stop offset as a percent
+  #[serde(rename = "trail_percent")]
+  pub trail_percent: Option<Num>,
   /// Take profit information for bracket-style orders.
   #[serde(rename = "take_profit")]
   pub take_profit: Option<TakeProfit>,
