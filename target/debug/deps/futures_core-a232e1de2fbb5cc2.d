@@ -1,0 +1,11 @@
+/home/ajmwagar/src/apca/target/debug/deps/futures_core-a232e1de2fbb5cc2.rmeta: /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/lib.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/future.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/stream.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/mod.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/poll.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/mod.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/atomic_waker.rs
+
+/home/ajmwagar/src/apca/target/debug/deps/futures_core-a232e1de2fbb5cc2.d: /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/lib.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/future.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/stream.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/mod.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/poll.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/mod.rs /home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/atomic_waker.rs
+
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/lib.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/future.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/stream.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/mod.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/poll.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/mod.rs:
+/home/ajmwagar/.cargo/registry/src/github.com-1ecc6299db9ec823/futures-core-0.3.13/src/task/__internal/atomic_waker.rs:
