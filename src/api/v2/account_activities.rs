@@ -151,6 +151,9 @@ pub struct TradeActivity {
   /// The time at which the execution occurred.
   #[serde(rename = "transaction_time", deserialize_with = "system_time_from_str")]
   pub transaction_time: SystemTime,
+  /// Type of Trade "fill" or "partial_fill"
+  #[serde(rename = "type")]
+  pub type_: String,
   /// The traded symbol.
   #[serde(rename = "symbol")]
   pub symbol: String,
