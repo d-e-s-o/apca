@@ -26,7 +26,6 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-// TODO: Add support for the `nested` field.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
   /// The status of orders to list.
