@@ -148,6 +148,10 @@ pub enum Side {
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct TradeActivity {
+  /// An ID for the activity. Can be sent as `page_token` in requests to
+  /// facilitate the paging of results.
+  #[serde(rename = "id")]
+  pub id: String,
   /// The time at which the execution occurred.
   #[serde(rename = "transaction_time", deserialize_with = "system_time_from_str")]
   pub transaction_time: SystemTime,
@@ -186,6 +190,10 @@ pub struct TradeActivity {
 #[doc(hidden)]
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct NonTradeActivityImpl<T> {
+  /// An ID for the activity. Can be sent as `page_token` in requests to
+  /// facilitate the paging of results.
+  #[serde(rename = "id")]
+  pub id: String,
   /// The type of non-trade activity.
   ///
   /// Note that the `Fill` variant will never be used here.
@@ -219,6 +227,7 @@ pub struct NonTradeActivityImpl<T> {
 impl<T> NonTradeActivityImpl<T> {
   fn into_other<U>(self, activity_type: U) -> NonTradeActivityImpl<U> {
     let Self {
+      id,
       date,
       net_amount,
       symbol,
@@ -229,6 +238,7 @@ impl<T> NonTradeActivityImpl<T> {
     } = self;
 
     NonTradeActivityImpl::<U> {
+      id,
       type_: activity_type,
       date,
       net_amount,
@@ -257,6 +267,14 @@ pub enum Activity {
 }
 
 impl Activity {
+  /// Retrieve the activity's ID.
+  pub fn id(&self) -> &str {
+    match self {
+      Activity::Trade(trade) => &trade.id,
+      Activity::NonTrade(non_trade) => &non_trade.id,
+    }
+  }
+
   /// Convert this activity into a trade activity, if it is of the
   /// corresponding variant.
   pub fn into_trade(self) -> Result<TradeActivity, Self> {
