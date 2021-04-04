@@ -89,10 +89,7 @@ impl Default for Builder {
 
 
 /// A `Client` is the entity used by clients of this module for
-/// interacting with the Alpaca API. It provides the highest-level
-/// primitives and also implements the `Trader` trait, which abstracts
-/// away the trading related functionality common among all supported
-/// services.
+/// interacting with the Alpaca API.
 #[derive(Debug)]
 pub struct Client {
   api_info: ApiInfo,
