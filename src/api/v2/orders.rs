@@ -26,7 +26,7 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
   /// The status of orders to list.
   #[serde(rename = "status")]
@@ -39,6 +39,9 @@ pub struct OrdersReq {
   /// legs field of the primary order.
   #[serde(rename = "nested")]
   pub nested: bool,
+  /// A comma-separated list of symbols to filter by (ex. AAPL,TSLA,MSFT).
+  #[serde(rename = "symbols")]
+  pub symbols: Option<String>
 }
 
 impl Default for OrdersReq {
@@ -50,6 +53,7 @@ impl Default for OrdersReq {
       // returned. As such, having them included is very non-intrusive
       // and should be a reasonable default.
       nested: true,
+      symbols: None
     }
   }
 }
