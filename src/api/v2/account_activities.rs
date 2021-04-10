@@ -327,29 +327,28 @@ impl<'de> Deserialize<'de> for Activity {
 }
 
 
-/// Serialize an optional `Vec` into a string of textual representations
-/// of the elements separated by comma.
-fn optional_vec_to_str<S, T>(vec: &Option<Vec<T>>, serializer: S) -> Result<S::Ok, S::Error>
+/// Serialize a slice into a string of textual representations of the
+/// elements separated by comma.
+fn slice_to_str<S, T>(slice: &[T], serializer: S) -> Result<S::Ok, S::Error>
 where
   S: Serializer,
   T: Serialize,
 {
-  match vec {
-    Some(vec) => {
-      // `serde_urlencoded` seemingly does not know how to handle a
-      // `Vec`. So what we do is we convert each and every element to a
-      // string and then concatenate them, separating each by comma.
-      let s = vec
-        .iter()
-        // We know that we are dealing with an enum variant and the
-        // function will never return an error for those, so it's fine
-        // to unwrap.
-        .map(|type_| to_variant_name(type_).unwrap())
-        .collect::<Vec<_>>()
-        .join(",");
-      serializer.serialize_str(&s)
-    },
-    None => serializer.serialize_none(),
+  if !slice.is_empty() {
+    // `serde_urlencoded` seemingly does not know how to handle a
+    // `Vec`. So what we do is we convert each and every element to a
+    // string and then concatenate them, separating each by comma.
+    let s = slice
+      .iter()
+      // We know that we are dealing with an enum variant and the
+      // function will never return an error for those, so it's fine
+      // to unwrap.
+      .map(|type_| to_variant_name(type_).unwrap())
+      .collect::<Vec<_>>()
+      .join(",");
+    serializer.serialize_str(&s)
+  } else {
+    serializer.serialize_none()
   }
 }
 
@@ -358,9 +357,9 @@ where
 pub struct ActivityReq {
   /// The types of activities to retrieve.
   ///
-  /// If `None` all activities will be retrieved.
-  #[serde(rename = "activity_types", serialize_with = "optional_vec_to_str")]
-  pub types: Option<Vec<ActivityType>>,
+  /// If empty all activities will be retrieved.
+  #[serde(rename = "activity_types", serialize_with = "slice_to_str")]
+  pub types: Vec<ActivityType>,
   /// The maximum number of entries to return in the response.
   ///
   /// The default and maximum value is 100.
@@ -502,11 +501,11 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = ActivityReq {
-      types: Some(vec![
+      types: vec![
         ActivityType::Fill,
         ActivityType::Transaction,
         ActivityType::Dividend,
-      ]),
+      ],
       ..Default::default()
     };
     let activities = client.issue::<Get>(request).await.unwrap();
@@ -533,7 +532,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = ActivityReq {
-      types: Some(vec![ActivityType::Fill]),
+      types: vec![ActivityType::Fill],
       ..Default::default()
     };
     let activities = client.issue::<Get>(request).await.unwrap();
