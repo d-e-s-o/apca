@@ -352,6 +352,26 @@ where
   }
 }
 
+/// The direction in which account activities are reported.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub enum Direction {
+  /// Report account activity in descending order, i.e., from more
+  /// recent activities to older ones.
+  #[serde(rename = "desc")]
+  Descending,
+  /// Report account activity in ascending order, i.e., from older
+  /// activities to more recent ones.
+  #[serde(rename = "asc")]
+  Ascending,
+}
+
+impl Default for Direction {
+  fn default() -> Self {
+    Self::Descending
+  }
+}
+
+
 /// A GET request to be made to the /v2/account/activities endpoint.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct ActivityReq {
@@ -360,6 +380,9 @@ pub struct ActivityReq {
   /// If empty all activities will be retrieved.
   #[serde(rename = "activity_types", serialize_with = "slice_to_str")]
   pub types: Vec<ActivityType>,
+  /// The direction in which to report account activities.
+  #[serde(rename = "direction")]
+  pub direction: Direction,
   /// The maximum number of entries to return in the response.
   ///
   /// The default and maximum value is 100.
@@ -553,13 +576,24 @@ mod tests {
   async fn retrieve_all_activities() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = ActivityReq::default();
+    let request = ActivityReq {
+      direction: Direction::Ascending,
+      ..Default::default()
+    };
     let activities = client.issue::<Get>(request).await.unwrap();
 
     // We don't really have a better way to test this than testing that
     // we parsed something. Note that this may not work for newly
     // created accounts, an order may have to be filled first.
     assert!(!activities.is_empty());
+
+    let mut iter = activities.iter();
+    let mut time = iter.next().unwrap().time();
+
+    for activity in iter {
+      assert!(time <= activity.time());
+      time = activity.time();
+    }
   }
 
   /// Check that paging works properly.
