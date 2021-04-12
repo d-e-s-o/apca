@@ -12,6 +12,7 @@ use serde::Serializer;
 use serde_urlencoded::to_string as to_query;
 use serde_variant::to_variant_name;
 
+use time_util::optional_system_time_to_rfc3339_with_nanos;
 use time_util::system_time_from_date_str;
 use time_util::system_time_from_str;
 
@@ -383,6 +384,12 @@ pub struct ActivityReq {
   /// The direction in which to report account activities.
   #[serde(rename = "direction")]
   pub direction: Direction,
+  /// The response will contain only activities dated after this time.
+  #[serde(
+    rename = "after",
+    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
+  )]
+  pub after: Option<SystemTime>,
   /// The maximum number of entries to return in the response.
   ///
   /// The default and maximum value is 100.
@@ -420,6 +427,8 @@ Endpoint! {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  use std::time::Duration;
 
   use serde_json::from_str as from_json;
 
@@ -621,5 +630,36 @@ mod tests {
     // Activities are reported in descending order by time.
     assert!(newest_activity.time() >= next_activity.time());
     assert_ne!(newest_activity.id(), next_activity.id());
+  }
+
+  /// Verify that the `after` request argument is honored properly.
+  #[test(tokio::test)]
+  async fn retrieve_after() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let mut request = ActivityReq {
+      direction: Direction::Ascending,
+      page_size: Some(1),
+      ..Default::default()
+    };
+
+    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    assert_eq!(activities.len(), 1);
+
+    let time = activities[0].time();
+    // Note that while the documentation states that only transactions
+    // *after* the time specified are reported, what actually happens is
+    // that those on or after it are. So we add a microsecond to make
+    // sure we get a new transaction. Note furthermore that Alpaca seems
+    // to honor only microsecond resolution, not nanoseconds. So adding
+    // a nanosecond would still be treated as the same time from their
+    // perspective.
+    request.after = Some(time + Duration::from_micros(1));
+
+    // Make another request, this time asking for activities after the
+    // first one that was reported.
+    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    assert_eq!(activities.len(), 1);
+    assert!(activities[0].time() > time);
   }
 }
