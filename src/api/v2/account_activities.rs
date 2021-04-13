@@ -384,6 +384,12 @@ pub struct ActivityReq {
   /// The direction in which to report account activities.
   #[serde(rename = "direction")]
   pub direction: Direction,
+  /// The response will contain only activities until this time.
+  #[serde(
+    rename = "until",
+    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
+  )]
+  pub until: Option<SystemTime>,
   /// The response will contain only activities dated after this time.
   #[serde(
     rename = "after",
@@ -661,5 +667,27 @@ mod tests {
     let activities = client.issue::<Get>(request.clone()).await.unwrap();
     assert_eq!(activities.len(), 1);
     assert!(activities[0].time() > time);
+  }
+
+  /// Verify that the `until` request argument is honored properly.
+  #[test(tokio::test)]
+  async fn retrieve_until() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let mut request = ActivityReq {
+      direction: Direction::Ascending,
+      page_size: Some(2),
+      ..Default::default()
+    };
+
+    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    assert_eq!(activities.len(), 2);
+
+    let time = activities[1].time();
+    request.until = Some(time - Duration::from_micros(1));
+
+    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    assert_eq!(activities.len(), 1);
+    assert!(activities[0].time() < time);
   }
 }

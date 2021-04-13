@@ -1,7 +1,8 @@
 Unreleased
 ----------
 - Added support for paging of account activity data
-- Added support for specifying reported account activity direction
+- Added support for specifying reported account activity direction as
+  well as `until` and `after` times
 - Bumped `time-util` dependency to `0.3`
 
 
