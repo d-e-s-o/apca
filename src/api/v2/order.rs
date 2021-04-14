@@ -1093,7 +1093,6 @@ mod tests {
     let request = OrderReqInit {
       type_: Type::Limit,
       limit_price: Some(Num::from(1)),
-      extended_hours: true,
       client_order_id: Some(client_order_id.clone()),
       ..Default::default()
     }
