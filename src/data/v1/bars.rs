@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::HashMap;
@@ -246,7 +246,7 @@ mod tests {
 
     let aapl = bars.get("AAPL").unwrap();
     assert_eq!(aapl.len(), 1);
-    assert!(aapl[0].time <= now, aapl[0].time);
-    assert!(aapl[0].time >= earlier, aapl[0].time);
+    assert!(aapl[0].time <= now, "{:?}", aapl[0].time);
+    assert!(aapl[0].time >= earlier, "{:?}", aapl[0].time);
   }
 }
