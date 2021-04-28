@@ -40,17 +40,11 @@ use crate::events::stream;
 
 /// A builder for creating customized `Client` objects.
 #[derive(Debug)]
-pub struct Builder {
+struct Builder {
   builder: HttpClientBuilder,
 }
 
 impl Builder {
-  /// Adjust the maximum number of idle connections per host.
-  pub fn max_idle_per_host(&mut self, max_idle: usize) -> &mut Self {
-    let _ = self.builder.pool_max_idle_per_host(max_idle);
-    self
-  }
-
   /// Build the final `Client` object.
   pub fn build(&self, api_info: ApiInfo) -> Client {
     let https = HttpsConnector::new();
@@ -69,14 +63,10 @@ impl Default for Builder {
     // which effectively map to spawned tasks -- we will block until
     // those connections die. We can't have that happen for tests, so we
     // disable idle connections for them.
-    // While at it, also use the minimum number of threads for the
-    // `HttpsConnector`.
     let mut builder = HttpClient::builder();
     let _ = builder.pool_max_idle_per_host(0);
 
-    Self {
-      builder,
-    }
+    Self { builder }
   }
 
   #[cfg(not(test))]
@@ -97,11 +87,6 @@ pub struct Client {
 }
 
 impl Client {
-  /// Instantiate a new `Builder` which allows for creating a customized `Client`.
-  pub fn builder() -> Builder {
-    Builder::default()
-  }
-
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
   pub fn new(api_info: ApiInfo) -> Self {
@@ -223,7 +208,7 @@ mod tests {
   #[test(tokio::test)]
   async fn unexpected_status_code_return() {
     let api_info = ApiInfo::from_env().unwrap();
-    let client = Client::builder().max_idle_per_host(0).build(api_info);
+    let client = Client::new(api_info);
     let result = client.issue::<GetNotFound>(()).await;
     let err = result.unwrap_err();
 

@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `ApiInfo::from_parts` constructor
+- Removed `Client::builder` method
 - Bumped minimum supported Rust version to `1.46`
 
 
