@@ -30,6 +30,20 @@ pub struct ApiInfo {
 }
 
 impl ApiInfo {
+  /// Create an `ApiInfo` from the required data.
+  ///
+  /// # Errors
+  /// - `crate::Error::Url` If `base_url` cannot be parsed into a `url::Url`.
+  pub fn from_parts(base_url: impl AsRef<str>, key_id: impl ToString, secret: impl ToString) -> Result<Self, Error> {
+    let me = Self {
+      base_url: Url::parse(base_url.as_ref())?,
+      key_id: key_id.to_string(),
+      secret: secret.to_string(),
+    };
+
+    Ok(me)
+  }
+
   /// Create an `ApiInfo` object with information from the environment.
   ///
   /// This constructor retrieves API related information from the
@@ -42,32 +56,21 @@ impl ApiInfo {
   /// - the Alpaca account secret is retrieved from the APCA_API_SECRET_KEY
   ///   variable
   pub fn from_env() -> Result<Self, Error> {
-    let base_url = var_os(ENV_API_URL)
-      .unwrap_or_else(|| OsString::from(API_BASE_URL))
-      .into_string()
-      .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_API_URL).into())
-      })?;
-    let base_url = Url::parse(&base_url)?;
+    let err_var_unparseable = |key: &str| Error::Str(format!("{} environment variable is not a valid string", key).into());
+    let err_var_missing = |key: &str| Error::Str(format!("{} environment variable not found", key).into());
 
-    let key_id = var_os(ENV_KEY_ID)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?
-      .into_string()
-      .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_KEY_ID).into())
-      })?;
+    let get_env = |key: &str| var_os(key)
+                                .map(OsString::into_string)
+                                .map(|res| res.map_err(|_| err_var_unparseable(key)));
 
-    let secret = var_os(ENV_SECRET)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_SECRET).into()))?
-      .into_string()
-      .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_SECRET).into())
-      })?;
+    let me = Self {
+      base_url: get_env(ENV_API_URL)
+                 .unwrap_or(Ok(API_BASE_URL.to_string()))
+                 .and_then(|val| Url::parse(&val).map_err(Into::into))?,
+      key_id: get_env(ENV_KEY_ID).unwrap_or(Err(err_var_missing(ENV_KEY_ID)))?,
+      secret: get_env(ENV_SECRET).unwrap_or(Err(err_var_missing(ENV_SECRET)))?,
+    };
 
-    Ok(Self {
-      base_url,
-      key_id,
-      secret,
-    })
+    Ok(me)
   }
 }
