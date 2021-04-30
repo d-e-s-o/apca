@@ -167,8 +167,6 @@ mod tests {
 
   use time_util::parse_system_time_from_str;
 
-  use url::Url;
-
   use uuid::Uuid;
 
   use crate::api::API_BASE_URL;

@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::env::var_os;
@@ -31,6 +31,23 @@ pub struct ApiInfo {
 impl ApiInfo {
   /// Create an `ApiInfoBuilder`
   pub fn builder() -> ApiInfoBuilder {ApiInfoBuilder::new()}
+
+  /// Create an `ApiInfo` from the required data.
+  ///
+  /// # Errors
+  /// - [`Error::Url`](crate::Error::Url) If `base_url` cannot be parsed
+  ///   into a [`url::Url`](url::Url).
+  pub fn from_parts(
+    base_url: impl AsRef<str>,
+    key_id: impl ToString,
+    secret: impl ToString,
+  ) -> Result<Self, Error> {
+    Self::builder()
+      .base_url(base_url)
+      .key_id(key_id)
+      .secret(secret)
+      .build()
+  }
 
   /// Create an `ApiInfo` object with information from the environment.
   ///

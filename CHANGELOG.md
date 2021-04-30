@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Added `ApiInfo::from_parts` constructor
+- Bumped minimum supported Rust version to `1.46`
+
+
 0.18.0
 ------
 - Introduced trailing stop order types
