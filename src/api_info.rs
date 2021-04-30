@@ -22,6 +22,11 @@ const ENV_SECRET: &str = "APCA_API_SECRET_KEY";
 pub struct ApiInfo {
   /// The base URL for the API.
   pub(crate) base_url: Url,
+  /// The base URL for the Alpaca Data API.
+  ///
+  /// If using `ApiInfoBuilder`, defaults to replacing `api` with `data` in `base_url`,
+  /// e.g. `api.alpaca.markets -> data.alpaca.markets`, `paper-api.alpaca.markets -> paper-data.alpaca.markets`
+  pub(crate) base_url_data: Url,
   /// The key ID to use for authentication.
   pub(crate) key_id: String,
   /// The secret to use for authentication.
@@ -29,23 +34,8 @@ pub struct ApiInfo {
 }
 
 impl ApiInfo {
-  /// Create an `ApiInfo` from the required data.
-  ///
-  /// # Errors
-  /// - `crate::Error::Url` If `base_url` cannot be parsed into a `url::Url`.
-  pub fn from_parts(
-    base_url: impl AsRef<str>,
-    key_id: impl ToString,
-    secret: impl ToString,
-  ) -> Result<Self, Error> {
-    let me = Self {
-      base_url: Url::parse(base_url.as_ref())?,
-      key_id: key_id.to_string(),
-      secret: secret.to_string(),
-    };
-
-    Ok(me)
-  }
+  /// Create an `ApiInfoBuilder`
+  pub fn builder() -> ApiInfoBuilder {ApiInfoBuilder::new()}
 
   /// Create an `ApiInfo` object with information from the environment.
   ///
@@ -72,14 +62,135 @@ impl ApiInfo {
         .map(|res| res.map_err(|_| err_var_unparseable(key)))
     };
 
-    let me = Self {
-      base_url: get_env(ENV_API_URL)
-        .unwrap_or(Ok(API_BASE_URL.to_string()))
-        .and_then(|val| Url::parse(&val).map_err(Into::into))?,
-      key_id: get_env(ENV_KEY_ID).unwrap_or(Err(err_var_missing(ENV_KEY_ID)))?,
-      secret: get_env(ENV_SECRET).unwrap_or(Err(err_var_missing(ENV_SECRET)))?,
-    };
+    let me = ApiInfoBuilder::new()
+               .base_url(get_env(ENV_API_URL).unwrap_or(Ok(API_BASE_URL.to_string()))?)
+               .key_id(get_env(ENV_KEY_ID).unwrap_or(Err(err_var_missing(ENV_KEY_ID)))?)
+               .secret(get_env(ENV_SECRET).unwrap_or(Err(err_var_missing(ENV_SECRET)))?)
+               .build()?;
 
     Ok(me)
+  }
+}
+
+#[derive(Debug, Default)]
+pub struct ApiInfoBuilder {
+  errors: Vec<Error>,
+  base_url: Option<Url>,
+  base_url_data: Option<Url>,
+  key_id: Option<String>,
+  secret: Option<String>,
+}
+
+impl ApiInfoBuilder {
+  pub fn new() -> Self {Default::default()}
+
+  pub fn build(mut self) -> Result<ApiInfo, Error> {
+    macro_rules! fail_if_unset {
+      ($test:expr, $errors:expr) => {
+        match $test {
+          Some(_) => (),
+          None => {
+            let msg = format!("ApiInfoBuilder: {} was not set, but is required!", stringify!($test));
+            $errors.push(Error::Str(msg.into()));
+          }
+        }
+      }
+    }
+
+    fail_if_unset!(&self.base_url, &mut self.errors);
+    fail_if_unset!(&self.key_id,   &mut self.errors);
+    fail_if_unset!(&self.secret,   &mut self.errors);
+
+    if self.errors.len() > 0 {
+      Err(Error::Many(self.errors))
+    } else {
+      let get_base_url_data = || {
+        let url_string = self.base_url
+                             .as_ref()
+                             .unwrap()
+                             .to_string()
+                             .replace("api.alpaca", "data.alpaca");
+
+        Url::parse(&url_string)
+          .expect(&format!("base_url ({}) was valid, so this should be too: {}", self.base_url.as_ref().unwrap(), url_string))
+      };
+
+      let me = ApiInfo {
+        base_url: self.base_url.clone().unwrap(),
+        base_url_data: self.base_url_data.clone().unwrap_or_else(get_base_url_data),
+        key_id: self.key_id.unwrap(),
+        secret: self.secret.unwrap(),
+      };
+
+      Ok(me)
+    }
+  }
+
+  pub fn base_url(mut self, url: impl AsRef<str>) -> Self {
+    let url = Url::parse(url.as_ref());
+    match url {
+      Ok(url) => {
+        self.base_url = Some(url);
+      },
+      Err(e) => self.errors.push(e.into()),
+    };
+
+    self
+  }
+
+  pub fn base_url_data(mut self, url: impl AsRef<str>) -> Self {
+    let url = Url::parse(url.as_ref());
+    match url {
+      Ok(url) => {
+        self.base_url_data = Some(url);
+      },
+      Err(e) => self.errors.push(e.into()),
+    };
+
+    self
+  }
+
+  pub fn key_id(mut self, key_id: impl ToString) -> Self {
+    self.key_id = Some(key_id.to_string());
+
+    self
+  }
+
+  pub fn secret(mut self, secret: impl ToString) -> Self {
+    self.secret = Some(secret.to_string());
+
+    self
+  }
+}
+
+mod test {
+  use super::*;
+  use std::borrow::Borrow;
+
+  #[test]
+  pub fn api_builder_should_error_when_none_set() {
+    // ARRANGE
+    let builder = ApiInfoBuilder::new();
+
+    // ACT
+    let result = builder.build();
+
+    // ASSERT
+    assert!(matches!(result, Err(_)));
+    let err = result.unwrap_err();
+    assert!(matches!(err, Error::Many(_)));
+
+    if let Error::Many(errs) = err {
+      assert!(errs.len() == 3);
+      assert!(errs.into_iter().all(|err| match err {
+        Error::Str(cow) => {
+          let str: &str = cow.borrow();
+          str.contains("base_url was not set") ||
+          str.contains("secret was not set") ||
+          str.contains("key_id was not set")
+        },
+        _ => false
+      }));
+    }
   }
 }

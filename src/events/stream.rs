@@ -58,6 +58,7 @@ pub async fn stream_raw(
     base_url: url,
     key_id,
     secret,
+    ..
   } = api_info;
 
   let mut url = url.clone();
@@ -160,11 +161,12 @@ mod tests {
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
-    let api_info = ApiInfo {
-      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
-      key_id: KEY_ID.to_string(),
-      secret: SECRET.to_string(),
-    };
+    let api_info = ApiInfo::builder()
+                     .base_url(&format!("ws://{}", addr.to_string()))
+                     .key_id(KEY_ID)
+                     .secret(SECRET)
+                     .build()
+                     .unwrap();
 
     stream::<S>(&api_info).await
   }

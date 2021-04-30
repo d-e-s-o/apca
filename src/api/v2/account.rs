@@ -243,11 +243,13 @@ mod tests {
   #[test(tokio::test)]
   async fn request_account_with_invalid_credentials() {
     let api_base = Url::parse(API_BASE_URL).unwrap();
-    let api_info = ApiInfo {
-      base_url: api_base,
-      key_id: "invalid".to_string(),
-      secret: "invalid-too".to_string(),
-    };
+    let api_info = ApiInfo::builder()
+                     .base_url(api_base)
+                     .key_id("invalid")
+                     .secret("invalid-too")
+                     .build()
+                     .unwrap();
+
     let client = Client::new(api_info);
     let result = client.issue::<Get>(()).await;
 

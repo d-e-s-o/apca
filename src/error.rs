@@ -62,6 +62,8 @@ impl<E> From<HyperError> for RequestError<E> {
 /// The error type as used by this crate.
 #[derive(Debug)]
 pub enum Error {
+  /// Many Errors.
+  Many(Vec<Error>),
   /// An HTTP related error.
   Http(HttpError),
   /// We encountered an HTTP that either represents a failure or is not
@@ -93,6 +95,7 @@ impl Display for Error {
       Error::Str(err) => fmt.write_str(err),
       Error::Url(err) => write!(fmt, "{}", err),
       Error::WebSocket(err) => write!(fmt, "{}", err),
+      Error::Many(err) => write!(fmt, "{:#?}", err),
     }
   }
 }
@@ -100,6 +103,7 @@ impl Display for Error {
 impl StdError for Error {
   fn source(&self) -> Option<&(dyn StdError + 'static)> {
     match self {
+      Error::Many(err) => None,
       Error::Http(err) => err.source(),
       Error::HttpStatus(..) => None,
       Error::Json(err) => err.source(),
