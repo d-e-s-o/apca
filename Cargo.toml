@@ -27,6 +27,8 @@ gitlab = { repository = "d-e-s-o/apca", branch = "master" }
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.4"
+# TODO: Needs to depend on 0.1.1.
+httpc = {version = "0.1.0", path = "/home/deso/local/src/rust/httpc"}
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
 hyper-tls = {version = "0.5", default-features = false}
 num-decimal = {version = "0.2", features = ["serde"]}
