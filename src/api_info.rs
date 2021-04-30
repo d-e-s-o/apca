@@ -22,11 +22,6 @@ const ENV_SECRET: &str = "APCA_API_SECRET_KEY";
 pub struct ApiInfo {
   /// The base URL for the API.
   pub(crate) base_url: Url,
-  /// The base URL for the Alpaca Data API.
-  ///
-  /// If using `ApiInfoBuilder`, defaults to replacing `api` with `data` in `base_url`,
-  /// e.g. `api.alpaca.markets -> data.alpaca.markets`, `paper-api.alpaca.markets -> paper-data.alpaca.markets`
-  pub(crate) base_url_data: Url,
   /// The key ID to use for authentication.
   pub(crate) key_id: String,
   /// The secret to use for authentication.
@@ -76,7 +71,6 @@ impl ApiInfo {
 pub struct ApiInfoBuilder {
   errors: Vec<Error>,
   base_url: Option<Url>,
-  base_url_data: Option<Url>,
   key_id: Option<String>,
   secret: Option<String>,
 }
@@ -104,20 +98,8 @@ impl ApiInfoBuilder {
     if self.errors.len() > 0 {
       Err(Error::Many(self.errors))
     } else {
-      let get_base_url_data = || {
-        let url_string = self.base_url
-                             .as_ref()
-                             .unwrap()
-                             .to_string()
-                             .replace("api.alpaca", "data.alpaca");
-
-        Url::parse(&url_string)
-          .expect(&format!("base_url ({}) was valid, so this should be too: {}", self.base_url.as_ref().unwrap(), url_string))
-      };
-
       let me = ApiInfo {
         base_url: self.base_url.clone().unwrap(),
-        base_url_data: self.base_url_data.clone().unwrap_or_else(get_base_url_data),
         key_id: self.key_id.unwrap(),
         secret: self.secret.unwrap(),
       };
@@ -131,18 +113,6 @@ impl ApiInfoBuilder {
     match url {
       Ok(url) => {
         self.base_url = Some(url);
-      },
-      Err(e) => self.errors.push(e.into()),
-    };
-
-    self
-  }
-
-  pub fn base_url_data(mut self, url: impl AsRef<str>) -> Self {
-    let url = Url::parse(url.as_ref());
-    match url {
-      Ok(url) => {
-        self.base_url_data = Some(url);
       },
       Err(e) => self.errors.push(e.into()),
     };
