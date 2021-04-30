@@ -4,8 +4,8 @@
 # Official language image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/rust/tags/
 # The recipe for this docker image can be found at:
-# https://github.com/rust-lang/docker-rust/blob/6314c6bc3d54d5b9284458c6a9061ef5766c9607/1.44.1/buster/Dockerfile
-image: "rust:1.44.1"
+# https://github.com/rust-lang/docker-rust/blob/3dea3da5cb709648d53b2a50ba89aef9c89bdd96/1.46.0/buster/Dockerfile
+image: "rust:1.46.0"
 
 stages:
   - build

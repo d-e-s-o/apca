@@ -2,7 +2,7 @@
 [![coverage](https://gitlab.com/d-e-s-o/apca/badges/master/coverage.svg)](https://gitlab.com/d-e-s-o/apca/-/jobs/artifacts/master/file/kcov/kcov-merged/index.html?job=coverage:kcov)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
 [![Docs](https://docs.rs/apca/badge.svg)](https://docs.rs/apca)
-[![rustc](https://img.shields.io/badge/rustc-1.44+-blue.svg)](https://blog.rust-lang.org/2020/06/18/Rust.1.44.1.html)
+[![rustc](https://img.shields.io/badge/rustc-1.46+-blue.svg)](https://blog.rust-lang.org/2020/08/27/Rust-1.46.0.html)
 
 apca
 ====
