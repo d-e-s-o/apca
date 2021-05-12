@@ -125,6 +125,7 @@ mod tests {
 
   use websocket_util::test::mock_server;
   use websocket_util::test::WebSocketStream;
+  use websocket_util::tungstenite::error::ProtocolError;
   use websocket_util::tungstenite::Message;
 
   const KEY_ID: &str = "USER12345678";
@@ -180,8 +181,8 @@ mod tests {
     let result = mock_stream::<DummyStream, _, _>(test).await;
     match result {
       Ok(_) => panic!("authentication succeeded unexpectedly"),
-      Err(Error::WebSocket(WebSocketError::Protocol(ref e)))
-        if e == "Connection reset without closing handshake" => (),
+      Err(Error::WebSocket(WebSocketError::Protocol(e)))
+        if e == ProtocolError::ResetWithoutClosingHandshake => {},
       Err(e) => panic!("received unexpected error: {}", e),
     }
   }
@@ -241,8 +242,8 @@ mod tests {
       .unwrap_err();
 
     match err {
-      Error::WebSocket(WebSocketError::Protocol(ref e))
-        if e == "Connection reset without closing handshake" => (),
+      Error::WebSocket(WebSocketError::Protocol(e))
+        if e == ProtocolError::ResetWithoutClosingHandshake => {},
       e => panic!("received unexpected error: {}", e),
     }
   }

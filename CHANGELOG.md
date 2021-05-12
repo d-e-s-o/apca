@@ -2,6 +2,8 @@ Unreleased
 ----------
 - Added `ApiInfo::from_parts` constructor
 - Bumped minimum supported Rust version to `1.46`
+- Bumped `websocket-util` dependency to `0.8`
+- Bumped `tokio-tungstenite` dependency to `0.14`
 
 
 0.18.0
