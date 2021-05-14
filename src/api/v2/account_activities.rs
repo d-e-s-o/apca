@@ -31,7 +31,7 @@ pub enum ActivityType {
   /// This variant will only ever be set for trade activities.
   #[serde(rename = "FILL")]
   Fill,
-  /// Cash transactions (both CSD and CSR).
+  /// Cash transactions (both CSD and CSW).
   #[serde(rename = "TRANS")]
   Transaction,
   ///  Miscellaneous or rarely used activity types (All types except those in TRANS, DIV, or FILL).
@@ -43,12 +43,12 @@ pub enum ActivityType {
   /// ACATS IN/OUT (Securities).
   #[serde(rename = "ACATS")]
   AcatsInOutSecurities,
-  /// Cash disbursement(+).
+  /// Cash deposit(+).
   #[serde(rename = "CSD")]
-  CashDisbursement,
-  /// Cash receipt(-).
-  #[serde(rename = "CSR")]
-  CashReceipt,
+  CashDeposit,
+  /// Cash withdrawal(-).
+  #[serde(rename = "CSW")]
+  CashWithdrawal,
   /// Dividends.
   #[serde(rename = "DIV")]
   Dividend,

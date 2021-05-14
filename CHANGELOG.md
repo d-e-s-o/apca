@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `ApiInfo::from_parts` constructor
+- Updated `ActivityType` enum to be in sync with upstream variants
 - Bumped minimum supported Rust version to `1.46`
 - Bumped `websocket-util` dependency to `0.8`
 - Bumped `tokio-tungstenite` dependency to `0.14`
