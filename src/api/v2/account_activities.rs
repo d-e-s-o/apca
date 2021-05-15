@@ -127,6 +127,11 @@ pub enum ActivityType {
   /// Stock split.
   #[serde(rename = "SSP")]
   StockSplit,
+  /// Any other activity type that we have not accounted for.
+  ///
+  /// Note that having any such type should be considered a bug.
+  #[serde(other)]
+  Unknown,
 }
 
 
