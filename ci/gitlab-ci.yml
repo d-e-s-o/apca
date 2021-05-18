@@ -18,15 +18,15 @@ build:cargo:
       - target/
   script:
   - rustc --version && cargo --version
-  - cargo build --tests --all --verbose
-  - cargo build --tests --all --verbose --release
+  - cargo build --lib --tests --verbose
+  - cargo build --lib --tests --verbose --release
 
 test:cargo:
   stage: test
   dependencies:
   - build:cargo
   script:
-  - cargo test --all --verbose
+  - cargo test --verbose
 
 lint:clippy:
   stage: test
