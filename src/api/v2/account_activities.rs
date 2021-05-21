@@ -115,6 +115,9 @@ pub enum ActivityType {
   /// Pass Thru Rebate.
   #[serde(rename = "PTR")]
   PassThruRebate,
+  /// SEC and FINRA fees.
+  #[serde(rename = "FEE")]
+  Fee,
   /// Reorg CA.
   #[serde(rename = "REORG")]
   Reorg,
