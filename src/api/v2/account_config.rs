@@ -7,7 +7,6 @@ use http_endpoint::Bytes;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::to_vec as to_json;
-use serde_json::Error as JsonError;
 
 use crate::Str;
 
@@ -77,10 +76,10 @@ Endpoint! {
     "/v2/account/configurations".into()
   }
 
-  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
+  fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
     let json = to_json(input)?;
     let bytes = Bytes::from(json);
-    Ok(bytes)
+    Ok(Some(bytes))
   }
 }
 

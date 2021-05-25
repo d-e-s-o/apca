@@ -429,11 +429,11 @@ Endpoint! {
     "/v2/account/activities".into()
   }
 
-  fn query(input: &Self::Input) -> Option<Str> {
+  fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
     // TODO: Realistically there should be no way for this unwrap to
     //       ever panic because our conversion to strings should not be
     //       fallible. But still, ideally we would not have to unwrap.
-    Some(to_query(input).unwrap().into())
+    Ok(Some(to_query(input).unwrap().into()))
   }
 }
 

@@ -4,6 +4,7 @@ Unreleased
 - Updated `ActivityType` enum to be in sync with upstream variants
 - Added support for unknown `ActivityType` variants
 - Bumped minimum supported Rust version to `1.46`
+- Bumped `http-endpoint` dependency to `0.5`
 - Bumped `websocket-util` dependency to `0.8`
 - Bumped `tokio-tungstenite` dependency to `0.14`
 
@@ -35,7 +36,7 @@ Unreleased
 0.16.0
 ------
 - Converted `NonTradeActivity::quantity` from `u64` to `Num`
-- Bumped `http-endpoint` dependency to `0.2`
+- Bumped `http-endpoint` dependency to `0.4`
 - Bumped `websocket-util` dependency to `0.6`
 - Bumped `async-tungstenite` dependency to `0.8`
 - Bumped `serde_urlencoded` dependency to `0.7`
@@ -161,7 +162,7 @@ Unreleased
 - Dropped dependency on `futures` `0.1`
 - Factored out `http-endpoint` crate
 - Factored out `websocket-util` crate
-- Correctly implemented `std::error::Error::source` for `Error type
+- Correctly implemented `std::error::Error::source` for `Error` type
 - Bumped `env_logger` dependency to `0.7`
 - Bumped `uuid` dependency to `0.8`
 

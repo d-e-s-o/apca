@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::borrow::Cow;
 use std::str::from_utf8;
 
 use futures::stream::Stream;
@@ -118,7 +119,7 @@ impl Client {
       .unwrap_or_else(|| self.api_info.base_url.clone());
 
     url.set_path(&R::path(&input));
-    url.set_query(R::query(&input).as_ref().map(AsRef::as_ref));
+    url.set_query(R::query(&input)?.as_ref().map(AsRef::as_ref));
 
     let request = HttpRequestBuilder::new()
       .method(R::method())
@@ -126,7 +127,9 @@ impl Client {
       // Add required authentication information.
       .header(HDR_KEY_ID, self.api_info.key_id.as_str())
       .header(HDR_SECRET, self.api_info.secret.as_str())
-      .body(Body::from(R::body(input)?))?;
+      .body(Body::from(
+        R::body(input)?.unwrap_or_else(|| Cow::Borrowed(&[0; 0])),
+      ))?;
 
     Ok(request)
   }

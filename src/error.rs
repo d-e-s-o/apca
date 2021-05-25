@@ -110,12 +110,12 @@ impl StdError for Error {
   }
 }
 
-impl From<EndpointError> for Error {
-  fn from(src: EndpointError) -> Self {
+impl From<EndpointError<JsonError>> for Error {
+  fn from(src: EndpointError<JsonError>) -> Self {
     match src {
       EndpointError::Http(err) => Error::Http(err),
       EndpointError::HttpStatus(status, data) => Error::HttpStatus(status, data),
-      EndpointError::Json(err) => Error::Json(err),
+      EndpointError::Conversion(err) => Error::Json(err),
     }
   }
 }

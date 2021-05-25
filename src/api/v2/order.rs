@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
-use serde_json::Error as JsonError;
+use serde_json::from_slice as from_json;
 use serde_json::to_vec as to_json;
 use serde_urlencoded::to_string as to_query;
 
@@ -612,7 +612,7 @@ Endpoint! {
     "/v2/orders:by_client_order_id".into()
   }
 
-  fn query(input: &Self::Input) -> Option<Str> {
+  fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
     #[derive(Serialize)]
     struct ClientOrderId<'s> {
       #[serde(rename = "client_order_id")]
@@ -625,7 +625,7 @@ Endpoint! {
     // TODO: Realistically there should be no way for this unwrap to
     //       ever panic because our conversion to strings should not be
     //       fallible. But still, ideally we would not have to unwrap.
-    Some(to_query(order_id).unwrap().into())
+    Ok(Some(to_query(order_id).unwrap().into()))
   }
 }
 
@@ -652,10 +652,10 @@ Endpoint! {
     "/v2/orders".into()
   }
 
-  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
+  fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
     let json = to_json(input)?;
     let bytes = Bytes::from(json);
-    Ok(bytes)
+    Ok(Some(bytes))
   }
 }
 
@@ -686,16 +686,16 @@ Endpoint! {
     format!("/v2/orders/{}", id.to_simple()).into()
   }
 
-  fn body(input: &Self::Input) -> Result<Bytes, JsonError> {
+  fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
     let (_, request) = input;
     let json = to_json(request)?;
     let bytes = Bytes::from(json);
-    Ok(bytes)
+    Ok(Some(bytes))
   }
 }
 
 
-Endpoint! {
+EndpointNoParse! {
   /// The representation of a DELETE request to the /v2/orders/<order-id>
   /// endpoint.
   pub Delete(Id),
@@ -718,9 +718,13 @@ Endpoint! {
     format!("/v2/orders/{}", input.to_simple()).into()
   }
 
-  fn parse(body: &[u8]) -> Result<Self::Output, Self::Error> {
+  fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
     debug_assert_eq!(body, b"");
     Ok(())
+  }
+
+  fn parse_err(body: &[u8]) -> Result<Self::ApiError, Vec<u8>> {
+    from_json::<Self::ApiError>(body).map_err(|_| body.to_vec())
   }
 }
 

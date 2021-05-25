@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -57,11 +57,11 @@ Endpoint! {
     "/v2/assets".into()
   }
 
-  fn query(input: &Self::Input) -> Option<Str> {
+  fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
     // TODO: Realistically there should be no way for this unwrap to
     //       ever panic because our conversion to strings should not be
     //       fallible. But still, ideally we would not have to unwrap.
-    Some(to_query(input).unwrap().into())
+    Ok(Some(to_query(input).unwrap().into()))
   }
 }
 
