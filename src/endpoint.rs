@@ -1,15 +1,13 @@
 // Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::error::Error;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Result as FmtResult;
-
 use serde::Deserialize;
 
+use thiserror::Error;
 
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+
+#[derive(Clone, Debug, Deserialize, Error, PartialEq)]
+#[error("{message} ({code})")]
 pub struct ErrorMessage {
   /// An error code as provided by Alpaca.
   #[serde(rename = "code")]
@@ -18,14 +16,6 @@ pub struct ErrorMessage {
   #[serde(rename = "message")]
   pub message: String,
 }
-
-impl Display for ErrorMessage {
-  fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-    write!(fmt, "{} ({})", self.message, self.code)
-  }
-}
-
-impl Error for ErrorMessage {}
 
 
 /// A macro used for defining the properties for a request to a

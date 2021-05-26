@@ -3,6 +3,7 @@ Unreleased
 - Added `ApiInfo::from_parts` constructor
 - Updated `ActivityType` enum to be in sync with upstream variants
 - Added support for unknown `ActivityType` variants
+- Switched to using `thiserror` crate for defining error types
 - Bumped minimum supported Rust version to `1.46`
 - Bumped `http-endpoint` dependency to `0.5`
 - Bumped `websocket-util` dependency to `0.8`
