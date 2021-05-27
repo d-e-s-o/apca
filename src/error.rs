@@ -10,7 +10,6 @@ use std::str::from_utf8;
 
 use http::Error as HttpError;
 use http::StatusCode as HttpStatusCode;
-use http_endpoint::Error as EndpointError;
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
@@ -91,14 +90,4 @@ pub enum Error {
     #[source]
     WebSocketError,
   ),
-}
-
-impl From<EndpointError<JsonError>> for Error {
-  fn from(src: EndpointError<JsonError>) -> Self {
-    match src {
-      EndpointError::Http(err) => Error::Http(err),
-      EndpointError::HttpStatus(status, data) => Error::HttpStatus(status, HttpBody(data)),
-      EndpointError::Conversion(err) => Error::Json(err),
-    }
-  }
 }

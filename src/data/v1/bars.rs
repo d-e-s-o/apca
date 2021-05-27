@@ -141,10 +141,7 @@ Endpoint! {
 
   fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
     let (_, request) = input;
-    // TODO: Realistically there should be no way for this unwrap to
-    //       ever panic because our conversion to strings should not be
-    //       fallible. But still, ideally we would not have to unwrap.
-    Ok(Some(to_query(request).unwrap().into()))
+    Ok(Some(to_query(request)?.into()))
   }
 }
 

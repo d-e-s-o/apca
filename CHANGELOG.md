@@ -1,6 +1,8 @@
 Unreleased
 ----------
 - Added `ApiInfo::from_parts` constructor
+- Introduced `ConversionError` type
+  - Replaced `unwrap`s with proper error variants
 - Updated `ActivityType` enum to be in sync with upstream variants
 - Added support for unknown `ActivityType` variants
 - Switched to using `thiserror` crate for defining error types

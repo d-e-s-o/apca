@@ -2,6 +2,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
+use serde_json::Error as JsonError;
+use serde_urlencoded::ser::Error as UrlEncodeError;
+
+
+/// An error type comprising various conversion errors we may encounter.
+#[derive(Debug, Error)]
+pub enum ConversionError {
+  /// A variant used when a JSON conversion failed.
+  #[error("failed to convert from/to JSON")]
+  Json(#[from] JsonError),
+  /// A variant used when we fail to URL-encode a piece of data.
+  #[error("failed to URL-encode data")]
+  UrlEncode(#[from] UrlEncodeError),
+}
 
 use thiserror::Error;
 
@@ -40,7 +54,7 @@ macro_rules! EndpointNoParse {
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,
         $($(#[$err_docs])* $err_status => $variant,)*
       ],
-      ConversionErr => ::serde_json::Error,
+      ConversionErr => crate::endpoint::ConversionError,
       ApiErr => crate::endpoint::ErrorMessage,
 
       $($defs)*
@@ -56,7 +70,7 @@ macro_rules! Endpoint {
       $($input)*
 
       fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
-        ::serde_json::from_slice::<Self::Output>(body)
+        ::serde_json::from_slice::<Self::Output>(body).map_err(Self::ConversionError::from)
       }
 
       fn parse_err(body: &[u8]) -> Result<Self::ApiError, Vec<u8>> {

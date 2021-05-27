@@ -622,10 +622,7 @@ Endpoint! {
     let order_id = ClientOrderId {
       order_id: &input,
     };
-    // TODO: Realistically there should be no way for this unwrap to
-    //       ever panic because our conversion to strings should not be
-    //       fallible. But still, ideally we would not have to unwrap.
-    Ok(Some(to_query(order_id).unwrap().into()))
+    Ok(Some(to_query(order_id)?.into()))
   }
 }
 
