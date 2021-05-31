@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -170,6 +170,7 @@ mod tests {
   use super::*;
 
   use futures::future::ok;
+  use futures::pin_mut;
   use futures::StreamExt;
   use futures::TryStreamExt;
 
@@ -194,15 +195,12 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let stream = client.subscribe::<TradeUpdates>().await.unwrap();
+    pin_mut!(stream);
+
     let order = order_aapl(&client).await.unwrap();
     client.issue::<order::Delete>(order.id).await.unwrap();
 
-    // Unfortunately due to various braindeadnesses on the Rust &
-    // futures side of things there is no sane way for us to provide a
-    // stream that implements `Unpin`, which is a requirement for
-    // `next`. Given that this is a test we just fudge that by pinning
-    // the stream on the heap.
-    let trade = Box::pin(stream)
+    let trade = stream
       .try_filter_map(|res| {
         let trade = res.unwrap();
         ok(Some(trade))
