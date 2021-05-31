@@ -78,15 +78,47 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use futures::future::ok;
+  use futures::pin_mut;
+  use futures::StreamExt;
+  use futures::TryStreamExt;
+
   use num_decimal::Num;
 
   use test_env_log::test;
 
+  use crate::api::v2::events;
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
 
+
+  /// Cancel an order and wait for the corresponding cancellation event
+  /// to arrive.
+  async fn cancel_order(client: &Client, id: order::Id) {
+    let stream = client.subscribe::<events::TradeUpdates>().await.unwrap();
+    pin_mut!(stream);
+
+    client.issue::<order::Delete>(id).await.unwrap();
+
+    // Wait until we see the "canceled" event.
+    let _trade = stream
+      .try_filter_map(|res| {
+        let trade = res.unwrap();
+        ok(Some(trade))
+      })
+      // There could be other trades happening concurrently but we
+      // are only interested in ones belonging to the order canceled
+      // earlier.
+      .try_skip_while(|trade| {
+        ok(trade.order.id != id || !matches!(trade.event, events::TradeStatus::Canceled))
+      })
+      .next()
+      .await
+      .unwrap()
+      .unwrap();
+  }
 
   #[test(tokio::test)]
   async fn list_orders() {
@@ -100,7 +132,7 @@ mod tests {
 
       let order = order_aapl(&client).await.unwrap();
       let result = client.issue::<Get>(request).await;
-      client.issue::<order::Delete>(order.id).await.unwrap();
+      cancel_order(&client, order.id).await;
 
       let before = result.unwrap();
       let after = client.issue::<Get>(request).await.unwrap();
