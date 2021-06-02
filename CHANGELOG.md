@@ -6,6 +6,7 @@ Unreleased
 - Updated `ActivityType` enum to be in sync with upstream variants
 - Added support for unknown `ActivityType` variants
 - Switched to using `thiserror` crate for defining error types
+- Updated `num-decimal` to use version `0.4` of the `num-*` crates
 - Bumped minimum supported Rust version to `1.46`
 - Bumped `http-endpoint` dependency to `0.5`
 - Bumped `websocket-util` dependency to `0.8`
