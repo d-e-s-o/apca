@@ -20,9 +20,6 @@ A create for interacting with the Alpaca API.
 """
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
-[badges]
-gitlab = { repository = "d-e-s-o/apca", branch = "master" }
-
 [dependencies]
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
