@@ -115,7 +115,7 @@ mod tests {
   async fn retrieve_and_update_configuration() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let config = client.issue::<Get>(()).await.unwrap();
+    let config = client.issue::<Get>(&()).await.unwrap();
 
     // We invert the trade confirmation strategy, which should be a
     // change not affecting any tests running concurrently.
@@ -128,11 +128,11 @@ mod tests {
       trade_confirmation: new_confirmation,
       ..config
     };
-    let patch_result = client.issue::<Patch>(patched).await;
+    let patch_result = client.issue::<Patch>(&patched).await;
     // Also retrieve the configuration again.
-    let get_result = client.issue::<Get>(()).await;
+    let get_result = client.issue::<Get>(&()).await;
     // Revert back to the original setting.
-    let reverted = client.issue::<Patch>(config).await.unwrap();
+    let reverted = client.issue::<Patch>(&config).await.unwrap();
 
     assert_eq!(patch_result.unwrap(), patched);
     assert_eq!(get_result.unwrap(), patched);

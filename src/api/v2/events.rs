@@ -198,7 +198,7 @@ mod tests {
     pin_mut!(stream);
 
     let order = order_aapl(&client).await.unwrap();
-    client.issue::<order::Delete>(order.id).await.unwrap();
+    client.issue::<order::Delete>(&order.id).await.unwrap();
 
     let trade = stream
       .try_filter_map(|res| {

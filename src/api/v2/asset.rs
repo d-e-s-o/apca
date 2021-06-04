@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Display;
@@ -454,7 +454,7 @@ mod tests {
     async fn test(symbol: Symbol) {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
-      let asset = client.issue::<Get>(symbol).await.unwrap();
+      let asset = client.issue::<Get>(&symbol).await.unwrap();
 
       // The AAPL asset ID, retrieved out-of-band.
       let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());

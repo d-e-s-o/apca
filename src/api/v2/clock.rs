@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::time::SystemTime;
@@ -76,7 +76,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let clock = client.issue::<Get>(()).await.unwrap();
+    let clock = client.issue::<Get>(&()).await.unwrap();
 
     // We want to sanitize the current time being reported at least to a
     // certain degree. For that we assume that our local time is

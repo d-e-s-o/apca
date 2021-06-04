@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
+use std::future::Future;
 use std::str::from_utf8;
 
 use futures::stream::Stream;
@@ -135,18 +136,24 @@ impl Client {
   }
 
   /// Create and issue a request and decode the response.
-  pub async fn issue<R>(&self, input: R::Input) -> Result<R::Output, RequestError<R::Error>>
+  pub fn issue<R>(
+    &self,
+    input: &R::Input,
+  ) -> impl Future<Output = Result<R::Output, RequestError<R::Error>>> + '_
   where
     R: Endpoint,
   {
-    let request = self.request::<R>(&input).map_err(RequestError::Endpoint)?;
-    let span = span!(
-      Level::INFO,
-      "issue",
-      method = display(request.method()),
-      uri = display(request.uri())
-    );
-    self.issue_::<R>(request).instrument(span).await
+    let result = self.request::<R>(&input);
+    async move {
+      let request = result.map_err(RequestError::Endpoint)?;
+      let span = span!(
+        Level::INFO,
+        "issue",
+        method = display(request.method()),
+        uri = display(request.uri())
+      );
+      self.issue_::<R>(request).instrument(span).await
+    }
   }
 
   /// Issue a request.
@@ -227,7 +234,7 @@ mod tests {
   async fn unexpected_status_code_return() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::builder().max_idle_per_host(0).build(api_info);
-    let result = client.issue::<GetNotFound>(()).await;
+    let result = client.issue::<GetNotFound>(&()).await;
     let err = result.unwrap_err();
 
     match err {

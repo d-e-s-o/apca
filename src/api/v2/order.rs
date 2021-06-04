@@ -842,8 +842,8 @@ mod tests {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
-      let order = client.issue::<Post>(request).await?;
-      client.issue::<Delete>(order.id).await.unwrap();
+      let order = client.issue::<Post>(&request).await?;
+      client.issue::<Delete>(&order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
       assert_eq!(order.quantity, 1);
@@ -886,8 +886,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(request).await.unwrap();
-    client.issue::<Delete>(order.id).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
+    client.issue::<Delete>(&order.id).await.unwrap();
 
     assert_eq!(order.symbol, "SPY");
     assert_eq!(order.quantity, 1);
@@ -915,8 +915,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(request).await.unwrap();
-    client.issue::<Delete>(order.id).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
+    client.issue::<Delete>(&order.id).await.unwrap();
 
     assert_eq!(order.symbol, "SPY");
     assert_eq!(order.quantity, 1);
@@ -945,11 +945,11 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(request).await.unwrap();
-    client.issue::<Delete>(order.id).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
+    client.issue::<Delete>(&order.id).await.unwrap();
 
     for leg in &order.legs {
-      client.issue::<Delete>(leg.id).await.unwrap();
+      client.issue::<Delete>(&leg.id).await.unwrap();
     }
 
     assert_eq!(order.symbol, "SPY");
@@ -979,11 +979,11 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(request).await.unwrap();
-    client.issue::<Delete>(order.id).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
+    client.issue::<Delete>(&order.id).await.unwrap();
 
     for leg in &order.legs {
-      client.issue::<Delete>(leg.id).await.unwrap();
+      client.issue::<Delete>(&leg.id).await.unwrap();
     }
 
     assert_eq!(order.symbol, "SPY");
@@ -1013,9 +1013,9 @@ mod tests {
       }
       .init("AAPL", Side::Buy, 1);
 
-      match client.issue::<Post>(request).await {
+      match client.issue::<Post>(&request).await {
         Ok(order) => {
-          client.issue::<Delete>(order.id).await.unwrap();
+          client.issue::<Delete>(&order.id).await.unwrap();
 
           assert_eq!(order.time_in_force, time_in_force);
         },
@@ -1042,7 +1042,7 @@ mod tests {
     }
     .init("AAPL", Side::Buy, 100000);
 
-    let result = client.issue::<Post>(request).await;
+    let result = client.issue::<Post>(&request).await;
     let err = result.unwrap_err();
 
     match err {
@@ -1056,7 +1056,7 @@ mod tests {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let result = client.issue::<Delete>(id).await;
+    let result = client.issue::<Delete>(&id).await;
     let err = result.unwrap_err();
 
     match err {
@@ -1070,8 +1070,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let posted = order_aapl(&client).await.unwrap();
-    let result = client.issue::<Get>(posted.id).await;
-    client.issue::<Delete>(posted.id).await.unwrap();
+    let result = client.issue::<Get>(&posted.id).await;
+    client.issue::<Delete>(&posted.id).await.unwrap();
     let gotten = result.unwrap();
 
     // We can't simply compare the two orders for equality, because some
@@ -1091,7 +1091,7 @@ mod tests {
     let id = Id(Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap());
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let result = client.issue::<Get>(id).await;
+    let result = client.issue::<Get>(&id).await;
     let err = result.unwrap_err();
 
     match err {
@@ -1113,7 +1113,7 @@ mod tests {
 
     // We are submitting a market order with extended_hours, that is
     // invalid as per the Alpaca documentation.
-    let result = client.issue::<Post>(request).await;
+    let result = client.issue::<Post>(&request).await;
     let err = result.unwrap_err();
 
     match err {
@@ -1133,7 +1133,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let order = client.issue::<Post>(request).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
 
     let request = ChangeReqInit {
       quantity: 2,
@@ -1143,14 +1143,14 @@ mod tests {
     }
     .init();
 
-    let result = client.issue::<Patch>((order.id, request)).await;
+    let result = client.issue::<Patch>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
       replaced.id
     } else {
       order.id
     };
 
-    client.issue::<Delete>(id).await.unwrap();
+    client.issue::<Delete>(&id).await.unwrap();
 
     match result {
       Ok(order) => {
@@ -1181,7 +1181,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let order = client.issue::<Post>(request).await.unwrap();
+    let order = client.issue::<Post>(&request).await.unwrap();
     assert_eq!(order.trail_price, Some(Num::from(20)));
 
     let request = ChangeReqInit {
@@ -1190,14 +1190,14 @@ mod tests {
     }
     .init();
 
-    let result = client.issue::<Patch>((order.id, request)).await;
+    let result = client.issue::<Patch>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
       replaced.id
     } else {
       order.id
     };
 
-    client.issue::<Delete>(id).await.unwrap();
+    client.issue::<Delete>(&id).await.unwrap();
 
     match result {
       Ok(order) => {
@@ -1227,10 +1227,10 @@ mod tests {
     let client = Client::new(api_info);
 
     let (issued, retrieved) = client
-      .issue::<Post>(request.clone())
+      .issue::<Post>(&request)
       .and_then(|order| async {
-        let retrieved = client.issue::<GetByClientId>(client_order_id.clone()).await;
-        client.issue::<Delete>(order.id).await.unwrap();
+        let retrieved = client.issue::<GetByClientId>(&client_order_id).await;
+        client.issue::<Delete>(&order.id).await.unwrap();
         Ok((order, retrieved.unwrap()))
       })
       .await
@@ -1242,7 +1242,7 @@ mod tests {
 
     // We should not be able to submit another order with the same
     // client ID.
-    let err = client.issue::<Post>(request).await.unwrap_err();
+    let err = client.issue::<Post>(&request).await.unwrap_err();
 
     match err {
       RequestError::Endpoint(PostError::InvalidInput(..)) => (),

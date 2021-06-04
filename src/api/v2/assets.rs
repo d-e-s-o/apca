@@ -79,7 +79,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = AssetsReqInit::default().init();
-    let assets = client.issue::<Get>(request).await.unwrap();
+    let assets = client.issue::<Get>(&request).await.unwrap();
 
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
     assert_eq!(asset.class, Class::UsEquity);

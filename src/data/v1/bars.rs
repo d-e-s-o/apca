@@ -200,7 +200,7 @@ mod tests {
       end: Some(end),
     };
     let bars = client
-      .issue::<Get>((TimeFrame::OneDay, request))
+      .issue::<Get>(&(TimeFrame::OneDay, request))
       .await
       .unwrap();
 
@@ -231,7 +231,7 @@ mod tests {
     .init("AAPL");
 
     let bars = client
-      .issue::<Get>((TimeFrame::OneDay, request))
+      .issue::<Get>(&(TimeFrame::OneDay, request))
       .await
       .unwrap();
 

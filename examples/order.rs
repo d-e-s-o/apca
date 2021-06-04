@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use apca::api::v2::order;
@@ -29,6 +29,6 @@ async fn main() {
   // We want to go long on AAPL, buying a single share.
   .init("AAPL", order::Side::Buy, 1);
 
-  let order = client.issue::<order::Post>(request).await.unwrap();
+  let order = client.issue::<order::Post>(&request).await.unwrap();
   println!("Created order {}", order.id.to_hyphenated_ref());
 }

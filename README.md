@@ -48,7 +48,7 @@ let request = order::OrderReqInit {
 .init("AAPL", Side::Buy, 1);
 
 let order = client
-  .issue::<order::Post>(request)
+  .issue::<order::Post>(&request)
   .await
   .unwrap();
 ```

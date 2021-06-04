@@ -225,7 +225,7 @@ mod tests {
   async fn request_account() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let account = client.issue::<Get>(()).await.unwrap();
+    let account = client.issue::<Get>(&()).await.unwrap();
 
     assert_eq!(account.currency, "USD");
     assert!(!account.account_blocked);
@@ -242,7 +242,7 @@ mod tests {
   async fn request_account_with_invalid_credentials() {
     let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
     let client = Client::new(api_info);
-    let result = client.issue::<Get>(()).await;
+    let result = client.issue::<Get>(&()).await;
 
     let err = result.unwrap_err();
     match err {

@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use num_decimal::Num;
@@ -17,7 +17,5 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, RequestError<or
   }
   .init("AAPL", Side::Buy, 1);
 
-  client
-    .issue::<order::Post>(request)
-    .await
+  client.issue::<order::Post>(&request).await
 }

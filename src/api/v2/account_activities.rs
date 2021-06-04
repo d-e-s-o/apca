@@ -551,7 +551,7 @@ mod tests {
       ],
       ..Default::default()
     };
-    let activities = client.issue::<Get>(request).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
 
     assert!(!activities.is_empty());
 
@@ -578,7 +578,7 @@ mod tests {
       types: vec![ActivityType::Fill],
       ..Default::default()
     };
-    let activities = client.issue::<Get>(request).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
 
     assert!(!activities.is_empty());
 
@@ -600,7 +600,7 @@ mod tests {
       direction: Direction::Ascending,
       ..Default::default()
     };
-    let activities = client.issue::<Get>(request).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
 
     // We don't really have a better way to test this than testing that
     // we parsed something. Note that this may not work for newly
@@ -625,7 +625,7 @@ mod tests {
       page_size: Some(1),
       ..Default::default()
     };
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     // We already make the assumption that there are some activities
     // available for us to work with in other tests, so we continue down
     // this road here.
@@ -634,7 +634,7 @@ mod tests {
 
     request.page_token = Some(newest_activity.id().to_string());
 
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
     let next_activity = &activities[0];
 
@@ -654,7 +654,7 @@ mod tests {
       ..Default::default()
     };
 
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
 
     let time = activities[0].time();
@@ -669,7 +669,7 @@ mod tests {
 
     // Make another request, this time asking for activities after the
     // first one that was reported.
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
     assert!(activities[0].time() > time);
   }
@@ -685,13 +685,13 @@ mod tests {
       ..Default::default()
     };
 
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 2);
 
     let time = activities[1].time();
     request.until = Some(time - Duration::from_micros(1));
 
-    let activities = client.issue::<Get>(request.clone()).await.unwrap();
+    let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
     assert!(activities[0].time() < time);
   }

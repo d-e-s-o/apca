@@ -100,7 +100,7 @@ mod tests {
     let stream = client.subscribe::<events::TradeUpdates>().await.unwrap();
     pin_mut!(stream);
 
-    client.issue::<order::Delete>(id).await.unwrap();
+    client.issue::<order::Delete>(&id).await.unwrap();
 
     // Wait until we see the "canceled" event.
     let _trade = stream
@@ -131,11 +131,11 @@ mod tests {
       };
 
       let order = order_aapl(&client).await.unwrap();
-      let result = client.issue::<Get>(request).await;
+      let result = client.issue::<Get>(&request).await;
       cancel_order(&client, order.id).await;
 
       let before = result.unwrap();
-      let after = client.issue::<Get>(request).await.unwrap();
+      let after = client.issue::<Get>(&request).await.unwrap();
 
       let before = Into::<Vec<_>>::into(before);
       let after = Into::<Vec<_>>::into(after);
@@ -175,15 +175,15 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<order::Post>(request).await.unwrap();
+    let order = client.issue::<order::Post>(&request).await.unwrap();
     assert_eq!(order.legs.len(), 1);
 
     let request = OrdersReq {
       status: Status::Open,
       ..Default::default()
     };
-    let list = client.issue::<Get>(request).await.unwrap();
-    client.issue::<order::Delete>(order.id).await.unwrap();
+    let list = client.issue::<Get>(&request).await.unwrap();
+    client.issue::<order::Delete>(&order.id).await.unwrap();
 
     let mut filtered = list.into_iter().filter(|o| o.id == order.id);
     let listed = filtered.next().unwrap();
