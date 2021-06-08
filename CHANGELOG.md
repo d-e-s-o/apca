@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.19.0
+------
 - Added `ApiInfo::from_parts` constructor
 - Adjusted `Client::issue` to accept request input via reference
 - Introduced `ConversionError` type
