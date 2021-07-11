@@ -284,8 +284,7 @@ impl Activity {
     }
   }
 
-  /// The time on which the activity occurred.
-  #[cfg(test)]
+  /// The time at which the activity occurred.
   pub fn time(&self) -> SystemTime {
     match self {
       Activity::Trade(trade) => trade.transaction_time,

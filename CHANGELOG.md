@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Added `Activity::time` method for retrieving the time stamp of an
+  account activity
+
+
 0.19.0
 ------
 - Added `ApiInfo::from_parts` constructor
