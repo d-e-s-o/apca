@@ -1,13 +1,12 @@
 // Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
+use chrono::DateTime;
+use chrono::Utc;
 
 use num_decimal::Num;
 
 use serde::Deserialize;
-
-use time_util::optional_system_time_from_str;
 
 use crate::api::v2::account;
 use crate::api::v2::order;
@@ -23,23 +22,14 @@ pub struct AccountUpdate {
   #[serde(rename = "id")]
   pub id: account::Id,
   /// The time the account was created at.
-  #[serde(
-    rename = "created_at",
-    deserialize_with = "optional_system_time_from_str"
-  )]
-  pub created_at: Option<SystemTime>,
+  #[serde(rename = "created_at")]
+  pub created_at: Option<DateTime<Utc>>,
   /// The time the account was updated last.
-  #[serde(
-    rename = "updated_at",
-    deserialize_with = "optional_system_time_from_str"
-  )]
-  pub updated_at: Option<SystemTime>,
+  #[serde(rename = "updated_at")]
+  pub updated_at: Option<DateTime<Utc>>,
   /// The time the account was deleted at.
-  #[serde(
-    rename = "deleted_at",
-    deserialize_with = "optional_system_time_from_str"
-  )]
-  pub deleted_at: Option<SystemTime>,
+  #[serde(rename = "deleted_at")]
+  pub deleted_at: Option<DateTime<Utc>>,
   /// The account's status.
   #[serde(rename = "status")]
   pub status: String,
