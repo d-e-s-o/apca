@@ -1,14 +1,11 @@
 // Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
+use chrono::{DateTime, Utc};
 
 use serde::Deserialize;
 
-use time_util::system_time_from_str;
-
 use crate::Str;
-
 
 /// A type encapsulating market open/close timing information.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
@@ -17,14 +14,14 @@ pub struct Clock {
   #[serde(rename = "is_open")]
   pub open: bool,
   /// The current time.
-  #[serde(rename = "timestamp", deserialize_with = "system_time_from_str")]
-  pub current: SystemTime,
+  #[serde(rename = "timestamp")]
+  pub current: DateTime<Utc>,
   /// The next market opening time stamp.
-  #[serde(rename = "next_open", deserialize_with = "system_time_from_str")]
-  pub next_open: SystemTime,
+  #[serde(rename = "next_open")]
+  pub next_open: DateTime<Utc>,
   /// The next market closing time stamp.
-  #[serde(rename = "next_close", deserialize_with = "system_time_from_str")]
-  pub next_close: SystemTime,
+  #[serde(rename = "next_close")]
+  pub next_close: DateTime<Utc>,
 }
 
 
@@ -47,7 +44,7 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
+  use chrono::Duration;
 
   use serde_json::from_str as from_json;
 
@@ -72,8 +69,6 @@ mod tests {
 
   #[test(tokio::test)]
   async fn current_market_clock() {
-    const SECS_IN_HOUR: u64 = 60 * 60;
-
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let clock = client.issue::<Get>(&()).await.unwrap();
@@ -83,10 +78,9 @@ mod tests {
     // somewhat synchronized to "real" time and are asserting that the
     // current time reported by Alpaca is within one hour of our local
     // time (mainly to rule out wrong time zone handling).
-    let now = SystemTime::now();
-    let hour = Duration::from_secs(SECS_IN_HOUR);
-    assert!(now > clock.current - hour);
-    assert!(now < clock.current + hour);
+    let now = Utc::now();
+    assert!(now > clock.current - Duration::hours(1));
+    assert!(now < clock.current + Duration::hours(1));
 
     assert!(clock.current < clock.next_open);
     assert!(clock.current < clock.next_close);
