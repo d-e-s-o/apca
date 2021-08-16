@@ -3,7 +3,8 @@
 
 use std::ops::Deref;
 use std::ops::Not;
-use std::time::SystemTime;
+
+use chrono::{DateTime, Utc};
 
 use http::Method;
 use http_endpoint::Bytes;
@@ -20,9 +21,6 @@ use serde_json::to_vec as to_json;
 use serde_urlencoded::to_string as to_query;
 
 use uuid::Uuid;
-
-use time_util::optional_system_time_from_str;
-use time_util::system_time_from_str;
 
 use crate::api::v2::asset;
 use crate::api::v2::util::u64_from_str;
@@ -481,38 +479,33 @@ pub struct Order {
   #[serde(rename = "status")]
   pub status: Status,
   /// Timestamp this order was created at.
-  #[serde(rename = "created_at", deserialize_with = "system_time_from_str")]
-  pub created_at: SystemTime,
+  #[serde(rename = "created_at")]
+  pub created_at: DateTime<Utc>,
   /// Timestamp this order was updated at last.
   #[serde(
     rename = "updated_at",
-    deserialize_with = "optional_system_time_from_str",
   )]
-  pub updated_at: Option<SystemTime>,
+  pub updated_at: Option<DateTime<Utc>>,
   /// Timestamp this order was submitted at.
   #[serde(
     rename = "submitted_at",
-    deserialize_with = "optional_system_time_from_str",
   )]
-  pub submitted_at: Option<SystemTime>,
+  pub submitted_at: Option<DateTime<Utc>>,
   /// Timestamp this order was filled at.
   #[serde(
     rename = "filled_at",
-    deserialize_with = "optional_system_time_from_str",
   )]
-  pub filled_at: Option<SystemTime>,
+  pub filled_at: Option<DateTime<Utc>>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "expired_at",
-    deserialize_with = "optional_system_time_from_str",
   )]
-  pub expired_at: Option<SystemTime>,
+  pub expired_at: Option<DateTime<Utc>>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "canceled_at",
-    deserialize_with = "optional_system_time_from_str",
   )]
-  pub canceled_at: Option<SystemTime>,
+  pub canceled_at: Option<DateTime<Utc>>,
   /// The order's asset class.
   #[serde(rename = "asset_class")]
   pub asset_class: asset::Class,
@@ -734,8 +727,6 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
-  use time_util::parse_system_time_from_str;
-
   use test_env_log::test;
 
   use uuid::Uuid;
@@ -816,7 +807,7 @@ mod tests {
     assert_eq!(order.id, id);
     assert_eq!(
       order.created_at,
-      parse_system_time_from_str("2018-10-05T05:48:59Z").unwrap()
+      DateTime::parse_from_rfc3339("2018-10-05T05:48:59Z").unwrap()
     );
     assert_eq!(order.symbol, "AAPL");
     assert_eq!(order.quantity, 15);
