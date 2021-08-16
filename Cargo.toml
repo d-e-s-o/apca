@@ -21,6 +21,7 @@ A create for interacting with the Alpaca API.
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
 [dependencies]
+chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
