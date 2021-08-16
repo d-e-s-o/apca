@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
-use std::time::SystemTime;
+
+use chrono::{DateTime, Utc};
 
 use num_decimal::Num;
 
@@ -10,10 +11,7 @@ use serde::Deserialize;
 
 use uuid::Uuid;
 
-use time_util::system_time_from_str;
-
 use crate::Str;
-
 
 /// A type representing an account ID.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq)]
@@ -93,8 +91,8 @@ pub struct Account {
   #[serde(rename = "account_blocked")]
   pub account_blocked: bool,
   /// Timestamp this account was created at.
-  #[serde(rename = "created_at", deserialize_with = "system_time_from_str")]
-  pub created_at: SystemTime,
+  #[serde(rename = "created_at")]
+  pub created_at: DateTime<Utc>,
   /// Flag to denote whether or not the account is permitted to short.
   #[serde(rename = "shorting_enabled")]
   pub shorting_enabled: bool,
@@ -165,8 +163,6 @@ mod tests {
 
   use test_env_log::test;
 
-  use time_util::parse_system_time_from_str;
-
   use uuid::Uuid;
 
   use crate::api::API_BASE_URL;
@@ -211,7 +207,7 @@ mod tests {
     assert_eq!(acc.trading_blocked, false);
     assert_eq!(
       acc.created_at,
-      parse_system_time_from_str("2018-10-01T13:35:25Z").unwrap()
+      DateTime::parse_from_rfc3339("2018-10-01T13:35:25Z").unwrap()
     );
     assert_eq!(acc.market_value_long, Num::from(7000));
     assert_eq!(acc.market_value_short, Num::from(-3000));
