@@ -4,13 +4,14 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
+use chrono::{DateTime, Utc};
+
 use num_decimal::Num;
 
 use serde::Deserialize;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
-use time_util::optional_system_time_to_rfc3339;
 use time_util::system_time_from_secs;
 
 use crate::data::DATA_BASE_URL;
@@ -48,7 +49,7 @@ pub struct BarReqInit {
   /// See `BarReq::limit`.
   pub limit: usize,
   /// See `BarReq::end`.
-  pub end: Option<SystemTime>,
+  pub end: Option<DateTime<Utc>>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -89,8 +90,8 @@ pub struct BarReq {
   #[serde(rename = "limit")]
   pub limit: usize,
   /// Filter bars equal to or before this time.
-  #[serde(rename = "end", serialize_with = "optional_system_time_to_rfc3339")]
-  pub end: Option<SystemTime>,
+  #[serde(rename = "end")]
+  pub end: Option<DateTime<Utc>>,
 }
 
 
@@ -153,6 +154,8 @@ mod tests {
   use std::time::Duration;
   use std::time::UNIX_EPOCH;
 
+  use chrono::NaiveDateTime;
+
   use http_endpoint::Endpoint;
 
   use serde_json::from_str as from_json;
@@ -193,11 +196,10 @@ mod tests {
   async fn request_bars() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let end = UNIX_EPOCH + Duration::from_secs(1544132820);
     let request = BarReq {
       symbol: "AAPL".to_string(),
       limit: 2,
-      end: Some(end),
+      end: Some(chrono::DateTime::from_utc(NaiveDateTime::from_timestamp(1544132820, 0), Utc)),
     };
     let bars = client
       .issue::<Get>(&(TimeFrame::OneDay, request))
