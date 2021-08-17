@@ -34,7 +34,7 @@ lint:clippy:
     - build:cargo
   script:
   - rustup component add clippy
-  - cargo clippy --all-targets --all-features -- -A unknown_lints -D warnings
+  - cargo clippy --all-targets --all-features -- -A unknown_lints -A clippy::unknown_clippy_lints -D warnings
 
 coverage:kcov:
   # Only executed on master because we keep artifacts around forever.
