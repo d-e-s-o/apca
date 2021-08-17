@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Migrated most usages of `SystemTime` date times to `chrono::DateTime`
 - Added `Activity::time` method for retrieving the time stamp of an
   account activity
 - Formatted code base using `rustfmt` and checked in configuration

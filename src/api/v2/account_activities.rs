@@ -1,7 +1,9 @@
 // Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
+use chrono::DateTime;
+use chrono::NaiveDate;
+use chrono::Utc;
 
 use num_decimal::Num;
 
@@ -12,15 +14,21 @@ use serde::Serializer;
 use serde_urlencoded::to_string as to_query;
 use serde_variant::to_variant_name;
 
-use time_util::optional_system_time_to_rfc3339_with_nanos;
-use time_util::system_time_from_date_str;
-use time_util::system_time_from_str;
-
 use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
 use crate::api::v2::util::u64_from_str;
 use crate::Str;
+
+
+/// Deserialize a `DateTime<Utc>` from a simple date.
+fn datetime_from_date_str<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let date = NaiveDate::deserialize(deserializer)?;
+  Ok(DateTime::from_utc(date.and_hms(0, 0, 0), Utc))
+}
 
 
 /// An enum representing the various non-trade activities.
@@ -162,8 +170,8 @@ pub struct TradeActivity {
   #[serde(rename = "id")]
   pub id: String,
   /// The time at which the execution occurred.
-  #[serde(rename = "transaction_time", deserialize_with = "system_time_from_str")]
-  pub transaction_time: SystemTime,
+  #[serde(rename = "transaction_time")]
+  pub transaction_time: DateTime<Utc>,
   /// The traded symbol.
   #[serde(rename = "symbol")]
   pub symbol: String,
@@ -210,8 +218,8 @@ pub struct NonTradeActivityImpl<T> {
   pub type_: T,
   /// The date on which the activity occurred or on which the
   /// transaction associated with the activity settled.
-  #[serde(rename = "date", deserialize_with = "system_time_from_date_str")]
-  pub date: SystemTime,
+  #[serde(rename = "date", deserialize_with = "datetime_from_date_str")]
+  pub date: DateTime<Utc>,
   /// The net amount of money (positive or negative) associated with the
   /// activity.
   #[serde(rename = "net_amount")]
@@ -285,10 +293,10 @@ impl Activity {
   }
 
   /// The time at which the activity occurred.
-  pub fn time(&self) -> SystemTime {
+  pub fn time(&self) -> &DateTime<Utc> {
     match self {
-      Activity::Trade(trade) => trade.transaction_time,
-      Activity::NonTrade(non_trade) => non_trade.date,
+      Activity::Trade(trade) => &trade.transaction_time,
+      Activity::NonTrade(non_trade) => &non_trade.date,
     }
   }
 
@@ -392,17 +400,11 @@ pub struct ActivityReq {
   #[serde(rename = "direction")]
   pub direction: Direction,
   /// The response will contain only activities until this time.
-  #[serde(
-    rename = "until",
-    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
-  )]
-  pub until: Option<SystemTime>,
+  #[serde(rename = "until")]
+  pub until: Option<DateTime<Utc>>,
   /// The response will contain only activities dated after this time.
-  #[serde(
-    rename = "after",
-    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
-  )]
-  pub after: Option<SystemTime>,
+  #[serde(rename = "after")]
+  pub after: Option<DateTime<Utc>>,
   /// The maximum number of entries to return in the response.
   ///
   /// The default and maximum value is 100.
@@ -438,11 +440,9 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
+  use chrono::Duration;
 
   use serde_json::from_str as from_json;
-
-  use time_util::parse_system_time_from_date_str;
 
   use test_env_log::test;
 
@@ -501,8 +501,8 @@ mod tests {
 
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
-      non_trade.date,
-      parse_system_time_from_date_str("2019-08-01").unwrap()
+      non_trade.date.naive_utc().date(),
+      NaiveDate::from_ymd(2019, 8, 1)
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
@@ -527,8 +527,8 @@ mod tests {
       .unwrap();
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
-      non_trade.date,
-      parse_system_time_from_date_str("2020-01-01").unwrap()
+      non_trade.date.naive_utc().date(),
+      NaiveDate::from_ymd(2020, 1, 1)
     );
     assert_eq!(non_trade.symbol, Some("SPY".into()));
     assert_eq!(
@@ -664,7 +664,7 @@ mod tests {
     // to honor only microsecond resolution, not nanoseconds. So adding
     // a nanosecond would still be treated as the same time from their
     // perspective.
-    request.after = Some(time + Duration::from_micros(1));
+    request.after = Some(*time + Duration::microseconds(1));
 
     // Make another request, this time asking for activities after the
     // first one that was reported.
@@ -688,7 +688,7 @@ mod tests {
     assert_eq!(activities.len(), 2);
 
     let time = activities[1].time();
-    request.until = Some(time - Duration::from_micros(1));
+    request.until = Some(*time - Duration::microseconds(1));
 
     let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
