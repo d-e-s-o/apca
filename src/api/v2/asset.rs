@@ -401,7 +401,10 @@ mod tests {
 
     let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
     let symbol = Symbol::Id(id);
-    assert_eq!(to_json(&symbol).unwrap(), r#""b0b6dd9d-8b9b-48a9-ba46-b9d54906e415""#);
+    assert_eq!(
+      to_json(&symbol).unwrap(),
+      r#""b0b6dd9d-8b9b-48a9-ba46-b9d54906e415""#
+    );
   }
 
   #[test]
@@ -470,7 +473,9 @@ mod tests {
       Symbol::Sym("AAPL".to_string()),
       Symbol::SymExchg("AAPL".to_string(), Exchange::Nasdaq),
       Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity),
-      Symbol::Id(Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap())),
+      Symbol::Id(Id(
+        Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap(),
+      )),
     ];
 
     for symbol in symbols.iter().cloned() {

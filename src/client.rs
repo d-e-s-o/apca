@@ -11,11 +11,11 @@ use http::request::Builder as HttpRequestBuilder;
 use http::Request;
 use http_endpoint::Endpoint;
 
-use hyper::Body;
 use hyper::body::to_bytes;
-use hyper::Client as HttpClient;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
+use hyper::Body;
+use hyper::Client as HttpClient;
 use hyper_tls::HttpsConnector;
 
 use serde_json::Error as JsonError;
@@ -35,9 +35,9 @@ use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
 use crate::error::RequestError;
-use crate::Error;
-use crate::events::EventStream;
 use crate::events::stream;
+use crate::events::EventStream;
+use crate::Error;
 
 
 /// A builder for creating customized `Client` objects.
@@ -76,9 +76,7 @@ impl Default for Builder {
     let mut builder = HttpClient::builder();
     let _ = builder.pool_max_idle_per_host(0);
 
-    Self {
-      builder,
-    }
+    Self { builder }
   }
 
   #[cfg(not(test))]

@@ -486,31 +486,31 @@ pub struct Order {
   /// Timestamp this order was updated at last.
   #[serde(
     rename = "updated_at",
-    deserialize_with = "optional_system_time_from_str",
+    deserialize_with = "optional_system_time_from_str"
   )]
   pub updated_at: Option<SystemTime>,
   /// Timestamp this order was submitted at.
   #[serde(
     rename = "submitted_at",
-    deserialize_with = "optional_system_time_from_str",
+    deserialize_with = "optional_system_time_from_str"
   )]
   pub submitted_at: Option<SystemTime>,
   /// Timestamp this order was filled at.
   #[serde(
     rename = "filled_at",
-    deserialize_with = "optional_system_time_from_str",
+    deserialize_with = "optional_system_time_from_str"
   )]
   pub filled_at: Option<SystemTime>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "expired_at",
-    deserialize_with = "optional_system_time_from_str",
+    deserialize_with = "optional_system_time_from_str"
   )]
   pub expired_at: Option<SystemTime>,
   /// Timestamp this order expired at.
   #[serde(
     rename = "canceled_at",
-    deserialize_with = "optional_system_time_from_str",
+    deserialize_with = "optional_system_time_from_str"
   )]
   pub canceled_at: Option<SystemTime>,
   /// The order's asset class.
@@ -866,8 +866,7 @@ mod tests {
     // So we need to treat this case specially.
     let result = test(true).await;
     match result {
-      Ok(()) |
-      Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
+      Ok(()) | Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
       err => panic!("unexpected error: {:?}", err),
     };
   }

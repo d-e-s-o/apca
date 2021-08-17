@@ -202,7 +202,7 @@ fn check_auth(msg: &[u8]) -> Result<(), Error> {
       op => {
         let e = format!("received unexpected stream operation: {:?}", op);
         Err(Error::Str(e.into()))
-      }
+      },
     },
     Err(e) => Err(Error::from(e)),
   }
@@ -253,7 +253,7 @@ fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
           s, stream
         );
         Err(Error::Str(e.into()))
-      }
+      },
     },
     Err(e) => Err(Error::from(e)),
   }
@@ -368,9 +368,8 @@ mod tests {
 
   #[test]
   fn decode_auth_response() {
-    let json = {
-      r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"#
-    };
+    let json =
+      { r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"# };
     let resp = from_json::<AuthResponse>(json).unwrap();
     assert_eq!(resp.op, resp::Operation::Authorization);
     assert_eq!(resp.data.0.status, resp::Status::Authorized);
@@ -378,9 +377,8 @@ mod tests {
 
   #[test]
   fn decode_auth_response_unauthorized() {
-    let json = {
-      r#"{"stream":"authorization","data":{"status":"unauthorized","action":"listen"}}"#
-    };
+    let json =
+      { r#"{"stream":"authorization","data":{"status":"unauthorized","action":"listen"}}"# };
     let resp = from_json::<AuthResponse>(json).unwrap();
     assert_eq!(resp.op, resp::Operation::Authorization);
     assert_eq!(resp.data.0.status, resp::Status::Unauthorized);

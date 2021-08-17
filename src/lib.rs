@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![type_length_limit = "536870912"]
@@ -43,7 +43,7 @@
   unused_qualifications,
   unused_results,
   where_clauses_object_safety,
-  while_true,
+  while_true
 )]
 
 //! A create for interacting with the Alpaca API.

@@ -21,9 +21,9 @@ use websocket_util::stream as do_stream;
 use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::api_info::ApiInfo;
-use crate::Error;
 use crate::events::handshake::handshake;
 use crate::events::handshake::StreamType;
+use crate::Error;
 
 
 /// A trait representing a particular event stream.
@@ -130,12 +130,10 @@ mod tests {
 
   const KEY_ID: &str = "USER12345678";
   const SECRET: &str = "justletmein";
-  const AUTH_REQ: &str = {
-    r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#
-  };
-  const AUTH_RESP: &str = {
-    r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#
-  };
+  const AUTH_REQ: &str =
+    r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#;
+  const AUTH_RESP: &str =
+    r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#;
   const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["account_updates"]}}"#;
   const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["account_updates"]}}"#;
   const UNIT_EVENT: &str = r#"{"stream":"account_updates","data":null}"#;
