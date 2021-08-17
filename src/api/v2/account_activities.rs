@@ -1,7 +1,7 @@
 // Copyright (C) 2020-2021 Daniel Mueller <deso@posteo.net>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::time::SystemTime;
+use chrono::{DateTime, NaiveDate, Utc};
 
 use num_decimal::Num;
 
@@ -11,10 +11,6 @@ use serde::Serialize;
 use serde::Serializer;
 use serde_urlencoded::to_string as to_query;
 use serde_variant::to_variant_name;
-
-use time_util::optional_system_time_to_rfc3339_with_nanos;
-use time_util::system_time_from_date_str;
-use time_util::system_time_from_str;
 
 use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
@@ -162,8 +158,8 @@ pub struct TradeActivity {
   #[serde(rename = "id")]
   pub id: String,
   /// The time at which the execution occurred.
-  #[serde(rename = "transaction_time", deserialize_with = "system_time_from_str")]
-  pub transaction_time: SystemTime,
+  #[serde(rename = "transaction_time")]
+  pub transaction_time: DateTime<Utc>,
   /// The traded symbol.
   #[serde(rename = "symbol")]
   pub symbol: String,
@@ -210,8 +206,8 @@ pub struct NonTradeActivityImpl<T> {
   pub type_: T,
   /// The date on which the activity occurred or on which the
   /// transaction associated with the activity settled.
-  #[serde(rename = "date", deserialize_with = "system_time_from_date_str")]
-  pub date: SystemTime,
+  #[serde(rename = "date")]
+  pub date: NaiveDate,
   /// The net amount of money (positive or negative) associated with the
   /// activity.
   #[serde(rename = "net_amount")]
@@ -285,10 +281,10 @@ impl Activity {
   }
 
   /// The time at which the activity occurred.
-  pub fn time(&self) -> SystemTime {
+  pub fn time(&self) -> DateTime<Utc> {
     match self {
       Activity::Trade(trade) => trade.transaction_time,
-      Activity::NonTrade(non_trade) => non_trade.date,
+      Activity::NonTrade(non_trade) => DateTime::from_utc(non_trade.date.and_hms(0, 0, 0), Utc),
     }
   }
 
@@ -394,15 +390,13 @@ pub struct ActivityReq {
   /// The response will contain only activities until this time.
   #[serde(
     rename = "until",
-    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
   )]
-  pub until: Option<SystemTime>,
+  pub until: Option<DateTime<Utc>>,
   /// The response will contain only activities dated after this time.
   #[serde(
     rename = "after",
-    serialize_with = "optional_system_time_to_rfc3339_with_nanos"
   )]
-  pub after: Option<SystemTime>,
+  pub after: Option<DateTime<Utc>>,
   /// The maximum number of entries to return in the response.
   ///
   /// The default and maximum value is 100.
@@ -438,11 +432,9 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use std::time::Duration;
+  use chrono::Duration;
 
   use serde_json::from_str as from_json;
-
-  use time_util::parse_system_time_from_date_str;
 
   use test_env_log::test;
 
@@ -502,7 +494,7 @@ mod tests {
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
       non_trade.date,
-      parse_system_time_from_date_str("2019-08-01").unwrap()
+      NaiveDate::from_ymd(2019, 8, 1)
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
@@ -528,7 +520,7 @@ mod tests {
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
       non_trade.date,
-      parse_system_time_from_date_str("2020-01-01").unwrap()
+      NaiveDate::from_ymd(2020, 1, 1)
     );
     assert_eq!(non_trade.symbol, Some("SPY".into()));
     assert_eq!(
@@ -664,7 +656,7 @@ mod tests {
     // to honor only microsecond resolution, not nanoseconds. So adding
     // a nanosecond would still be treated as the same time from their
     // perspective.
-    request.after = Some(time + Duration::from_micros(1));
+    request.after = Some(time + Duration::microseconds(1));
 
     // Make another request, this time asking for activities after the
     // first one that was reported.
@@ -688,7 +680,7 @@ mod tests {
     assert_eq!(activities.len(), 2);
 
     let time = activities[1].time();
-    request.until = Some(time - Duration::from_micros(1));
+    request.until = Some(time - Duration::microseconds(1));
 
     let activities = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(activities.len(), 1);
