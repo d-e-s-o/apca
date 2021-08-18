@@ -11,11 +11,17 @@ stages:
   - build
   - test
 
+cache: &global-cache
+  key: global-cache
+  paths:
+  - target/
+  policy: pull
+
 build:cargo:
   stage: build
-  artifacts:
-    paths:
-      - target/
+  cache:
+    <<: *global-cache
+    policy: pull-push
   script:
   - rustc --version && cargo --version
   - cargo build --lib --tests --verbose
@@ -23,15 +29,11 @@ build:cargo:
 
 test:cargo:
   stage: test
-  dependencies:
-  - build:cargo
   script:
   - cargo test --verbose
 
 lint:clippy:
   stage: test
-  dependencies:
-    - build:cargo
   script:
   - rustup component add clippy
   - cargo clippy --all-targets --all-features -- -A unknown_lints -A clippy::unknown_clippy_lints -D warnings
@@ -47,8 +49,6 @@ coverage:kcov:
   only:
   - master
   stage: test
-  dependencies:
-    - build:cargo
   artifacts:
     expire_in: never
     paths:
