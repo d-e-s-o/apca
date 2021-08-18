@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Added `Activity::time` method for retrieving the time stamp of an
   account activity
+- Formatted code base using `rustfmt` and checked in configuration
 
 
 0.19.0
