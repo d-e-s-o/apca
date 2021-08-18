@@ -36,6 +36,12 @@ lint:clippy:
   - rustup component add clippy
   - cargo clippy --all-targets --all-features -- -A unknown_lints -A clippy::unknown_clippy_lints -D warnings
 
+format:rustfmt:
+  stage: test
+  script:
+  - rustup toolchain install nightly -c rustfmt
+  - cargo +nightly fmt -- --check
+
 coverage:kcov:
   # Only executed on master because we keep artifacts around forever.
   only:
