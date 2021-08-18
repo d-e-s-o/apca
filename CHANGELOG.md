@@ -5,6 +5,7 @@ Unreleased
   account activity
 - Formatted code base using `rustfmt` and checked in configuration
   - Added enforcement of code formatting style checks in CI
+- Removed `time-util` dependency
 
 
 0.19.0

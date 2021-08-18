@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::HashMap;
+use std::time::Duration;
 use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -10,13 +12,23 @@ use chrono::Utc;
 use num_decimal::Num;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
-use time_util::system_time_from_secs;
-
 use crate::data::DATA_BASE_URL;
 use crate::Str;
+
+
+/// Deserialize a `SystemTime` from a UNIX time stamp.
+fn system_time_from_secs<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let seconds = u64::deserialize(deserializer)?;
+  let time = UNIX_EPOCH + Duration::new(seconds, 0);
+  Ok(time)
+}
 
 
 /// An enumeration of the various supported time frames.
