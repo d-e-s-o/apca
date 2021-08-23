@@ -187,7 +187,9 @@ mod tests {
     let stream = client.subscribe::<TradeUpdates>().await.unwrap();
     pin_mut!(stream);
 
-    let order = order_aapl(&client).await.unwrap();
+    let order = order_aapl(&client, order::Amount::quantity(1))
+      .await
+      .unwrap();
     client.issue::<order::Delete>(&order.id).await.unwrap();
 
     let trade = stream

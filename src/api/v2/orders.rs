@@ -7,7 +7,6 @@ use serde_urlencoded::to_string as to_query;
 use crate::api::v2::order::Order;
 use crate::Str;
 
-
 /// The status of orders to list.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum Status {
@@ -21,7 +20,6 @@ pub enum Status {
   #[serde(rename = "all")]
   All,
 }
-
 
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
@@ -54,7 +52,6 @@ impl Default for OrdersReq {
   }
 }
 
-
 Endpoint! {
   /// The representation of a GET request to the /v2/orders endpoint.
   pub Get(OrdersReq),
@@ -73,10 +70,10 @@ Endpoint! {
   }
 }
 
-
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::api::v2::order::Amount;
 
   use futures::future::ok;
   use futures::pin_mut;
@@ -92,7 +89,6 @@ mod tests {
   use crate::api::v2::order_util::order_aapl;
   use crate::api_info::ApiInfo;
   use crate::Client;
-
 
   /// Cancel an order and wait for the corresponding cancellation event
   /// to arrive.
@@ -130,7 +126,7 @@ mod tests {
         ..Default::default()
       };
 
-      let order = order_aapl(&client).await.unwrap();
+      let order = order_aapl(&client, Amount::quantity(1)).await.unwrap();
       let result = client.issue::<Get>(&request).await;
       cancel_order(&client, order.id).await;
 
@@ -144,15 +140,15 @@ mod tests {
         Status::Open => {
           assert!(before.into_iter().any(|x| x.id == order.id));
           assert!(!after.into_iter().any(|x| x.id == order.id));
-        },
+        }
         Status::Closed => {
           assert!(!before.into_iter().any(|x| x.id == order.id));
           assert!(after.into_iter().any(|x| x.id == order.id));
-        },
+        }
         Status::All => {
           assert!(before.into_iter().any(|x| x.id == order.id));
           assert!(after.into_iter().any(|x| x.id == order.id));
-        },
+        }
       }
     }
 
@@ -170,7 +166,7 @@ mod tests {
       take_profit: Some(order::TakeProfit::Limit(Num::from(3))),
       ..Default::default()
     }
-    .init("SPY", order::Side::Buy, 1);
+    .init("SPY", order::Side::Buy, Amount::quantity(1));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);

@@ -27,7 +27,7 @@ async fn main() {
     ..Default::default()
   }
   // We want to go long on AAPL, buying a single share.
-  .init("AAPL", order::Side::Buy, 1);
+  .init("AAPL", order::Side::Buy, order::Amount::quantity(1));
 
   let order = client.issue::<order::Post>(&request).await.unwrap();
   println!("Created order {}", order.id.to_hyphenated_ref());

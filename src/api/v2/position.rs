@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
-use crate::api::v2::util::u64_from_i64_from_str;
+use crate::api::v2::util::abs_num_from_str;
 use crate::Str;
 
 
@@ -58,8 +58,8 @@ pub struct Position {
   #[serde(rename = "avg_entry_price")]
   pub average_entry_price: Num,
   /// The number of shares.
-  #[serde(rename = "qty", deserialize_with = "u64_from_i64_from_str")]
-  pub quantity: u64,
+  #[serde(rename = "qty", deserialize_with = "abs_num_from_str")]
+  pub quantity: Num,
   /// The side the position is on.
   #[serde(rename = "side")]
   pub side: Side,
@@ -180,7 +180,46 @@ mod tests {
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
     assert_eq!(pos.average_entry_price, Num::from(100));
-    assert_eq!(pos.quantity, 5);
+    assert_eq!(pos.quantity, Num::from(5));
+    assert_eq!(pos.side, Side::Long);
+    assert_eq!(pos.market_value, Num::from(600));
+    assert_eq!(pos.cost_basis, Num::from(500));
+    assert_eq!(pos.unrealized_gain_total, Num::from(100));
+    assert_eq!(pos.unrealized_gain_total_percent, Num::new(20, 100));
+    assert_eq!(pos.unrealized_gain_today, Num::from(10));
+    assert_eq!(pos.unrealized_gain_today_percent, Num::new(84, 10000));
+    assert_eq!(pos.current_price, Num::from(120));
+    assert_eq!(pos.last_day_price, Num::from(119));
+    assert_eq!(pos.change_today, Num::new(84, 10000));
+  }
+
+  #[test]
+  fn parse_fractional_position() {
+    let response = r#"{
+    "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
+    "symbol": "AAPL",
+    "exchange": "NASDAQ",
+    "asset_class": "us_equity",
+    "avg_entry_price": "100.0",
+    "qty": "0.5",
+    "side": "long",
+    "market_value": "600.0",
+    "cost_basis": "500.0",
+    "unrealized_pl": "100.0",
+    "unrealized_plpc": "0.20",
+    "unrealized_intraday_pl": "10.0",
+    "unrealized_intraday_plpc": "0.0084",
+    "current_price": "120.0",
+    "lastday_price": "119.0",
+    "change_today": "0.0084"
+}"#;
+
+    let pos = from_json::<Position>(&response).unwrap();
+    assert_eq!(pos.symbol, "AAPL");
+    assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
+    assert_eq!(pos.asset_class, asset::Class::UsEquity);
+    assert_eq!(pos.average_entry_price, Num::from(100));
+    assert_eq!(pos.quantity, Num::new(1, 2));
     assert_eq!(pos.side, Side::Long);
     assert_eq!(pos.market_value, Num::from(600));
     assert_eq!(pos.cost_basis, Num::from(500));
@@ -216,7 +255,7 @@ mod tests {
 
     let pos = from_json::<Position>(&response).unwrap();
     assert_eq!(pos.symbol, "XLK");
-    assert_eq!(pos.quantity, 24);
+    assert_eq!(pos.quantity, Num::from(24));
   }
 
   #[test(tokio::test)]
