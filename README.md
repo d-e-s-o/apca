@@ -45,7 +45,7 @@ let request = order::OrderReqInit {
   limit_price: Some(Num::from(100)),
   ..Default::default()
 }
-.init("AAPL", Side::Buy, 1);
+.init("AAPL", Side::Buy, order::Amount::quantity(1));
 
 let order = client
   .issue::<order::Post>(&request)

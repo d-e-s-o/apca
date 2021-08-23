@@ -4,6 +4,7 @@
 use num_decimal::Num;
 
 use crate::api::v2::order;
+use crate::api::v2::order::Amount;
 use crate::api::v2::order::Side;
 use crate::api::v2::order::Type;
 use crate::Client;
@@ -15,7 +16,7 @@ pub async fn order_aapl(client: &Client) -> Result<order::Order, RequestError<or
     limit_price: Some(Num::from(1)),
     ..Default::default()
   }
-  .init("AAPL", Side::Buy, 1);
+  .init("AAPL", Side::Buy, Amount::quantity(1));
 
   client.issue::<order::Post>(&request).await
 }

@@ -1,3 +1,10 @@
+Unreleased
+----------
+- Added support for submitting notional orders
+- Adjusted `Position::quantity` to be a `Num` to support fractional
+  quantities
+
+
 0.20.0
 ------
 - Migrated most usages of `SystemTime` date times to `chrono::DateTime`

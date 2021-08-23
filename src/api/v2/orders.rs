@@ -170,7 +170,7 @@ mod tests {
       take_profit: Some(order::TakeProfit::Limit(Num::from(3))),
       ..Default::default()
     }
-    .init("SPY", order::Side::Buy, 1);
+    .init("SPY", order::Side::Buy, order::Amount::quantity(1));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
