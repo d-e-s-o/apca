@@ -65,31 +65,31 @@ pub struct Position {
   pub side: Side,
   /// The total dollar amount of the position.
   #[serde(rename = "market_value")]
-  pub market_value: Num,
+  pub market_value: Option<Num>,
   /// The total cost basis in dollar.
   #[serde(rename = "cost_basis")]
   pub cost_basis: Num,
   /// The total unrealized profit/loss in dollar.
   #[serde(rename = "unrealized_pl")]
-  pub unrealized_gain_total: Num,
+  pub unrealized_gain_total: Option<Num>,
   /// The total unrealized profit/loss percent (as a factor of 1).
   #[serde(rename = "unrealized_plpc")]
-  pub unrealized_gain_total_percent: Num,
+  pub unrealized_gain_total_percent: Option<Num>,
   /// The unrealized profit/loss in dollar for the day.
   #[serde(rename = "unrealized_intraday_pl")]
-  pub unrealized_gain_today: Num,
+  pub unrealized_gain_today: Option<Num>,
   /// The unrealized profit/loss percent for the day (as a factor of 1).
   #[serde(rename = "unrealized_intraday_plpc")]
-  pub unrealized_gain_today_percent: Num,
+  pub unrealized_gain_today_percent: Option<Num>,
   /// The current asset price per share.
   #[serde(rename = "current_price")]
-  pub current_price: Num,
+  pub current_price: Option<Num>,
   /// The last day's asset price per share.
   #[serde(rename = "lastday_price")]
-  pub last_day_price: Num,
+  pub last_day_price: Option<Num>,
   /// The percent change from last day price (as a factor of 1).
   #[serde(rename = "change_today")]
-  pub change_today: Num,
+  pub change_today: Option<Num>,
 }
 
 
@@ -182,15 +182,15 @@ mod tests {
     assert_eq!(pos.average_entry_price, Num::from(100));
     assert_eq!(pos.quantity, 5);
     assert_eq!(pos.side, Side::Long);
-    assert_eq!(pos.market_value, Num::from(600));
+    assert_eq!(pos.market_value, Some(Num::from(600)));
     assert_eq!(pos.cost_basis, Num::from(500));
-    assert_eq!(pos.unrealized_gain_total, Num::from(100));
-    assert_eq!(pos.unrealized_gain_total_percent, Num::new(20, 100));
-    assert_eq!(pos.unrealized_gain_today, Num::from(10));
-    assert_eq!(pos.unrealized_gain_today_percent, Num::new(84, 10000));
-    assert_eq!(pos.current_price, Num::from(120));
-    assert_eq!(pos.last_day_price, Num::from(119));
-    assert_eq!(pos.change_today, Num::new(84, 10000));
+    assert_eq!(pos.unrealized_gain_total, Some(Num::from(100)));
+    assert_eq!(pos.unrealized_gain_total_percent, Some(Num::new(20, 100)));
+    assert_eq!(pos.unrealized_gain_today, Some(Num::from(10)));
+    assert_eq!(pos.unrealized_gain_today_percent, Some(Num::new(84, 10000)));
+    assert_eq!(pos.current_price, Some(Num::from(120)));
+    assert_eq!(pos.last_day_price, Some(Num::from(119)));
+    assert_eq!(pos.change_today, Some(Num::new(84, 10000)));
   }
 
   #[test]
