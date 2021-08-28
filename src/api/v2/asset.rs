@@ -314,6 +314,9 @@ pub struct Asset {
   /// A value of `true` is a prerequisite for being able to short it.
   #[serde(rename = "easy_to_borrow")]
   pub easy_to_borrow: bool,
+  /// Whether the asset is fractionable or not.
+  #[serde(rename = "fractionable")]
+  pub fractionable: bool,
 }
 
 
@@ -418,7 +421,8 @@ mod tests {
   "tradable": true,
   "marginable": true,
   "shortable": true,
-  "easy_to_borrow": true
+  "easy_to_borrow": true,
+  "fractionable": true
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
@@ -445,7 +449,8 @@ mod tests {
   "tradable": true,
   "marginable": true,
   "shortable": true,
-  "easy_to_borrow": true
+  "easy_to_borrow": true,
+  "fractionable": true
 }"#;
 
     let asset = from_json::<Asset>(&response).unwrap();

@@ -3,6 +3,7 @@ Unreleased
 - Migrated most usages of `SystemTime` date times to `chrono::DateTime`
 - Added `Activity::time` method for retrieving the time stamp of an
   account activity
+- Added `fractionable` attribute to `Asset` type
 - Formatted code base using `rustfmt` and checked in configuration
   - Added enforcement of code formatting style checks in CI
 - Removed `time-util` dependency
