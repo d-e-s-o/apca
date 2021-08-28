@@ -16,7 +16,7 @@ categories = [
 ]
 keywords = ["trading", "finance", "async", "stocks"]
 description = """
-A create for interacting with the Alpaca API.
+A crate for interacting with the Alpaca API.
 """
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
