@@ -32,6 +32,14 @@ test:cargo:
   script:
   - cargo test --verbose
 
+doc:cargo:
+  stage: test
+  artifacts:
+    paths:
+    - target/doc/
+  script:
+  - cargo doc --no-deps
+
 lint:clippy:
   stage: test
   script:

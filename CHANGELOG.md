@@ -8,6 +8,7 @@ Unreleased
 - Added `fractionable` attribute to `Asset` type
 - Formatted code base using `rustfmt` and checked in configuration
   - Added enforcement of code formatting style checks in CI
+- Added CI checks for auto generated code documentation
 - Removed `time-util` dependency
 
 
