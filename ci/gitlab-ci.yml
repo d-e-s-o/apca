@@ -8,6 +8,7 @@
 image: "rust:1.46.0"
 
 stages:
+  - cache
   - build
   - test
 
@@ -15,7 +16,17 @@ cache: &global-cache
   key: global-cache
   paths:
   - target/
+  - tarpaulin/
   policy: pull
+
+cache:tarpaulin:
+  stage: cache
+  image: rust:latest
+  cache:
+    <<: *global-cache
+    policy: pull-push
+  script:
+  - cargo install cargo-tarpaulin --root tarpaulin/
 
 build:cargo:
   stage: build
@@ -31,6 +42,16 @@ build:cargo:
   # never do a clean, but cargo will rename the target binary whenever
   # it so pleases.
   - find target/ -atime +7 -exec rm -rf {} \;
+
+build:tarpaulin-tests:
+  stage: build
+  image: rust:latest
+  artifacts:
+    expire_in: 1h
+    paths:
+    - target/
+  script:
+  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --no-run
 
 test:cargo:
   stage: test
@@ -57,28 +78,18 @@ format:rustfmt:
   - rustup toolchain install nightly -c rustfmt
   - cargo +nightly fmt -- --check
 
-coverage:kcov:
+coverage:tarpaulin:
   # Only executed on master because we keep artifacts around forever.
   only:
   - master
   stage: test
+  image: rust:latest
+  dependencies:
+  - build:tarpaulin-tests
   artifacts:
     expire_in: never
     paths:
-    - kcov/
-  coverage: '/^Coverage+:\s(\d+(?:\.\d+)?)/'
+    - tarpaulin-report/
+  coverage: '/^\d+.\d+% coverage/'
   script:
-  - echo 'deb http://deb.debian.org/debian testing main' >> /etc/apt/sources.list
-  - echo 'deb http://deb.debian.org/debian unstable main' >> /etc/apt/sources.list
-  - apt-get update
-  - apt-get install --assume-yes kcov
-  - files=$(find target/debug/deps -maxdepth 1 -type f -executable -iname "*-????????????????");
-    covs="";
-    for file in ${files}; do
-      cov="kcov-$(basename ${file})";
-      kcov --exclude-pattern="src/api/v2/de.rs" --verify "${cov}" "${file}";
-      covs+=" ${cov}";
-    done;
-    kcov --merge kcov/ ${covs};
-    COVERAGE=$(grep --only-matching 'covered":"[^"]\+"' kcov/index.js | awk -F'"' '{print $3}');
-    echo "Coverage:" ${COVERAGE};
+  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --exclude-files src/api/v2/de.rs --skip-clean --out html --output-dir tarpaulin-report/
