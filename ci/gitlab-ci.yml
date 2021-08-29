@@ -79,15 +79,11 @@ format:rustfmt:
   - cargo +nightly fmt -- --check
 
 coverage:tarpaulin:
-  # Only executed on master because we keep artifacts around forever.
-  only:
-  - master
   stage: test
   image: rust:latest
   dependencies:
   - build:tarpaulin-tests
   artifacts:
-    expire_in: never
     paths:
     - tarpaulin-report/
   coverage: '/^\d+.\d+% coverage/'
