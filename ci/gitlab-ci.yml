@@ -26,6 +26,11 @@ build:cargo:
   - rustc --version && cargo --version
   - cargo build --lib --tests --verbose
   - cargo build --lib --tests --verbose --release
+  # Clean up stale parts of our target/ directory so that they don't
+  # accumulate endlessly within the cache. That's necessary because we
+  # never do a clean, but cargo will rename the target binary whenever
+  # it so pleases.
+  - find target/ -atime +7 -exec rm -rf {} \;
 
 test:cargo:
   stage: test
