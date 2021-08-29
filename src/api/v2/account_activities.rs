@@ -164,6 +164,7 @@ pub enum Side {
 /// A trade related activity.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct TradeActivity {
   /// An ID for the activity. Can be sent as `page_token` in requests to
   /// facilitate the paging of results.
@@ -206,6 +207,7 @@ pub struct TradeActivity {
 // TODO: Not all fields are hooked up.
 #[doc(hidden)]
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct NonTradeActivityImpl<T> {
   /// An ID for the activity. Can be sent as `page_token` in requests to
   /// facilitate the paging of results.

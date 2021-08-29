@@ -26,6 +26,7 @@ pub enum TradeConfirmation {
 /// A response as returned by the /v2/account/configurations endpoint.
 // TODO: Not all fields are hooked up yet.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[non_exhaustive]
 pub struct Configuration {
   /// Whether and how trades are confirmed.
   #[serde(rename = "trade_confirm_email")]

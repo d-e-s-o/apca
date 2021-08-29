@@ -17,6 +17,7 @@ use crate::events::StreamType;
 /// A representation of an account update that we receive through the
 /// "account_updates" stream.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct AccountUpdate {
   /// The corresponding account's ID.
   #[serde(rename = "id")]
@@ -131,6 +132,7 @@ pub enum TradeStatus {
 /// A representation of a trade update that we receive through the
 /// "trade_updates" stream.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct TradeUpdate {
   /// The event that occurred.
   #[serde(rename = "event")]

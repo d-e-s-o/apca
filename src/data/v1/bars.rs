@@ -110,6 +110,7 @@ pub struct BarReq {
 
 /// A market data bar as returned by the /v1/bars/<timeframe> endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct Bar {
   /// The beginning time of this bar.
   #[serde(rename = "t", deserialize_with = "system_time_from_secs")]

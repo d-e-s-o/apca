@@ -3,6 +3,7 @@ Unreleased
 - Migrated most usages of `SystemTime` date times to `chrono::DateTime`
 - Added `Activity::time` method for retrieving the time stamp of an
   account activity
+- Marked several more types as `non_exhaustive`
 - Made price related attributes of `Position` type optional after
   announcement of breaking API change at Alpaca
 - Added `fractionable` attribute to `Asset` type

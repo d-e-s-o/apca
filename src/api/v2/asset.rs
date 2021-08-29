@@ -284,6 +284,7 @@ impl FromStr for Exchange {
 
 /// The representation of an asset as used by Alpaca.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct Asset {
   /// The asset's ID.
   #[serde(rename = "id")]
