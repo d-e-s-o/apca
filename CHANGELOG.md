@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.20.0
+------
 - Migrated most usages of `SystemTime` date times to `chrono::DateTime`
 - Added `Activity::time` method for retrieving the time stamp of an
   account activity
