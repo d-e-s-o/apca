@@ -24,8 +24,6 @@ use serde_urlencoded::to_string as to_query;
 use uuid::Uuid;
 
 use crate::api::v2::asset;
-use crate::api::v2::util::u64_from_str;
-use crate::api::v2::util::u64_to_str;
 use crate::Str;
 
 
@@ -451,7 +449,7 @@ pub struct OrderReq {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ChangeReqInit {
   /// See `ChangeReq::quantity`.
-  pub quantity: u64,
+  pub quantity: Num,
   /// See `ChangeReq::time_in_force`.
   pub time_in_force: TimeInForce,
   /// See `ChangeReq::limit_price`.
@@ -482,8 +480,8 @@ impl ChangeReqInit {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ChangeReq {
   /// Number of shares to trade.
-  #[serde(rename = "qty", serialize_with = "u64_to_str")]
-  pub quantity: u64,
+  #[serde(rename = "qty")]
+  pub quantity: Num,
   /// How long the order will be valid.
   #[serde(rename = "time_in_force")]
   pub time_in_force: TimeInForce,
@@ -555,12 +553,8 @@ pub struct Order {
   #[serde(flatten)]
   pub amount: Amount,
   /// The quantity that was filled.
-  #[serde(
-    rename = "filled_qty",
-    deserialize_with = "u64_from_str",
-    serialize_with = "u64_to_str"
-  )]
-  pub filled_quantity: u64,
+  #[serde(rename = "filled_qty")]
+  pub filled_quantity: Num,
   /// The type of order.
   #[serde(rename = "type")]
   pub type_: Type,
@@ -925,10 +919,10 @@ mod tests {
   /// Check that we can properly submit a trailing stop price order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_price_order() {
-    let symbol = Symbol::Sym("SPY".to_string());
+    let symbol = Symbol::Sym("TRVG".to_string());
     let request = OrderReqInit {
       type_: Type::TrailingStop,
-      trail_price: Some(Num::from(50)),
+      trail_price: Some(Num::new(1, 4)),
       ..Default::default()
     }
     .init(symbol, Side::Buy, Amount::quantity(1));
@@ -939,7 +933,7 @@ mod tests {
     let order = client.issue::<Post>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
-    assert_eq!(order.symbol, "SPY");
+    assert_eq!(order.symbol, "TRVG");
     assert_eq!(order.amount, Amount::quantity(1));
     assert_eq!(order.side, Side::Buy);
     assert_eq!(order.type_, Type::TrailingStop);
@@ -947,14 +941,14 @@ mod tests {
     assert_eq!(order.limit_price, None);
     // We don't check the stop price here. It may be set to a value that
     // we can't know in advance.
-    assert_eq!(order.trail_price, Some(Num::from(50)));
+    assert_eq!(order.trail_price, Some(Num::new(1, 4)));
     assert_eq!(order.trail_percent, None);
   }
 
   /// Check that we can properly submit a trailing stop percent order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_percent_order() {
-    let symbol = Symbol::Sym("SPY".to_string());
+    let symbol = Symbol::Sym("TRVG".to_string());
     let request = OrderReqInit {
       type_: Type::TrailingStop,
       trail_percent: Some(Num::from(10)),
@@ -968,7 +962,7 @@ mod tests {
     let order = client.issue::<Post>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
-    assert_eq!(order.symbol, "SPY");
+    assert_eq!(order.symbol, "TRVG");
     assert_eq!(order.amount, Amount::quantity(1));
     assert_eq!(order.side, Side::Buy);
     assert_eq!(order.type_, Type::TrailingStop);
@@ -1222,7 +1216,7 @@ mod tests {
     let order = client.issue::<Post>(&request).await.unwrap();
 
     let request = ChangeReqInit {
-      quantity: 2,
+      quantity: Num::from(2),
       time_in_force: TimeInForce::UntilCanceled,
       limit_price: Some(Num::from(2)),
       ..Default::default()
@@ -1260,18 +1254,18 @@ mod tests {
   async fn change_trail_stop_order() {
     let request = OrderReqInit {
       type_: Type::TrailingStop,
-      trail_price: Some(Num::from(20)),
+      trail_price: Some(Num::new(1, 4)),
       ..Default::default()
     }
-    .init("SPY", Side::Buy, Amount::quantity(1));
+    .init("TRVG", Side::Buy, Amount::quantity(1));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let order = client.issue::<Post>(&request).await.unwrap();
-    assert_eq!(order.trail_price, Some(Num::from(20)));
+    assert_eq!(order.trail_price, Some(Num::new(1, 4)));
 
     let request = ChangeReqInit {
-      trail: Some(Num::from(30)),
+      trail: Some(Num::new(1, 5)),
       ..Default::default()
     }
     .init();
@@ -1287,7 +1281,7 @@ mod tests {
 
     match result {
       Ok(order) => {
-        assert_eq!(order.trail_price, Some(Num::from(30)));
+        assert_eq!(order.trail_price, Some(Num::new(1, 5)));
       },
       Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
       e => panic!("received unexpected error: {:?}", e),
