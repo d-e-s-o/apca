@@ -1,8 +1,8 @@
 Unreleased
 ----------
 - Added support for submitting notional orders
-- Adjusted `Position::quantity` to be a `Num` to support fractional
-  quantities
+- Adjusted all quantities to be of type `Num` to fully support
+  trading with fractional quantities
 - Tagged more functions and methods as `#[inline]`
 
 

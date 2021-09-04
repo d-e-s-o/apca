@@ -24,8 +24,6 @@ use serde_urlencoded::to_string as to_query;
 use uuid::Uuid;
 
 use crate::api::v2::asset;
-use crate::api::v2::util::u64_from_str;
-use crate::api::v2::util::u64_to_str;
 use crate::Str;
 
 
@@ -451,7 +449,7 @@ pub struct OrderReq {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ChangeReqInit {
   /// See `ChangeReq::quantity`.
-  pub quantity: u64,
+  pub quantity: Num,
   /// See `ChangeReq::time_in_force`.
   pub time_in_force: TimeInForce,
   /// See `ChangeReq::limit_price`.
@@ -482,8 +480,8 @@ impl ChangeReqInit {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ChangeReq {
   /// Number of shares to trade.
-  #[serde(rename = "qty", serialize_with = "u64_to_str")]
-  pub quantity: u64,
+  #[serde(rename = "qty")]
+  pub quantity: Num,
   /// How long the order will be valid.
   #[serde(rename = "time_in_force")]
   pub time_in_force: TimeInForce,
@@ -555,12 +553,8 @@ pub struct Order {
   #[serde(flatten)]
   pub amount: Amount,
   /// The quantity that was filled.
-  #[serde(
-    rename = "filled_qty",
-    deserialize_with = "u64_from_str",
-    serialize_with = "u64_to_str"
-  )]
-  pub filled_quantity: u64,
+  #[serde(rename = "filled_qty")]
+  pub filled_quantity: Num,
   /// The type of order.
   #[serde(rename = "type")]
   pub type_: Type,
@@ -1222,7 +1216,7 @@ mod tests {
     let order = client.issue::<Post>(&request).await.unwrap();
 
     let request = ChangeReqInit {
-      quantity: 2,
+      quantity: Num::from(2),
       time_in_force: TimeInForce::UntilCanceled,
       limit_price: Some(Num::from(2)),
       ..Default::default()

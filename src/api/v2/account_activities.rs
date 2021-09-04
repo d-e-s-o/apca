@@ -17,7 +17,7 @@ use serde_variant::to_variant_name;
 use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
-use crate::api::v2::util::u64_from_str;
+use crate::api::v2::util::abs_num_from_str;
 use crate::Str;
 
 
@@ -183,15 +183,15 @@ pub struct TradeActivity {
   #[serde(rename = "side")]
   pub side: Side,
   /// The number of shares involved in the trade execution.
-  #[serde(rename = "qty", deserialize_with = "u64_from_str")]
-  pub quantity: u64,
+  #[serde(rename = "qty", deserialize_with = "abs_num_from_str")]
+  pub quantity: Num,
   /// The cumulative quantity of shares involved in the execution.
-  #[serde(rename = "cum_qty", deserialize_with = "u64_from_str")]
-  pub cumulative_quantity: u64,
+  #[serde(rename = "cum_qty", deserialize_with = "abs_num_from_str")]
+  pub cumulative_quantity: Num,
   /// For partially filled orders, the quantity of shares that are left
   /// to be filled.
-  #[serde(rename = "leaves_qty", deserialize_with = "u64_from_str")]
-  pub unfilled_quantity: u64,
+  #[serde(rename = "leaves_qty", deserialize_with = "abs_num_from_str")]
+  pub unfilled_quantity: Num,
   /// The per-share price that the trade was executed at.
   #[serde(rename = "price")]
   pub price: Num,
@@ -461,7 +461,7 @@ mod tests {
   fn parse_reference_trade_activity() {
     let response = r#"{
   "activity_type": "FILL",
-  "cum_qty": "1",
+  "cum_qty": "1.5",
   "id": "20190524113406977::8efc7b9a-8b2b-4000-9955-d36e7db0df74",
   "leaves_qty": "0",
   "price": "1.63",
@@ -482,9 +482,9 @@ mod tests {
     assert_eq!(trade.symbol, "LPCN");
     assert_eq!(trade.order_id, id);
     assert_eq!(trade.side, Side::Buy);
-    assert_eq!(trade.quantity, 1);
-    assert_eq!(trade.cumulative_quantity, 1);
-    assert_eq!(trade.unfilled_quantity, 0);
+    assert_eq!(trade.quantity, Num::from(1));
+    assert_eq!(trade.cumulative_quantity, Num::new(3, 2));
+    assert_eq!(trade.unfilled_quantity, Num::from(0));
     assert_eq!(trade.price, Num::new(163, 100));
   }
 
