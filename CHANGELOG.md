@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Introduced support for historic data retrieval using v2 API
 - Added support for submitting notional orders
 - Adjusted all quantities to be of type `Num` to fully support
   trading with fractional quantities
