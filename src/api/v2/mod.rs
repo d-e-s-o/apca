@@ -15,6 +15,10 @@ pub mod assets;
 pub mod clock;
 /// Definitions for account and trade related events.
 pub mod events;
+/// Definitions surrounding watchlists
+pub mod watchlist;
+/// Fucntionality for listing watchlists
+pub mod watchlists;
 /// Definitions surrounding orders.
 pub mod order;
 /// Functionality for listing orders.
