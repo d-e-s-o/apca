@@ -23,6 +23,8 @@ pub mod orders;
 pub mod position;
 /// Functionality for listing open positions.
 pub mod positions;
+/// Definitions surrounding watchlists.
+pub mod watchlist;
 
 mod de;
 mod util;
