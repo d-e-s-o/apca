@@ -25,6 +25,8 @@ pub mod position;
 pub mod positions;
 /// Definitions surrounding watchlists.
 pub mod watchlist;
+/// Functionality for listing watchlists.
+pub mod watchlists;
 
 mod de;
 mod util;
