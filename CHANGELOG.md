@@ -3,6 +3,7 @@ Unreleased
 - Added support for submitting notional orders
 - Adjusted `Position::quantity` to be a `Num` to support fractional
   quantities
+- Tagged more functions and methods as `#[inline]`
 
 
 0.20.0

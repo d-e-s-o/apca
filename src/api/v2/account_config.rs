@@ -50,6 +50,7 @@ Endpoint! {
   ],
   Err => GetError, []
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/account/configurations".into()
   }
@@ -69,10 +70,12 @@ Endpoint! {
     /* 400 */ BAD_REQUEST => InvalidValues,
   ]
 
+  #[inline]
   fn method() -> Method {
     Method::PATCH
   }
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/account/configurations".into()
   }

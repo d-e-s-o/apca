@@ -14,6 +14,7 @@ Endpoint! {
   ],
   Err => GetError, [ ]
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/positions".into()
   }

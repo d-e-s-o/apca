@@ -54,6 +54,7 @@ pub enum AccountUpdates {}
 impl EventStream for AccountUpdates {
   type Event = AccountUpdate;
 
+  #[inline]
   fn stream() -> StreamType {
     StreamType::AccountUpdates
   }
@@ -151,6 +152,7 @@ pub enum TradeUpdates {}
 impl EventStream for TradeUpdates {
   type Event = TradeUpdate;
 
+  #[inline]
   fn stream() -> StreamType {
     StreamType::TradeUpdates
   }

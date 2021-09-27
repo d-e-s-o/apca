@@ -42,6 +42,7 @@ pub struct Streams {
 }
 
 impl From<&[StreamType]> for Streams {
+  #[inline]
   fn from(src: &[StreamType]) -> Self {
     Self {
       streams: src.to_vec(),
@@ -59,6 +60,7 @@ mod req {
   pub struct Auth(&'static str);
 
   impl Default for Auth {
+    #[inline]
     fn default() -> Self {
       Self("authenticate")
     }
@@ -68,6 +70,7 @@ mod req {
   pub struct Listen(&'static str);
 
   impl Default for Listen {
+    #[inline]
     fn default() -> Self {
       Self("listen")
     }
@@ -95,6 +98,7 @@ mod req {
     A: Default + Serialize,
     T: Serialize,
   {
+    #[inline]
     pub fn new(data: T) -> Self {
       Self {
         action: Default::default(),
@@ -111,6 +115,7 @@ mod req {
   }
 
   impl<'d> AuthData<'d> {
+    #[inline]
     pub fn new(key_id: &'d str, secret_key: &'d str) -> Self {
       Self { key_id, secret_key }
     }

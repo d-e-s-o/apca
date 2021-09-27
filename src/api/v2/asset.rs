@@ -24,6 +24,7 @@ pub struct Id(pub Uuid);
 impl Deref for Id {
   type Target = Uuid;
 
+  #[inline]
   fn deref(&self) -> &Self::Target {
     &self.0
   }
@@ -39,6 +40,7 @@ pub enum Class {
 }
 
 impl AsRef<str> for Class {
+  #[inline]
   fn as_ref(&self) -> &'static str {
     match *self {
       Class::UsEquity => "us_equity",
@@ -47,6 +49,7 @@ impl AsRef<str> for Class {
 }
 
 impl Default for Class {
+  #[inline]
   fn default() -> Self {
     Self::UsEquity
   }
@@ -77,6 +80,7 @@ pub enum Status {
 }
 
 impl AsRef<str> for Status {
+  #[inline]
   fn as_ref(&self) -> &'static str {
     match *self {
       Status::Active => "active",
@@ -86,6 +90,7 @@ impl AsRef<str> for Status {
 }
 
 impl Default for Status {
+  #[inline]
   fn default() -> Self {
     Self::Active
   }
@@ -136,6 +141,7 @@ pub enum Symbol {
 }
 
 impl From<Id> for Symbol {
+  #[inline]
   fn from(symbol: Id) -> Self {
     Self::Id(symbol)
   }
@@ -145,6 +151,7 @@ impl<S> From<S> for Symbol
 where
   S: Into<String>,
 {
+  #[inline]
   fn from(symbol: S) -> Self {
     Self::Sym(symbol.into())
   }
@@ -333,6 +340,7 @@ Endpoint! {
     /* 404 */ NOT_FOUND => NotFound,
   ]
 
+  #[inline]
   fn path(input: &Self::Input) -> Str {
     format!("/v2/assets/{}", input).into()
   }

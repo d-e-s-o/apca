@@ -23,6 +23,7 @@ pub struct AssetsReqInit {
 
 impl AssetsReqInit {
   /// Create an `AssetsReq` from an `AssetsReqInit`.
+  #[inline]
   pub fn init(self) -> AssetsReq {
     AssetsReq {
       status: self.status,
@@ -53,6 +54,7 @@ Endpoint! {
   ],
   Err => GetError, []
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/assets".into()
   }

@@ -48,6 +48,7 @@ pub struct Builder {
 
 impl Builder {
   /// Adjust the maximum number of idle connections per host.
+  #[inline]
   pub fn max_idle_per_host(&mut self, max_idle: usize) -> &mut Self {
     let _ = self.builder.pool_max_idle_per_host(max_idle);
     self
@@ -80,6 +81,7 @@ impl Default for Builder {
   }
 
   #[cfg(not(test))]
+  #[inline]
   fn default() -> Self {
     Self {
       builder: HttpClient::builder(),
@@ -98,12 +100,14 @@ pub struct Client {
 
 impl Client {
   /// Instantiate a new `Builder` which allows for creating a customized `Client`.
+  #[inline]
   pub fn builder() -> Builder {
     Builder::default()
   }
 
   /// Create a new `Client` using the given key ID and secret for
   /// connecting to the API.
+  #[inline]
   pub fn new(api_info: ApiInfo) -> Self {
     Builder::default().build(api_info)
   }
@@ -200,6 +204,7 @@ impl Client {
   }
 
   /// Retrieve the `ApiInfo` object used by this `Client` instance.
+  #[inline]
   pub fn api_info(&self) -> &ApiInfo {
     &self.api_info
   }

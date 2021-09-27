@@ -287,6 +287,7 @@ pub enum Activity {
 
 impl Activity {
   /// Retrieve the activity's ID.
+  #[inline]
   pub fn id(&self) -> &str {
     match self {
       Activity::Trade(trade) => &trade.id,
@@ -295,6 +296,7 @@ impl Activity {
   }
 
   /// The time at which the activity occurred.
+  #[inline]
   pub fn time(&self) -> &DateTime<Utc> {
     match self {
       Activity::Trade(trade) => &trade.transaction_time,
@@ -384,6 +386,7 @@ pub enum Direction {
 }
 
 impl Default for Direction {
+  #[inline]
   fn default() -> Self {
     Self::Descending
   }
@@ -428,6 +431,7 @@ Endpoint! {
   ],
   Err => GetError, []
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/account/activities".into()
   }

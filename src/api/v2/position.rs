@@ -29,6 +29,7 @@ pub enum Side {
 impl Not for Side {
   type Output = Self;
 
+  #[inline]
   fn not(self) -> Self::Output {
     match self {
       Self::Long => Self::Short,
@@ -107,6 +108,7 @@ Endpoint! {
     /* 404 */ NOT_FOUND => NotFound,
   ]
 
+  #[inline]
   fn path(input: &Self::Input) -> Str {
     format!("/v2/positions/{}", input).into()
   }
@@ -126,10 +128,12 @@ Endpoint! {
     /* 404 */ NOT_FOUND => NotFound,
   ]
 
+  #[inline]
   fn method() -> Method {
     Method::DELETE
   }
 
+  #[inline]
   fn path(input: &Self::Input) -> Str {
     format!("/v2/positions/{}", input).into()
   }

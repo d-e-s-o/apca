@@ -22,6 +22,7 @@ pub struct Id(pub Uuid);
 impl Deref for Id {
   type Target = Uuid;
 
+  #[inline]
   fn deref(&self) -> &Self::Target {
     &self.0
   }
@@ -152,6 +153,7 @@ Endpoint! {
   ],
   Err => GetError, []
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/account".into()
   }

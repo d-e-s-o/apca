@@ -36,6 +36,7 @@ pub struct Id(pub Uuid);
 impl Deref for Id {
   type Target = Uuid;
 
+  #[inline]
   fn deref(&self) -> &Self::Target {
     &self.0
   }
@@ -139,6 +140,7 @@ pub enum Side {
 impl Not for Side {
   type Output = Self;
 
+  #[inline]
   fn not(self) -> Self::Output {
     match self {
       Self::Buy => Self::Sell,
@@ -174,6 +176,7 @@ pub enum Class {
 }
 
 impl Default for Class {
+  #[inline]
   fn default() -> Self {
     Self::Simple
   }
@@ -202,6 +205,7 @@ pub enum Type {
 }
 
 impl Default for Type {
+  #[inline]
   fn default() -> Self {
     Self::Market
   }
@@ -229,6 +233,7 @@ pub enum TimeInForce {
 }
 
 impl Default for TimeInForce {
+  #[inline]
   fn default() -> Self {
     Self::Day
   }
@@ -628,6 +633,7 @@ Endpoint! {
     /* 404 */ NOT_FOUND => NotFound,
   ]
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/orders:by_client_order_id".into()
   }
@@ -661,10 +667,12 @@ Endpoint! {
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
+  #[inline]
   fn method() -> Method {
     Method::POST
   }
 
+  #[inline]
   fn path(_input: &Self::Input) -> Str {
     "/v2/orders".into()
   }
@@ -694,6 +702,7 @@ Endpoint! {
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
+  #[inline]
   fn method() -> Method {
     Method::PATCH
   }
@@ -727,6 +736,7 @@ EndpointNoParse! {
     /* 422 */ UNPROCESSABLE_ENTITY => NotCancelable,
   ]
 
+  #[inline]
   fn method() -> Method {
     Method::DELETE
   }
@@ -735,6 +745,7 @@ EndpointNoParse! {
     format!("/v2/orders/{}", input.to_simple()).into()
   }
 
+  #[inline]
   fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
     debug_assert_eq!(body, b"");
     Ok(())
