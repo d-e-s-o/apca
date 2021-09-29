@@ -205,7 +205,6 @@ pub struct TradeActivity {
 /// meant to be used directly by users. They should use
 /// `NonTradeActivity` instead.
 // TODO: Not all fields are hooked up.
-#[doc(hidden)]
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
 pub struct NonTradeActivityImpl<T> {
