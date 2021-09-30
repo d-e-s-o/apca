@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 Daniel Mueller <deso@posteo.net>
+// Copyright (C) 2019-2021 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::error::Error as StdError;
