@@ -195,7 +195,7 @@ mod tests {
   ]
 }"#;
 
-    let bars = from_json::<<Get as Endpoint>::Output>(&response).unwrap();
+    let bars = from_json::<<Get as Endpoint>::Output>(response).unwrap();
     let aapl = bars.get("AAPL").unwrap();
     assert_eq!(aapl.len(), 1);
     assert_eq!(aapl[0].time, UNIX_EPOCH + Duration::from_secs(1544129220));

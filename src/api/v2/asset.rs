@@ -200,7 +200,7 @@ impl FromStr for Symbol {
 impl Display for Symbol {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Self::Sym(sym) => fmt.write_str(&sym),
+      Self::Sym(sym) => fmt.write_str(sym),
       Self::SymExchg(sym, exchg) => write!(fmt, "{}:{}", sym, exchg.as_ref()),
       Self::SymExchgCls(sym, exchg, cls) => {
         write!(fmt, "{}:{}:{}", sym, exchg.as_ref(), cls.as_ref())
@@ -435,16 +435,16 @@ mod tests {
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
-    let asset = from_json::<Asset>(&response).unwrap();
+    let asset = from_json::<Asset>(response).unwrap();
     assert_eq!(asset.id, id);
     assert_eq!(asset.class, Class::UsEquity);
     assert_eq!(asset.exchange, Exchange::Nasdaq);
     assert_eq!(asset.symbol, "AAPL");
     assert_eq!(asset.status, Status::Active);
-    assert_eq!(asset.tradable, true);
-    assert_eq!(asset.marginable, true);
-    assert_eq!(asset.shortable, true);
-    assert_eq!(asset.easy_to_borrow, true);
+    assert!(asset.tradable);
+    assert!(asset.marginable);
+    assert!(asset.shortable);
+    assert!(asset.easy_to_borrow);
   }
 
   #[test]
@@ -462,7 +462,7 @@ mod tests {
   "fractionable": true
 }"#;
 
-    let asset = from_json::<Asset>(&response).unwrap();
+    let asset = from_json::<Asset>(response).unwrap();
     assert_eq!(asset.exchange, Exchange::Unknown);
   }
 
@@ -480,7 +480,7 @@ mod tests {
       assert_eq!(asset.exchange, Exchange::Nasdaq);
       assert_eq!(asset.symbol, "AAPL");
       assert_eq!(asset.status, Status::Active);
-      assert_eq!(asset.tradable, true);
+      assert!(asset.tradable);
     }
 
     let symbols = [

@@ -473,7 +473,7 @@ mod tests {
   "type": "fill"
 }"#;
 
-    let trade = from_json::<Activity>(&response)
+    let trade = from_json::<Activity>(response)
       .unwrap()
       .into_trade()
       .unwrap();
@@ -499,7 +499,7 @@ mod tests {
   "per_share_amount": "0.51"
 }"#;
 
-    let non_trade = from_json::<Activity>(&response)
+    let non_trade = from_json::<Activity>(response)
       .unwrap()
       .into_non_trade()
       .unwrap();
@@ -526,7 +526,7 @@ mod tests {
       "qty":"201.9617035750071243",
       "per_share_amount":"0.108783"
 }"#;
-    let non_trade = from_json::<Activity>(&response)
+    let non_trade = from_json::<Activity>(response)
       .unwrap()
       .into_non_trade()
       .unwrap();

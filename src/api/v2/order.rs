@@ -646,7 +646,7 @@ Endpoint! {
     }
 
     let order_id = ClientOrderId {
-      order_id: &input,
+      order_id: input,
     };
     Ok(Some(to_query(order_id)?.into()))
   }
@@ -820,7 +820,7 @@ mod tests {
     let serialized = r#"{
     "qty": "15"
 }"#;
-    let amount = from_json::<Amount>(&serialized).unwrap();
+    let amount = from_json::<Amount>(serialized).unwrap();
     assert_eq!(amount, Amount::quantity(15));
   }
 
@@ -830,7 +830,7 @@ mod tests {
     let serialized = r#"{
     "notional": "15.12"
 }"#;
-    let amount = from_json::<Amount>(&serialized).unwrap();
+    let amount = from_json::<Amount>(serialized).unwrap();
     assert_eq!(amount, Amount::notional(Num::from_str("15.12").unwrap()));
   }
 
@@ -863,7 +863,7 @@ mod tests {
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
-    let order = from_json::<Order>(&response).unwrap();
+    let order = from_json::<Order>(response).unwrap();
     assert_eq!(order.id, id);
     assert_eq!(
       order.created_at,

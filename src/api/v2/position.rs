@@ -180,7 +180,7 @@ mod tests {
     "change_today": "0.0084"
 }"#;
 
-    let pos = from_json::<Position>(&response).unwrap();
+    let pos = from_json::<Position>(response).unwrap();
     assert_eq!(pos.symbol, "AAPL");
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
@@ -219,7 +219,7 @@ mod tests {
     "change_today": "0.0084"
 }"#;
 
-    let pos = from_json::<Position>(&response).unwrap();
+    let pos = from_json::<Position>(response).unwrap();
     assert_eq!(pos.symbol, "AAPL");
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
@@ -258,7 +258,7 @@ mod tests {
       "change_today":"-0.0573613766730402"
     }"#;
 
-    let pos = from_json::<Position>(&response).unwrap();
+    let pos = from_json::<Position>(response).unwrap();
     assert_eq!(pos.symbol, "XLK");
     assert_eq!(pos.quantity, Num::from(24));
   }

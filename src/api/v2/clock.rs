@@ -67,8 +67,8 @@ mod tests {
   "next_close": "2018-04-01T12:00:00.000Z"
 }"#;
 
-    let clock = from_json::<Clock>(&response).unwrap();
-    assert_eq!(clock.open, true);
+    let clock = from_json::<Clock>(response).unwrap();
+    assert!(clock.open);
   }
 
   #[test(tokio::test)]

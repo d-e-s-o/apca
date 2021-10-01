@@ -239,7 +239,7 @@ fn check_subscribe(msg: &[u8], stream: StreamType) -> Result<(), Error> {
     Err(b) => trace!(response = display(&b)),
   }
 
-  match from_json::<StreamResponse>(&msg) {
+  match from_json::<StreamResponse>(msg) {
     Ok(resp) => match &resp.data.0.streams[..] {
       &[s] if s == stream => Ok(()),
       &[] => {

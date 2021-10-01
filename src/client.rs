@@ -121,8 +121,8 @@ impl Client {
       .map(|url| Url::parse(url.as_ref()).expect("endpoint definition contains invalid URL"))
       .unwrap_or_else(|| self.api_info.base_url.clone());
 
-    url.set_path(&R::path(&input));
-    url.set_query(R::query(&input)?.as_ref().map(AsRef::as_ref));
+    url.set_path(&R::path(input));
+    url.set_query(R::query(input)?.as_ref().map(AsRef::as_ref));
 
     let request = HttpRequestBuilder::new()
       .method(R::method())
@@ -145,7 +145,7 @@ impl Client {
   where
     R: Endpoint,
   {
-    let result = self.request::<R>(&input);
+    let result = self.request::<R>(input);
     async move {
       let request = result.map_err(RequestError::Endpoint)?;
       let span = span!(

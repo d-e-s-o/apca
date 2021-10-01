@@ -14,8 +14,8 @@ fn parse_u64<'de, D>(s: &str) -> Result<u64, D::Error>
 where
   D: Deserializer<'de>,
 {
-  u64::from_str_radix(&s, 10)
-    .map_err(|_| SerdeError::invalid_value(Unexpected::Str(&s), &"an unsigned integer"))
+  str::parse::<u64>(s)
+    .map_err(|_| SerdeError::invalid_value(Unexpected::Str(s), &"an unsigned integer"))
 }
 
 /// Deserialize a string encoded `u64`.

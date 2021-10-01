@@ -109,7 +109,7 @@ mod tests {
   "trade_confirm_email": "all"
 }"#;
 
-    let config = from_json::<Configuration>(&response).unwrap();
+    let config = from_json::<Configuration>(response).unwrap();
     assert_eq!(config.trade_confirmation, TradeConfirmation::Email);
     assert!(!config.trading_suspended);
     assert!(!config.no_shorting);

@@ -204,12 +204,12 @@ mod tests {
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
-    let acc = from_json::<Account>(&response).unwrap();
+    let acc = from_json::<Account>(response).unwrap();
     assert_eq!(acc.id, id);
     assert_eq!(acc.status, Status::Active);
     assert_eq!(acc.currency, "USD");
     assert_eq!(acc.buying_power, Num::from(0));
-    assert_eq!(acc.trading_blocked, false);
+    assert!(!acc.trading_blocked);
     assert_eq!(
       acc.created_at,
       DateTime::parse_from_rfc3339("2018-10-01T13:35:25Z").unwrap()
