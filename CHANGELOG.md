@@ -6,6 +6,7 @@ Unreleased
 - Adjusted all quantities to be of type `Num` to fully support
   trading with fractional quantities
 - Tagged more functions and methods as `#[inline]`
+- Removed support for v1 historic data API
 
 
 0.20.0
