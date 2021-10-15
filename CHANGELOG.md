@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.21.0
+------
 - Introduced support for historic data retrieval using v2 API
 - Added bindings for watchlist management
 - Added support for submitting notional orders
