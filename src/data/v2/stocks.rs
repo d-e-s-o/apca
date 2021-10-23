@@ -222,7 +222,7 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(3619, 20));
+    assert_eq!(bars[0].open, Num::new(181, 1));
     assert_eq!(bars[0].close, Num::new(17669, 100));
     assert_eq!(bars[0].high, Num::new(1823899, 10000));
     assert_eq!(bars[0].low, Num::new(17627, 100));
@@ -231,7 +231,7 @@ mod tests {
       bars[1].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1544072400, 0), Utc)
     );
-    assert_eq!(bars[1].open, Num::new(4294, 25));
+    assert_eq!(bars[1].open, Num::new(8587, 50));
     assert_eq!(bars[1].close, Num::new(4368, 25));
     assert_eq!(bars[1].high, Num::new(8739, 50));
     assert_eq!(bars[1].low, Num::new(8521, 50));
@@ -299,7 +299,7 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(43976877, 250000));
+    assert_eq!(bars[0].open, Num::new(35191223, 200000));
     assert_eq!(bars[0].close, Num::new(171766221, 1000000));
     assert_eq!(bars[0].high, Num::new(177307283, 1000000));
     assert_eq!(bars[0].low, Num::new(6854317, 40000));
@@ -317,7 +317,7 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(3619, 80));
+    assert_eq!(bars[0].open, Num::new(181, 4));
     assert_eq!(bars[0].close, Num::new(17669, 400));
     assert_eq!(bars[0].high, Num::new(1823899, 40000));
     assert_eq!(bars[0].low, Num::new(17627, 400));
@@ -334,7 +334,7 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(43976877, 1000000));
+    assert_eq!(bars[0].open, Num::new(43989029, 1000000));
     assert_eq!(bars[0].close, Num::new(8588311, 200000));
     assert_eq!(bars[0].high, Num::new(44326821, 1000000));
     assert_eq!(bars[0].low, Num::new(42839481, 1000000));
