@@ -2,4 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// Definitions for retrieval of market data bars.
-pub mod stocks;
+pub mod bars;
+
+// TODO: Remove this alias with the next compatibility breaking release.
+#[deprecated(note = "renamed to 'bars'; use that instead")]
+pub use bars as stocks;

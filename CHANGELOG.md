@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Aliased `data::v2::bars` module to `data::v2::stocks`
+  - Deprecated `data::v2::stocks` module alias
+
+
 0.21.0
 ------
 - Introduced support for historic data retrieval using v2 API
