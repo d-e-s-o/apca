@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.21.1
+------
 - Introduced support for retrieving the last quote for a symbol
 - Aliased `data::v2::bars` module to `data::v2::stocks`
   - Deprecated `data::v2::stocks` module alias
