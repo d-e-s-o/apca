@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Removed support for streaming account updates
 - Switched from using `test-env-log` to `test-log`
 
 

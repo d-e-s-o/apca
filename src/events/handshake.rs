@@ -27,9 +27,6 @@ use crate::Error;
 /// An enumeration of the different event streams.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum StreamType {
-  /// A stream for account updates.
-  #[serde(rename = "account_updates")]
-  AccountUpdates,
   /// A stream for trade updates.
   #[serde(rename = "trade_updates")]
   TradeUpdates,

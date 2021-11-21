@@ -1,64 +1,11 @@
 // Copyright (C) 2019-2021 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use chrono::DateTime;
-use chrono::Utc;
-
-use num_decimal::Num;
-
 use serde::Deserialize;
 
-use crate::api::v2::account;
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
-
-
-/// A representation of an account update that we receive through the
-/// "account_updates" stream.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-#[non_exhaustive]
-pub struct AccountUpdate {
-  /// The corresponding account's ID.
-  #[serde(rename = "id")]
-  pub id: account::Id,
-  /// The time the account was created at.
-  #[serde(rename = "created_at")]
-  pub created_at: Option<DateTime<Utc>>,
-  /// The time the account was updated last.
-  #[serde(rename = "updated_at")]
-  pub updated_at: Option<DateTime<Utc>>,
-  /// The time the account was deleted at.
-  #[serde(rename = "deleted_at")]
-  pub deleted_at: Option<DateTime<Utc>>,
-  /// The account's status.
-  #[serde(rename = "status")]
-  pub status: String,
-  /// The currency the account uses.
-  #[serde(rename = "currency")]
-  pub currency: String,
-  /// Cash balance.
-  #[serde(rename = "cash")]
-  pub cash: Num,
-  /// Withdrawable cash amount.
-  #[serde(rename = "cash_withdrawable")]
-  pub withdrawable_cash: Num,
-}
-
-
-/// A type used for requesting a subscription to the "account_updates"
-/// event stream.
-#[derive(Clone, Copy, Debug)]
-pub enum AccountUpdates {}
-
-impl EventStream for AccountUpdates {
-  type Event = AccountUpdate;
-
-  #[inline]
-  fn stream() -> StreamType {
-    StreamType::AccountUpdates
-  }
-}
 
 
 /// The status of a trade, as reported as part of a `TradeUpdate`.
