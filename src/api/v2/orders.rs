@@ -86,7 +86,7 @@ mod tests {
 
   use num_decimal::Num;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::api::v2::events;
   use crate::api::v2::order;

@@ -41,7 +41,7 @@ uuid = {version = "0.8", default-features = false, features = ["serde"]}
 websocket-util = "0.8"
 
 [dev-dependencies]
-test-env-log = {version = "0.2.2", default-features = false, features = ["trace"]}
+test-log = {version = "0.2.8", default-features = false, features = ["trace"]}
 tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread", "macros"]}
 tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
 uuid = {version = "0.8", default-features = false, features = ["v4"]}

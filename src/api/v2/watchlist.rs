@@ -162,7 +162,7 @@ mod tests {
   use crate::Client;
   use crate::RequestError;
 
-  use test_env_log::test;
+  use test_log::test;
 
 
   /// Check that we can create, retrieve, and delete a watchlist.

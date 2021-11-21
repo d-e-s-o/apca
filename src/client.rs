@@ -217,7 +217,7 @@ mod tests {
 
   use http::StatusCode;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::endpoint::ErrorMessage;
   use crate::Str;

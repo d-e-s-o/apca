@@ -55,7 +55,7 @@ mod tests {
   use crate::api::v2::watchlist::CreateReq;
   use crate::api_info::ApiInfo;
   use crate::Client;
-  use test_env_log::test;
+  use test_log::test;
 
 
   /// Check that we can list existing watchlists.

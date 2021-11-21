@@ -87,7 +87,7 @@ mod tests {
 
   use chrono::Duration;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;

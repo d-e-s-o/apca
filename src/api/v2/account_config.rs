@@ -94,7 +94,7 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::api_info::ApiInfo;
   use crate::Client;

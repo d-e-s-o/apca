@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Switched from using `test-env-log` to `test-log`
+
+
 0.21.1
 ------
 - Introduced support for retrieving the last quote for a symbol

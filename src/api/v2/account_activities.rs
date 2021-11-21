@@ -449,7 +449,7 @@ mod tests {
 
   use serde_json::from_str as from_json;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use uuid::Uuid;
 

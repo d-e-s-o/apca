@@ -119,7 +119,7 @@ mod tests {
   use futures::SinkExt;
   use futures::TryStreamExt;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use url::Url;
 

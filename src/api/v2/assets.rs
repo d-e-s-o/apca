@@ -69,7 +69,7 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use test_env_log::test;
+  use test_log::test;
 
   use crate::api::v2::asset::Exchange;
   use crate::api_info::ApiInfo;
