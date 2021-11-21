@@ -299,10 +299,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(35191223, 200000));
-    assert_eq!(bars[0].close, Num::new(171766221, 1000000));
-    assert_eq!(bars[0].high, Num::new(177307283, 1000000));
-    assert_eq!(bars[0].low, Num::new(6854317, 40000));
+    assert_eq!(bars[0].open, Num::new(175700601, 1000000));
+    assert_eq!(bars[0].close, Num::new(171516791, 1000000));
+    assert_eq!(bars[0].high, Num::new(177049807, 1000000));
+    assert_eq!(bars[0].low, Num::new(5347159, 31250));
     assert_eq!(bars[0].volume, 41344313);
   }
 
@@ -334,10 +334,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(43989029, 1000000));
-    assert_eq!(bars[0].close, Num::new(8588311, 200000));
-    assert_eq!(bars[0].high, Num::new(44326821, 1000000));
-    assert_eq!(bars[0].low, Num::new(42839481, 1000000));
+    assert_eq!(bars[0].open, Num::new(878503, 20000));
+    assert_eq!(bars[0].close, Num::new(21439599, 500000));
+    assert_eq!(bars[0].high, Num::new(11065613, 250000));
+    assert_eq!(bars[0].low, Num::new(5347159, 125000));
     assert_eq!(bars[0].volume, 165377252);
   }
 }
