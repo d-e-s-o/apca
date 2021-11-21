@@ -134,9 +134,9 @@ mod tests {
     r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#;
   const AUTH_RESP: &str =
     r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#;
-  const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["account_updates"]}}"#;
-  const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["account_updates"]}}"#;
-  const UNIT_EVENT: &str = r#"{"stream":"account_updates","data":null}"#;
+  const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
+  const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["trade_updates"]}}"#;
+  const UNIT_EVENT: &str = r#"{"stream":"trade_updates","data":null}"#;
 
 
   /// A stream used solely for testing purposes.
@@ -146,7 +146,7 @@ mod tests {
     type Event = ();
 
     fn stream() -> StreamType {
-      StreamType::AccountUpdates
+      StreamType::TradeUpdates
     }
   }
 
