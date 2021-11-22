@@ -93,7 +93,6 @@ pub struct TradeUpdate {
 /// A type used for requesting a subscription to the "trade_updates"
 /// event stream.
 #[derive(Clone, Copy, Debug, PartialEq)]
-#[allow(unused)]
 pub enum TradeUpdates {}
 
 impl EventStream for TradeUpdates {
