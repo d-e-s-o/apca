@@ -2,7 +2,7 @@
 [![coverage](https://gitlab.com/d-e-s-o/apca/badges/master/coverage.svg)](https://gitlab.com/d-e-s-o/apca/-/jobs/artifacts/master/file/tarpaulin-report/tarpaulin-report.html?job=coverage:tarpaulin)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
 [![Docs](https://docs.rs/apca/badge.svg)](https://docs.rs/apca)
-[![rustc](https://img.shields.io/badge/rustc-1.46+-blue.svg)](https://blog.rust-lang.org/2020/08/27/Rust-1.46.0.html)
+[![rustc](https://img.shields.io/badge/rustc-1.51+-blue.svg)](https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html)
 
 apca
 ====

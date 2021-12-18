@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Removed support for streaming account updates
 - Switched from using `test-env-log` to `test-log`
+- Bumped minimum supported Rust version to `1.51`
 
 
 0.21.1
