@@ -20,6 +20,28 @@ use websocket_util::wrap::Wrapper;
 use crate::Error;
 
 
+/// A custom [`Result`]-style type that we can implement a foreign trait
+/// on.
+#[derive(Debug)]
+#[doc(hidden)]
+pub enum MessageResult<T, E> {
+  /// The success value.
+  Ok(T),
+  /// The error value.
+  Err(E),
+}
+
+impl<T, E> From<Result<T, E>> for MessageResult<T, E> {
+  #[inline]
+  fn from(result: Result<T, E>) -> Self {
+    match result {
+      Ok(t) => Self::Ok(t),
+      Err(e) => Self::Err(e),
+    }
+  }
+}
+
+
 /// Internal function to connect to websocket server.
 async fn connect_internal(
   mut url: Url,

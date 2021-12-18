@@ -35,6 +35,7 @@ use crate::api::v2::order;
 use crate::api_info::ApiInfo;
 use crate::subscribable::Subscribable;
 use crate::websocket::connect;
+use crate::websocket::MessageResult;
 use crate::Error;
 
 
@@ -158,28 +159,6 @@ pub struct Authentication {
    * TODO: Right now we just ignore the `action` field, as we would
    *       not react on it anyway.
    */
-}
-
-
-/// A custom [`Result`]-style type that we can implement a foreign trait
-/// on.
-#[derive(Debug)]
-#[doc(hidden)]
-pub enum MessageResult<T, E> {
-  /// The success value.
-  Ok(T),
-  /// The error value.
-  Err(E),
-}
-
-impl<T, E> From<Result<T, E>> for MessageResult<T, E> {
-  #[inline]
-  fn from(result: Result<T, E>) -> Self {
-    match result {
-      Ok(t) => Self::Ok(t),
-      Err(e) => Self::Err(e),
-    }
-  }
 }
 
 
