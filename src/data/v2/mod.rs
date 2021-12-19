@@ -5,3 +5,5 @@
 pub mod bars;
 /// Functionality for retrieval of most recent quotes.
 pub mod last_quote;
+/// Definitions for real-time streaming of market data.
+pub mod stream;
