@@ -5,7 +5,13 @@ use std::borrow::Borrow as _;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
+use chrono::DateTime;
+use chrono::Utc;
+
+use num_decimal::Num;
+
 use serde::ser::Serializer;
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::Str;
@@ -118,10 +124,83 @@ fn normalize(symbols: Symbols) -> Symbols {
 }
 
 
+/// Aggregate data for an equity.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Bar {
+  /// The bar's symbol.
+  #[serde(rename = "S")]
+  pub symbol: String,
+  /// The bar's open price.
+  #[serde(rename = "o")]
+  pub open_price: Num,
+  /// The bar's high price.
+  #[serde(rename = "h")]
+  pub high_price: Num,
+  /// The bar's low price.
+  #[serde(rename = "l")]
+  pub low_price: Num,
+  /// The bar's close price.
+  #[serde(rename = "c")]
+  pub close_price: Num,
+  /// The bar's volume.
+  #[serde(rename = "v")]
+  pub volume: u64,
+  /// The bar's time stamp.
+  #[serde(rename = "t")]
+  pub timestamp: DateTime<Utc>,
+}
+
+
+/// An enum representing the different messages we may receive over our
+/// websocket channel.
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(tag = "T")]
+#[allow(clippy::large_enum_variant)]
+pub enum DataMessage {
+  /// A variant representing aggregate data for a given symbol.
+  #[serde(rename = "b")]
+  Bar(Bar),
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
 
+  use chrono::TimeZone as _;
+
+  use serde_json::from_str as json_from_str;
+
+
+  /// Check that we can deserialize the [`DataMessage::Bar`] variant.
+  #[test]
+  fn parse_bar() {
+    let json = r#"{
+  "T": "b",
+  "S": "SPY",
+  "o": 388.985,
+  "h": 389.13,
+  "l": 388.975,
+  "c": 389.12,
+  "v": 49378,
+  "t": "2021-02-22T19:15:00Z"
+}"#;
+
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let bar = match message {
+      DataMessage::Bar(bar) => bar,
+    };
+    assert_eq!(bar.symbol, "SPY");
+    assert_eq!(bar.open_price, Num::new(388985, 1000));
+    assert_eq!(bar.high_price, Num::new(38913, 100));
+    assert_eq!(bar.low_price, Num::new(388975, 1000));
+    assert_eq!(bar.close_price, Num::new(38912, 100));
+    assert_eq!(bar.volume, 49378);
+    assert_eq!(
+      bar.timestamp,
+      Utc.ymd(2021, 2, 22).and_hms_milli(19, 15, 0, 0)
+    );
+  }
 
   /// Check that we can normalize `Symbol` slices.
   #[test]
