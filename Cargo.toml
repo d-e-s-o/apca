@@ -33,16 +33,17 @@ serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
 thiserror = "1.0"
+tokio = {version = "1.0", default-features = false, features = ["net"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "tokio-tungstenite", version = "0.16", features = ["connect", "native-tls"]}
 url = "2.0"
 uuid = {version = "0.8", default-features = false, features = ["serde"]}
-websocket-util = "0.9"
+websocket-util = "0.10"
 
 [dev-dependencies]
 test-log = {version = "0.2.8", default-features = false, features = ["trace"]}
 tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread", "macros"]}
 tracing-subscriber = {version = "0.2", default-features = false, features = ["ansi", "chrono", "env-filter", "fmt"]}
 uuid = {version = "0.8", default-features = false, features = ["v4"]}
-websocket-util = {version = "0.9", features = ["test"]}
+websocket-util = {version = "0.10", features = ["test"]}

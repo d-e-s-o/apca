@@ -6,8 +6,11 @@ use futures::StreamExt;
 
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
-use serde_json::from_slice as from_json;
+use serde_json::from_slice as json_from_slice;
+use serde_json::from_str as json_from_str;
 use serde_json::Error as JsonError;
+
+use tokio::net::TcpStream;
 
 use tracing::debug;
 use tracing::span;
@@ -16,9 +19,12 @@ use tracing::Level;
 use tracing_futures::Instrument;
 
 use tungstenite::connect_async;
+use tungstenite::MaybeTlsStream;
+use tungstenite::WebSocketStream;
 
-use websocket_util::stream as do_stream;
 use websocket_util::tungstenite::Error as WebSocketError;
+use websocket_util::wrap::Message;
+use websocket_util::wrap::Wrapper;
 
 use crate::api_info::ApiInfo;
 use crate::events::handshake::handshake;
@@ -53,7 +59,7 @@ pub struct Event<T> {
 pub async fn stream_raw(
   api_info: &ApiInfo,
   stream_type: StreamType,
-) -> Result<impl Stream<Item = Result<Vec<u8>, WebSocketError>>, Error> {
+) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {
   let ApiInfo {
     base_url: url,
     key_id,
@@ -88,7 +94,7 @@ pub async fn stream_raw(
     handshake(&mut stream, key_id, secret, stream_type).await?;
     debug!("subscription successful");
 
-    Ok(do_stream(stream).await)
+    Ok(Wrapper::builder().build(stream))
   }
   .instrument(span)
   .await
@@ -101,9 +107,12 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let stream = stream_raw(api_info, S::stream())
-    .await?
-    .map(|stream| stream.map(|data| from_json::<Event<S::Event>>(&data).map(|event| event.data)));
+  let stream = stream_raw(api_info, S::stream()).await?.map(|stream| {
+    stream.map(|message| match message {
+      Message::Text(string) => json_from_str::<Event<S::Event>>(&string).map(|event| event.data),
+      Message::Binary(data) => json_from_slice::<Event<S::Event>>(&data).map(|event| event.data),
+    })
+  });
 
   Ok(stream)
 }
