@@ -151,6 +151,18 @@ pub struct Bar {
 }
 
 
+/// An error as reported by the Alpaca Data API.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct ApiError {
+  /// The error code being reported.
+  #[serde(rename = "code")]
+  pub code: u64,
+  /// A message providing more details about the error.
+  #[serde(rename = "msg")]
+  pub message: String,
+}
+
+
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
@@ -160,6 +172,13 @@ pub enum DataMessage {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
   Bar(Bar),
+  /// A control message indicating that the last operation was
+  /// successful.
+  #[serde(rename = "success")]
+  Success,
+  /// An error reported by the Alpaca Data API.
+  #[serde(rename = "error")]
+  Error(ApiError),
 }
 
 
@@ -189,6 +208,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let bar = match message {
       DataMessage::Bar(bar) => bar,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
     assert_eq!(bar.symbol, "SPY");
     assert_eq!(bar.open_price, Num::new(388985, 1000));
@@ -200,6 +220,41 @@ mod tests {
       bar.timestamp,
       Utc.ymd(2021, 2, 22).and_hms_milli(19, 15, 0, 0)
     );
+  }
+
+  /// Check that we can deserialize the [`DataMessage::Success`] variant.
+  #[test]
+  fn parse_success() {
+    let json = r#"{"T":"success","msg":"authenticated"}"#;
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let () = match message {
+      DataMessage::Success => (),
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+  }
+
+  /// Check that we can deserialize the [`DataMessage::Error`] variant.
+  #[test]
+  fn parse_error() {
+    let json = r#"{"T":"error","code":400,"msg":"invalid syntax"}"#;
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let error = match message {
+      DataMessage::Error(error) => error,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+
+    assert_eq!(error.code, 400);
+    assert_eq!(error.message, "invalid syntax");
+
+    let json = r#"{"T":"error","code":500,"msg":"internal error"}"#;
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let error = match message {
+      DataMessage::Error(error) => error,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+
+    assert_eq!(error.code, 500);
+    assert_eq!(error.message, "internal error");
   }
 
   /// Check that we can normalize `Symbol` slices.
