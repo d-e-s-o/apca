@@ -13,7 +13,12 @@ use num_decimal::Num;
 use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Error as JsonError;
 
+use websocket_util::subscribe;
+use websocket_util::tungstenite::Error as WebSocketError;
+
+use crate::websocket::MessageResult;
 use crate::Str;
 
 
@@ -179,6 +184,62 @@ pub enum DataMessage {
   /// An error reported by the Alpaca Data API.
   #[serde(rename = "error")]
   Error(ApiError),
+}
+
+
+/// A data item as received over the our websocket channel.
+#[derive(Debug)]
+pub enum Data {
+  /// A variant representing aggregate data for a given symbol.
+  Bar(Bar),
+}
+
+
+/// An enumeration of the supported control messages.
+#[derive(Debug)]
+pub enum ControlMessage {
+  /// A control message indicating that the last operation was
+  /// successful.
+  Success,
+  /// An error reported by the Alpaca Data API.
+  Error(ApiError),
+}
+
+
+/// A websocket message that we tried to parse.
+type ParsedMessage = MessageResult<Result<DataMessage, JsonError>, WebSocketError>;
+
+impl subscribe::Message for ParsedMessage {
+  type UserMessage = Result<Result<Data, JsonError>, WebSocketError>;
+  type ControlMessage = ControlMessage;
+
+  fn classify(self) -> subscribe::Classification<Self::UserMessage, Self::ControlMessage> {
+    match self {
+      MessageResult::Ok(Ok(message)) => match message {
+        DataMessage::Bar(bar) => subscribe::Classification::UserMessage(Ok(Ok(Data::Bar(bar)))),
+        DataMessage::Success => subscribe::Classification::ControlMessage(ControlMessage::Success),
+        DataMessage::Error(error) => {
+          subscribe::Classification::ControlMessage(ControlMessage::Error(error))
+        },
+      },
+      // JSON errors are directly passed through.
+      MessageResult::Ok(Err(err)) => subscribe::Classification::UserMessage(Ok(Err(err))),
+      // WebSocket errors are also directly pushed through.
+      MessageResult::Err(err) => subscribe::Classification::UserMessage(Err(err)),
+    }
+  }
+
+  #[inline]
+  fn is_error(user_message: &Self::UserMessage) -> bool {
+    // Both outer `WebSocketError` and inner `JsonError` errors
+    // constitute errors in our sense. Note however than an API error
+    // does not. It's just a regular control message from our
+    // perspective.
+    user_message
+      .as_ref()
+      .map(|result| result.is_err())
+      .unwrap_or(true)
+  }
 }
 
 
