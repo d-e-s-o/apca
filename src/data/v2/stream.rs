@@ -304,6 +304,30 @@ impl MarketData {
 }
 
 
+/// A control message "request" sent over a websocket channel.
+#[derive(Debug, Serialize)]
+#[serde(tag = "action")]
+enum Request<'d> {
+  /// A control message indicating whether or not we were authenticated
+  /// successfully.
+  #[serde(rename = "auth")]
+  Authenticate {
+    #[serde(rename = "key")]
+    key_id: &'d str,
+    #[serde(rename = "secret")]
+    secret: &'d str,
+  },
+  /// A control message subscribing the client to receive updates for
+  /// the provided symbols.
+  #[serde(rename = "subscribe")]
+  Subscribe(&'d MarketData),
+  /// A control message unsubscribing the client from receiving updates
+  /// for the provided symbols.
+  #[serde(rename = "unsubscribe")]
+  Unsubscribe(&'d MarketData),
+}
+
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -311,6 +335,7 @@ mod tests {
   use chrono::TimeZone as _;
 
   use serde_json::from_str as json_from_str;
+  use serde_json::to_string as to_json;
 
 
   /// Check that we can deserialize the [`DataMessage::Bar`] variant.
@@ -377,6 +402,46 @@ mod tests {
 
     assert_eq!(error.code, 500);
     assert_eq!(error.message, "internal error");
+  }
+
+  /// Check that we can serialize the [`Request::Authenticate`] variant
+  /// properly.
+  #[test]
+  fn serialize_authentication_request() {
+    let request = Request::Authenticate {
+      key_id: "KEY-ID",
+      secret: "SECRET-KEY",
+    };
+
+    let json = to_json(&request).unwrap();
+    let expected = r#"{"action":"auth","key":"KEY-ID","secret":"SECRET-KEY"}"#;
+    assert_eq!(json, expected);
+  }
+
+  /// Check that we can serialize the [`Request::Subscribe`] variant
+  /// properly.
+  #[test]
+  fn serialize_subscribe_request() {
+    let mut data = MarketData::default();
+    data.set_bars(["AAPL", "VOO"]);
+    let request = Request::Subscribe(&data);
+
+    let json = to_json(&request).unwrap();
+    let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"]}"#;
+    assert_eq!(json, expected);
+  }
+
+  /// Check that we can serialize the [`Request::Subscribe`] variant
+  /// properly.
+  #[test]
+  fn serialize_unsubscribe_request() {
+    let mut data = MarketData::default();
+    data.set_bars(["VOO"]);
+    let request = Request::Unsubscribe(&data);
+
+    let json = to_json(&request).unwrap();
+    let expected = r#"{"action":"unsubscribe","bars":["VOO"]}"#;
+    assert_eq!(json, expected);
   }
 
   /// Check that we can normalize `Symbol` slices.
