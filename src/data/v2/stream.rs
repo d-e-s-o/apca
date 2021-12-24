@@ -62,6 +62,16 @@ impl From<&'static str> for Symbol {
   }
 }
 
+impl From<String> for Symbol {
+  fn from(symbol: String) -> Self {
+    if symbol == "*" {
+      Symbol::All
+    } else {
+      Symbol::Symbol(Cow::from(symbol))
+    }
+  }
+}
+
 
 /// A slice/vector of [`Symbol`] objects.
 pub type Symbols = Cow<'static, [Symbol]>;
@@ -239,6 +249,57 @@ impl subscribe::Message for ParsedMessage {
       .as_ref()
       .map(|result| result.is_err())
       .unwrap_or(true)
+  }
+}
+
+
+/// A type wrapping an instance of [`Symbols`] that is guaranteed to be
+/// normalized.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub struct Normalized(Symbols);
+
+impl From<Symbols> for Normalized {
+  fn from(symbols: Symbols) -> Self {
+    Self(normalize(symbols))
+  }
+}
+
+impl From<Vec<String>> for Normalized {
+  fn from(symbols: Vec<String>) -> Self {
+    Self(normalize(Cow::from(
+      IntoIterator::into_iter(symbols)
+        .map(Symbol::from)
+        .collect::<Vec<_>>(),
+    )))
+  }
+}
+
+impl<const N: usize> From<[&'static str; N]> for Normalized {
+  fn from(symbols: [&'static str; N]) -> Self {
+    Self(normalize(Cow::from(
+      IntoIterator::into_iter(symbols)
+        .map(Symbol::from)
+        .collect::<Vec<_>>(),
+    )))
+  }
+}
+
+
+/// A type defining the market data a client intends to subscribe to.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub struct MarketData {
+  /// The aggregate bars to subscribe to.
+  pub bars: Normalized,
+}
+
+impl MarketData {
+  /// A convenience function for setting the [`bars`][MarketData::bars]
+  /// member.
+  pub fn set_bars<N>(&mut self, symbols: N)
+  where
+    N: Into<Normalized>,
+  {
+    self.bars = symbols.into();
   }
 }
 
