@@ -8,6 +8,8 @@ use std::cmp::Ordering;
 use chrono::DateTime;
 use chrono::Utc;
 
+use futures::Sink;
+
 use num_decimal::Num;
 
 use serde::ser::Serializer;
@@ -17,8 +19,10 @@ use serde_json::Error as JsonError;
 
 use websocket_util::subscribe;
 use websocket_util::tungstenite::Error as WebSocketError;
+use websocket_util::wrap;
 
 use crate::websocket::MessageResult;
+use crate::Error;
 use crate::Str;
 
 
@@ -325,6 +329,58 @@ enum Request<'d> {
   /// for the provided symbols.
   #[serde(rename = "unsubscribe")]
   Unsubscribe(&'d MarketData),
+}
+
+
+/// A subscription allowing certain control operations pertaining
+/// a real time market data stream.
+#[derive(Debug)]
+pub struct Subscription<S> {
+  /// Our internally used subscription object for sending control
+  /// messages.
+  subscription: subscribe::Subscription<S, ParsedMessage, wrap::Message>,
+  /// The currently active individual market data subscriptions.
+  subscriptions: MarketData,
+}
+
+impl<S> Subscription<S> {
+  /// Create a `Subscription` object wrapping the `websocket_util` based one.
+  fn new(subscription: subscribe::Subscription<S, ParsedMessage, wrap::Message>) -> Self {
+    Self {
+      subscription,
+      subscriptions: MarketData::default(),
+    }
+  }
+}
+
+impl<S> Subscription<S>
+where
+  S: Sink<wrap::Message> + Unpin,
+{
+  /// Subscribe to the provided market data.
+  ///
+  /// Contained in `subscribe` are the *additional* symbols to subscribe
+  /// to. Use the [`unsubscribe`][Self::unsubscribe] method to
+  /// unsubscribe from receiving data for certain symbols.
+  pub async fn subscribe(&mut self, subscribe: &MarketData) -> Result<Result<(), Error>, S::Error> {
+    todo!()
+  }
+
+  /// Unsubscribe from receiving market data for the provided symbols.
+  ///
+  /// Subscriptions of market data for symbols other than the ones in
+  /// [`unsubscribe`][Self::unsubscribe] is left untouched.
+  pub async fn unsubscribe(
+    &mut self,
+    unsubscribe: &MarketData,
+  ) -> Result<Result<(), Error>, S::Error> {
+    todo!()
+  }
+
+  /// Inquire the currently active individual market data subscriptions.
+  pub fn subscriptions(&self) -> &MarketData {
+    &self.subscriptions
+  }
 }
 
 
