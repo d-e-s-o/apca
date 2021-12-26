@@ -15,6 +15,7 @@ use num_decimal::Num;
 use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::to_string as to_json;
 use serde_json::Error as JsonError;
 
 use websocket_util::subscribe;
@@ -357,6 +358,38 @@ impl<S> Subscription<S>
 where
   S: Sink<wrap::Message> + Unpin,
 {
+  /// Authenticate the connection using Alpaca credentials.
+  async fn authenticate(
+    &mut self,
+    key_id: &str,
+    secret: &str,
+  ) -> Result<Result<(), Error>, S::Error> {
+    let request = Request::Authenticate { key_id, secret };
+    let json = match to_json(&request) {
+      Ok(json) => json,
+      Err(err) => return Ok(Err(Error::Json(err))),
+    };
+    let message = wrap::Message::Text(json);
+    let response = self.subscription.send(message).await?;
+
+    match response {
+      Some(response) => match response {
+        Ok(ControlMessage::Success) => Ok(Ok(())),
+        Ok(ControlMessage::Error(error)) => Ok(Err(Error::Str(
+          format!(
+            "failed to authenticate with server: {} ({})",
+            error.message, error.code
+          )
+          .into(),
+        ))),
+        Err(()) => Ok(Err(Error::Str("failed to authenticate with server".into()))),
+      },
+      None => Ok(Err(Error::Str(
+        "stream was closed before authorization message was received".into(),
+      ))),
+    }
+  }
+
   /// Subscribe to the provided market data.
   ///
   /// Contained in `subscribe` are the *additional* symbols to subscribe
@@ -391,7 +424,6 @@ mod tests {
   use chrono::TimeZone as _;
 
   use serde_json::from_str as json_from_str;
-  use serde_json::to_string as to_json;
 
 
   /// Check that we can deserialize the [`DataMessage::Bar`] variant.
