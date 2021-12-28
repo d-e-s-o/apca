@@ -12,6 +12,7 @@ use futures::Sink;
 
 use num_decimal::Num;
 
+use serde::de::Deserializer;
 use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
@@ -46,7 +47,7 @@ where
 
 
 /// A symbol for which market data can be received.
-#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged)]
 pub enum Symbol {
   /// A symbol for a specific equity.
@@ -192,6 +193,9 @@ pub enum DataMessage {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
   Bar(Bar),
+  /// A control message describing the current list of subscriptions.
+  #[serde(rename = "subscription")]
+  Subscription(MarketData),
   /// A control message indicating that the last operation was
   /// successful.
   #[serde(rename = "success")]
@@ -213,6 +217,8 @@ pub enum Data {
 /// An enumeration of the supported control messages.
 #[derive(Debug)]
 pub enum ControlMessage {
+  /// A control message describing the current list of subscriptions.
+  Subscription(MarketData),
   /// A control message indicating that the last operation was
   /// successful.
   Success,
@@ -232,6 +238,9 @@ impl subscribe::Message for ParsedMessage {
     match self {
       MessageResult::Ok(Ok(message)) => match message {
         DataMessage::Bar(bar) => subscribe::Classification::UserMessage(Ok(Ok(Data::Bar(bar)))),
+        DataMessage::Subscription(data) => {
+          subscribe::Classification::ControlMessage(ControlMessage::Subscription(data))
+        },
         DataMessage::Success => subscribe::Classification::ControlMessage(ControlMessage::Success),
         DataMessage::Error(error) => {
           subscribe::Classification::ControlMessage(ControlMessage::Error(error))
@@ -258,10 +267,19 @@ impl subscribe::Message for ParsedMessage {
 }
 
 
+/// Deserialize a normalized [`Symbols`] object from a string.
+fn normalized_from_str<'de, D>(deserializer: D) -> Result<Symbols, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  Symbols::deserialize(deserializer).map(normalize)
+}
+
+
 /// A type wrapping an instance of [`Symbols`] that is guaranteed to be
 /// normalized.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
-pub struct Normalized(Symbols);
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct Normalized(#[serde(deserialize_with = "normalized_from_str")] Symbols);
 
 impl From<Symbols> for Normalized {
   fn from(symbols: Symbols) -> Self {
@@ -291,7 +309,7 @@ impl<const N: usize> From<[&'static str; N]> for Normalized {
 
 
 /// A type defining the market data a client intends to subscribe to.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
   pub bars: Normalized,
@@ -375,6 +393,9 @@ where
     match response {
       Some(response) => match response {
         Ok(ControlMessage::Success) => Ok(Ok(())),
+        Ok(ControlMessage::Subscription(..)) => Ok(Err(Error::Str(
+          "server responded with unexpected subscription message".into(),
+        ))),
         Ok(ControlMessage::Error(error)) => Ok(Err(Error::Str(
           format!(
             "failed to authenticate with server: {} ({})",
@@ -390,13 +411,43 @@ where
     }
   }
 
+  /// Handle sending of a subscribe or unsubscribe request.
+  async fn subscribe_unsubscribe(
+    &mut self,
+    request: &Request<'_>,
+  ) -> Result<Result<(), Error>, S::Error> {
+    let json = match to_json(request) {
+      Ok(json) => json,
+      Err(err) => return Ok(Err(Error::Json(err))),
+    };
+    let message = wrap::Message::Text(json);
+    let response = self.subscription.send(message).await?;
+
+    match response {
+      Some(response) => match response {
+        Ok(ControlMessage::Subscription(data)) => {
+          self.subscriptions = data;
+          Ok(Ok(()))
+        },
+        Ok(_) => Ok(Err(Error::Str(
+          "server responded with unexpected message".into(),
+        ))),
+        Err(()) => Ok(Err(Error::Str("failed to adjust subscription".into()))),
+      },
+      None => Ok(Err(Error::Str(
+        "stream was closed before subscription confirmation message was received".into(),
+      ))),
+    }
+  }
+
   /// Subscribe to the provided market data.
   ///
   /// Contained in `subscribe` are the *additional* symbols to subscribe
   /// to. Use the [`unsubscribe`][Self::unsubscribe] method to
   /// unsubscribe from receiving data for certain symbols.
   pub async fn subscribe(&mut self, subscribe: &MarketData) -> Result<Result<(), Error>, S::Error> {
-    todo!()
+    let request = Request::Subscribe(subscribe);
+    self.subscribe_unsubscribe(&request).await
   }
 
   /// Unsubscribe from receiving market data for the provided symbols.
@@ -407,7 +458,8 @@ where
     &mut self,
     unsubscribe: &MarketData,
   ) -> Result<Result<(), Error>, S::Error> {
-    todo!()
+    let request = Request::Unsubscribe(unsubscribe);
+    self.subscribe_unsubscribe(&request).await
   }
 
   /// Inquire the currently active individual market data subscriptions.
@@ -530,6 +582,15 @@ mod tests {
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"unsubscribe","bars":["VOO"]}"#;
     assert_eq!(json, expected);
+  }
+
+  /// Check that we can correctly deserialize a `Normalized` object.
+  #[test]
+  fn deserialize_normalized() {
+    let json = r#"["AAPL","XLK","SPY"]"#;
+    let normalized = json_from_str::<Normalized>(json).unwrap();
+    let expected = Normalized::from(["AAPL", "SPY", "XLK"]);
+    assert_eq!(normalized, expected);
   }
 
   /// Check that we can normalize `Symbol` slices.
