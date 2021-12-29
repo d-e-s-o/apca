@@ -28,6 +28,50 @@ use crate::Error;
 use crate::Str;
 
 
+mod private {
+  pub trait Sealed {}
+}
+
+
+/// A trait representing the source from which to stream real time data.
+trait Source: private::Sealed {
+  /// Return a textual representation of the source.
+  fn as_str() -> &'static str;
+}
+
+
+/// Use the Investors Exchange (IEX) as the data source.
+///
+/// This source is available unconditionally, i.e., with the free and
+/// unlimited plans.
+#[derive(Clone, Copy, Debug)]
+pub enum IEX {}
+
+impl Source for IEX {
+  fn as_str() -> &'static str {
+    "iex"
+  }
+}
+
+impl private::Sealed for IEX {}
+
+
+/// Use CTA (administered by NYSE) and UTP (administered by Nasdaq) SIPs
+/// as the data source.
+///
+/// This source is only usable with the unlimited market data plan.
+#[derive(Clone, Copy, Debug)]
+pub enum SIP {}
+
+impl Source for SIP {
+  fn as_str() -> &'static str {
+    "sip"
+  }
+}
+
+impl private::Sealed for SIP {}
+
+
 /// Serialize a `Symbol::Symbol` variant.
 fn symbol_to_str<S>(symbol: &Str, serializer: S) -> Result<S::Ok, S::Error>
 where
