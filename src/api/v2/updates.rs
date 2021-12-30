@@ -373,7 +373,20 @@ impl Subscribable for TradeUpdates {
       secret,
     } = api_info;
 
-    let stream = connect(url.clone()).await?.map(map as MapFn);
+    let mut url = url.clone();
+    // TODO: We really shouldn't need this conditional logic. Find a
+    //       better way.
+    match url.scheme() {
+      "ws" | "wss" => (),
+      _ => {
+        url.set_scheme("wss").map_err(|()| {
+          Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
+        })?;
+        url.set_path("stream");
+      },
+    }
+
+    let stream = connect(&url).await?.map(map as MapFn);
     let (send, recv) = stream.split();
     let (stream, subscription) = subscribe::subscribe(recv, send);
     let mut stream = stream.fuse();

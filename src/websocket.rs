@@ -43,25 +43,11 @@ impl<T, E> From<Result<T, E>> for MessageResult<T, E> {
 
 
 /// Internal function to connect to websocket server.
-async fn connect_internal(
-  mut url: Url,
-) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
-  // TODO: We really shouldn't need this conditional logic. Find a
-  //       better way.
-  match url.scheme() {
-    "ws" | "wss" => (),
-    _ => {
-      url.set_scheme("wss").map_err(|()| {
-        Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
-      })?;
-    },
-  }
-  url.set_path("stream");
-
+async fn connect_internal(url: &Url) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
   let span = span!(Level::DEBUG, "stream");
 
   async move {
-    debug!(message = "connecting", url = display(&url));
+    debug!(message = "connecting", url = display(url));
 
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
@@ -79,7 +65,7 @@ async fn connect_internal(
 
 /// Connect to websocket server.
 pub async fn connect(
-  url: Url,
+  url: &Url,
 ) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {
   connect_internal(url)
     .await
