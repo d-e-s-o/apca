@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Added support for realtime market data streaming via
+  `data::v2::stream::RealtimeData`
+
+
 0.22.0
 ------
 - Reworked account update streaming support using a subscription based

@@ -6,3 +6,5 @@ pub mod v2;
 
 /// The API base URL used for retrieving market data.
 pub(crate) const DATA_BASE_URL: &str = "https://data.alpaca.markets";
+/// The base URL for streaming market data over a websocket connection.
+pub(crate) const DATA_WEBSOCKET_BASE_URL: &str = "wss://stream.data.alpaca.markets";

@@ -4,11 +4,22 @@
 use std::borrow::Borrow as _;
 use std::borrow::Cow;
 use std::cmp::Ordering;
+use std::marker::PhantomData;
+
+use async_trait::async_trait;
 
 use chrono::DateTime;
 use chrono::Utc;
 
+use futures::stream::Fuse;
+use futures::stream::FusedStream;
+use futures::stream::Map;
+use futures::stream::SplitSink;
+use futures::stream::SplitStream;
+use futures::Future;
+use futures::FutureExt as _;
 use futures::Sink;
+use futures::StreamExt as _;
 
 use num_decimal::Num;
 
@@ -16,16 +27,49 @@ use serde::de::Deserializer;
 use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::from_slice as json_from_slice;
+use serde_json::from_str as json_from_str;
 use serde_json::to_string as to_json;
 use serde_json::Error as JsonError;
 
+use tokio::net::TcpStream;
+
+use tungstenite::MaybeTlsStream;
+use tungstenite::WebSocketStream;
+
+use url::Url;
+
 use websocket_util::subscribe;
+use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
 use websocket_util::wrap;
+use websocket_util::wrap::Wrapper;
 
+use super::unfold::Unfold;
+
+use crate::data::DATA_WEBSOCKET_BASE_URL;
+use crate::subscribable::Subscribable;
+use crate::websocket::connect;
 use crate::websocket::MessageResult;
+use crate::ApiInfo;
 use crate::Error;
 use crate::Str;
+
+
+type UserMessage = <ParsedMessage as subscribe::Message>::UserMessage;
+
+/// Helper function to drive a [`Subscription`] related future to
+/// completion. The function makes sure to poll the provided stream,
+/// which is assumed to be associated with the `Subscription` that the
+/// future belongs to, so that control messages can be received.
+#[inline]
+pub async fn drive<F, S>(future: F, stream: &mut S) -> Result<F::Output, UserMessage>
+where
+  F: Future + Unpin,
+  S: FusedStream<Item = UserMessage> + Unpin,
+{
+  subscribe::drive::<ParsedMessage, _, _>(future, stream).await
+}
 
 
 mod private {
@@ -34,7 +78,7 @@ mod private {
 
 
 /// A trait representing the source from which to stream real time data.
-trait Source: private::Sealed {
+pub trait Source: private::Sealed {
   /// Return a textual representation of the source.
   fn as_str() -> &'static str;
 }
@@ -397,6 +441,12 @@ enum Request<'d> {
 
 /// A subscription allowing certain control operations pertaining
 /// a real time market data stream.
+///
+/// # Notes
+/// - in order for any [`subscribe`][Subscription::subscribe] or
+///   [`unsubscribe`][Subscription::unsubscribe] operation to resolve,
+///   the associated [`MessageStream`] stream needs to be polled;
+///   consider using the [`drive`] function for that purpose
 #[derive(Debug)]
 pub struct Subscription<S> {
   /// Our internally used subscription object for sending control
@@ -509,6 +559,112 @@ where
   /// Inquire the currently active individual market data subscriptions.
   pub fn subscriptions(&self) -> &MarketData {
     &self.subscriptions
+  }
+}
+
+
+type ParseFn = fn(
+  Result<wrap::Message, WebSocketError>,
+) -> Result<Result<Vec<DataMessage>, JsonError>, WebSocketError>;
+type MapFn = fn(Result<Result<DataMessage, JsonError>, WebSocketError>) -> ParsedMessage;
+type Stream = Map<
+  Unfold<Map<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, ParseFn>, DataMessage, JsonError>,
+  MapFn,
+>;
+
+
+/// A type used for requesting a subscription to real time market
+/// data.
+#[derive(Debug)]
+pub struct RealtimeData<S> {
+  /// Phantom data to make sure that we "use" `S`.
+  _phantom: PhantomData<S>,
+}
+
+#[async_trait(?Send)]
+impl<S> Subscribable for RealtimeData<S>
+where
+  S: Source,
+{
+  type Input = ApiInfo;
+  type Subscription = Subscription<SplitSink<Stream, wrap::Message>>;
+  type Stream = Fuse<MessageStream<SplitStream<Stream>, ParsedMessage>>;
+
+  async fn connect(api_info: &Self::Input) -> Result<(Self::Stream, Self::Subscription), Error> {
+    fn parse(
+      result: Result<wrap::Message, WebSocketError>,
+    ) -> Result<Result<Vec<DataMessage>, JsonError>, WebSocketError> {
+      result.map(|message| match message {
+        wrap::Message::Text(string) => json_from_str::<Vec<DataMessage>>(&string),
+        wrap::Message::Binary(data) => json_from_slice::<Vec<DataMessage>>(&data),
+      })
+    }
+
+    let ApiInfo {
+      base_url: url,
+      key_id,
+      secret,
+    } = api_info;
+
+    let mut url = url.clone();
+    // For (some) testing purposes we may want to connect to a local URL
+    // (from a mock server) and we identify these cases as those that
+    // already have a proper websocket scheme present. For all others,
+    // we just use the "live" data URL we have hard coded.
+    // TODO: We really shouldn't need this conditional logic. Find a
+    //       better way.
+    match url.scheme() {
+      "ws" | "wss" => (),
+      _ => {
+        // We basically only work statically defined URL parts here which we
+        // know can be parsed successfully, so unwrapping is fine.
+        url = Url::parse(DATA_WEBSOCKET_BASE_URL).unwrap();
+        url.set_path(&format!("v2/{}", S::as_str()));
+      },
+    }
+
+    let stream =
+      Unfold::new(connect(&url).await?.map(parse as ParseFn)).map(MessageResult::from as MapFn);
+    let (send, recv) = stream.split();
+    let (stream, subscription) = subscribe::subscribe(recv, send);
+    let mut stream = stream.fuse();
+    let mut subscription = Subscription::new(subscription);
+
+    let connect = subscription.subscription.read().boxed_local().fuse();
+    let message = drive(connect, &mut stream).await.map_err(|result| {
+      result
+        .map(|result| Error::Json(result.unwrap_err()))
+        .map_err(Error::WebSocket)
+        .unwrap_or_else(|err| err)
+    })?;
+
+    match message {
+      Some(Ok(ControlMessage::Success)) => (),
+      Some(Ok(_)) => {
+        return Err(Error::Str(
+          "server responded with unexpected initial message".into(),
+        ))
+      },
+      Some(Err(())) => return Err(Error::Str("failed to read connected message".into())),
+      None => {
+        return Err(Error::Str(
+          "stream was closed before connected message was received".into(),
+        ))
+      },
+    }
+
+    let authenticate = subscription
+      .authenticate(key_id, secret)
+      .boxed_local()
+      .fuse();
+    let () = drive(authenticate, &mut stream).await.map_err(|result| {
+      result
+        .map(|result| Error::Json(result.unwrap_err()))
+        .map_err(Error::WebSocket)
+        .unwrap_or_else(|err| err)
+    })???;
+
+    Ok((stream, subscription))
   }
 }
 

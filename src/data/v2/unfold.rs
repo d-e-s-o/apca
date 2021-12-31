@@ -17,8 +17,9 @@ use websocket_util::tungstenite::Error as WebSocketError;
 /// A wrapper around a stream that "unfolds" vectors of messages,
 /// delivering them one by one.
 #[derive(Debug)]
+#[doc(hidden)]
 #[must_use = "streams do nothing unless polled"]
-struct Unfold<S, T, E> {
+pub struct Unfold<S, T, E> {
   /// The wrapped stream & sink.
   inner: S,
   /// A vector of messages that we have received but not yet forwarded.
