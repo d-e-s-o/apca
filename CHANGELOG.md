@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Renamed `InsufficientFunds` variant of `api::v2::order::PostError` and
+  `api::v2::order::PatchError` to `NotPermitted`
 - Removed support for streaming account updates
 - Switched from using `test-env-log` to `test-log`
 - Bumped minimum supported Rust version to `1.51`

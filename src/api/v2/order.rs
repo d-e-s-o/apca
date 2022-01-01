@@ -655,8 +655,14 @@ Endpoint! {
     /* 200 */ OK,
   ],
   Err => PostError, [
-    /// Not enough funds are available to submit the order.
-    /* 403 */ FORBIDDEN => InsufficientFunds,
+    /// The order submission was not permitted. That can have multiple
+    /// reasons, including (but not necessarily limited to):
+    /// - not enough funds are available
+    /// - the order is of a certain order type that cannot be submitted
+    ///   at this time of day (e.g., market-open orders must be
+    ///   submitted after 7:00pm and before 9:28am and will be rejected
+    ///   at other times)
+    /* 403 */ FORBIDDEN => NotPermitted,
     /// Some data in the request was invalid.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
@@ -688,8 +694,14 @@ Endpoint! {
     /* 200 */ OK,
   ],
   Err => PatchError, [
-    /// Not enough funds are available to submit the order.
-    /* 403 */ FORBIDDEN => InsufficientFunds,
+    /// The order change was not permitted. That can have multiple
+    /// reasons, including (but not necessarily limited to):
+    /// - not enough funds are available
+    /// - the order is of a certain order type that cannot be submitted
+    ///   at this time of day (e.g., market-open orders must be
+    ///   submitted after 7:00pm and before 9:28am and will be rejected
+    ///   at other times)
+    /* 403 */ FORBIDDEN => NotPermitted,
     /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
     /// Some data in the request was invalid.
@@ -872,6 +884,7 @@ mod tests {
     assert_eq!(order.average_fill_price, Some(Num::new(10625, 100)));
   }
 
+  /// Verify that we can submit a limit order.
   #[test(tokio::test)]
   async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), RequestError<PostError>> {
@@ -911,7 +924,7 @@ mod tests {
     // So we need to treat this case specially.
     let result = test(true).await;
     match result {
-      Ok(()) | Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
+      Ok(()) | Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
       err => panic!("unexpected error: {:?}", err),
     };
   }
@@ -1042,6 +1055,7 @@ mod tests {
     assert_eq!(order.legs[0].status, Status::Held);
   }
 
+  /// Test submission of market open and market close orders.
   #[test(tokio::test)]
   async fn submit_other_order_types() {
     async fn test(time_in_force: TimeInForce) {
@@ -1065,7 +1079,7 @@ mod tests {
         },
         // Submission of those orders may fail at certain times of the
         // day as per the Alpaca documentation. So ignore those errors.
-        Err(RequestError::Endpoint(PostError::InvalidInput(..))) => (),
+        Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
         Err(err) => panic!("Received unexpected error: {:?}", err),
       }
     }
@@ -1074,6 +1088,8 @@ mod tests {
     test(TimeInForce::UntilMarketClose).await;
   }
 
+  /// Check that we see the expected error being reported when
+  /// attempting to submit an unsatisfiable order.
   #[test(tokio::test)]
   async fn submit_unsatisfiable_order() {
     let api_info = ApiInfo::from_env().unwrap();
@@ -1090,7 +1106,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::InsufficientFunds(..)) => (),
+      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -1108,7 +1124,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::InsufficientFunds(..)) => (),
+      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -1126,7 +1142,7 @@ mod tests {
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::InsufficientFunds(..)) => (),
+      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
