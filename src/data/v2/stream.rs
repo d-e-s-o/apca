@@ -675,7 +675,28 @@ mod tests {
 
   use chrono::TimeZone as _;
 
+  use futures::SinkExt as _;
+  use futures::TryStreamExt as _;
+
   use serde_json::from_str as json_from_str;
+
+  use test_log::test;
+
+  use websocket_util::test::WebSocketStream;
+  use websocket_util::tungstenite::Message;
+
+  use crate::websocket::test::mock_stream;
+
+
+  const CONN_RESP: &str = r#"[{"T":"success","msg":"connected"}]"#;
+  // TODO: Until we can interpolate more complex expressions using
+  //       `std::format` in a const context we have to hard code the
+  //       values of `crate::websocket::test::KEY_ID` and
+  //       `crate::websocket::test::SECRET` here.
+  const AUTH_REQ: &str = r#"{"action":"auth","key":"USER12345678","secret":"justletmein"}"#;
+  const AUTH_RESP: &str = r#"[{"T":"success","msg":"authenticated"}]"#;
+  const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"]}"#;
+  const SUB_RESP: &str = r#"[{"T":"subscription","bars":["AAPL","VOO"]}]"#;
 
 
   /// Check that we can deserialize the [`DataMessage::Bar`] variant.
@@ -824,5 +845,48 @@ mod tests {
 
     let expected = [Symbol::All];
     assert_eq!(subscriptions.as_ref(), expected.as_ref());
+  }
+
+  /// Check that we can correctly handle a successful subscription
+  /// without trade update messages.
+  #[test(tokio::test)]
+  async fn authenticate_and_subscribe() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(SUB_REQ.to_string()),
+      );
+      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let (mut stream, mut subscription) =
+      mock_stream::<RealtimeData<IEX>, _, _>(test).await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_bars(["AAPL", "VOO"]);
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    stream
+      .map_err(Error::WebSocket)
+      .try_for_each(|result| async { result.map(|_data| ()).map_err(Error::Json) })
+      .await
+      .unwrap();
   }
 }
