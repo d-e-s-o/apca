@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -29,7 +29,7 @@ pub struct Clock {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
+  /// The representation of a GET request to the /v2/clock endpoint.
   pub Get(()),
   Ok => Clock, [
     /// The clock object for the given symbol was retrieved successfully.
