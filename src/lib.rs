@@ -55,7 +55,7 @@ extern crate http_endpoint;
 mod endpoint;
 
 /// A module comprising the functionality backing interactions with the
-/// API.
+/// trading API.
 pub mod api;
 
 /// A module for retrieving market data.

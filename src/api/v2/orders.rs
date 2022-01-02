@@ -88,9 +88,9 @@ mod tests {
 
   use test_log::test;
 
-  use crate::api::v2::events;
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
+  use crate::api::v2::updates;
   use crate::api_info::ApiInfo;
   use crate::Client;
 
@@ -98,7 +98,7 @@ mod tests {
   /// Cancel an order and wait for the corresponding cancellation event
   /// to arrive.
   async fn cancel_order(client: &Client, id: order::Id) {
-    let stream = client.subscribe::<events::TradeUpdates>().await.unwrap();
+    let stream = client.subscribe::<updates::TradeUpdates>().await.unwrap();
     pin_mut!(stream);
 
     client.issue::<order::Delete>(&id).await.unwrap();
@@ -113,7 +113,7 @@ mod tests {
       // are only interested in ones belonging to the order canceled
       // earlier.
       .try_skip_while(|trade| {
-        ok(trade.order.id != id || !matches!(trade.event, events::TradeStatus::Canceled))
+        ok(trade.order.id != id || !matches!(trade.event, updates::TradeStatus::Canceled))
       })
       .next()
       .await

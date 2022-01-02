@@ -13,8 +13,6 @@ pub mod asset;
 pub mod assets;
 /// Functionality for retrieving market open/close timing information.
 pub mod clock;
-/// Definitions for account and trade related events.
-pub mod events;
 /// Definitions surrounding orders.
 pub mod order;
 /// Functionality for listing orders.
@@ -23,6 +21,8 @@ pub mod orders;
 pub mod position;
 /// Functionality for listing open positions.
 pub mod positions;
+/// Definitions for trade related updates.
+pub mod updates;
 /// Definitions surrounding watchlists.
 pub mod watchlist;
 /// Functionality for listing watchlists.

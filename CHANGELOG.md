@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Renamed `api::v2::events` to `api::v2::updates`
 - Renamed `InsufficientFunds` variant of `api::v2::order::PostError` and
   `api::v2::order::PatchError` to `NotPermitted`
 - Removed support for streaming account updates
