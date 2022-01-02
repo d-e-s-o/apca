@@ -3,6 +3,7 @@ Unreleased
 - Renamed `InsufficientFunds` variant of `api::v2::order::PostError` and
   `api::v2::order::PatchError` to `NotPermitted`
 - Removed support for streaming account updates
+- Removed `data::v2::stocks` module alias
 - Switched from using `test-env-log` to `test-log`
 - Bumped minimum supported Rust version to `1.56`
 - Bumped `websocket-util` dependency to `0.10`
