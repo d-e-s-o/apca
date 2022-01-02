@@ -424,8 +424,6 @@ impl Subscribable for TradeUpdates {
 mod tests {
   use super::*;
 
-  use std::future::Future;
-
   use futures::channel::oneshot::channel;
   use futures::future::ok;
   use futures::future::ready;
@@ -438,7 +436,6 @@ mod tests {
 
   use url::Url;
 
-  use websocket_util::test::mock_server;
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::error::ProtocolError;
   use websocket_util::tungstenite::Message;
@@ -446,11 +443,15 @@ mod tests {
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
   use crate::api::API_BASE_URL;
+  use crate::websocket::test::mock_stream;
   use crate::Client;
   use crate::Error;
 
-  const KEY_ID: &str = "USER12345678";
-  const SECRET: &str = "justletmein";
+
+  // TODO: Until we can interpolate more complex expressions using
+  //       `std::format` in a const context we have to hard code the
+  //       values of `crate::websocket::test::KEY_ID` and
+  //       `crate::websocket::test::SECRET` here.
   const AUTH_REQ: &str =
     r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#;
   const AUTH_RESP: &str =
@@ -557,32 +558,6 @@ mod tests {
   }
 
 
-  /// Instantiate a dummy websocket server serving messages as per the
-  /// provided function `f` and attempt to connect to it to stream trade
-  /// updates.
-  async fn mock_stream<F, R>(
-    f: F,
-  ) -> Result<
-    (
-      <TradeUpdates as Subscribable>::Stream,
-      <TradeUpdates as Subscribable>::Subscription,
-    ),
-    Error,
-  >
-  where
-    F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
-    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
-  {
-    let addr = mock_server(f).await;
-    let api_info = ApiInfo {
-      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
-      key_id: KEY_ID.to_string(),
-      secret: SECRET.to_string(),
-    };
-
-    TradeUpdates::connect(&api_info).await
-  }
-
   /// Check that we report the expected error when the server closes the
   /// connection unexpectedly.
   #[test(tokio::test)]
@@ -593,7 +568,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream(test).await;
+    let result = mock_stream::<TradeUpdates, _, _>(test).await;
     match result {
       Ok(..) => panic!("authentication succeeded unexpectedly"),
       Err(Error::WebSocket(WebSocketError::Protocol(e)))
@@ -624,7 +599,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream(test).await;
+    let result = mock_stream::<TradeUpdates, _, _>(test).await;
     match result {
       Ok(..) => panic!("operation succeeded unexpectedly"),
       Err(Error::Str(ref e)) if e.starts_with("stream was closed before listen") => (),
@@ -653,7 +628,7 @@ mod tests {
       Ok(())
     }
 
-    let err = mock_stream(test).await.unwrap_err();
+    let err = mock_stream::<TradeUpdates, _, _>(test).await.unwrap_err();
     match err {
       Error::WebSocket(WebSocketError::Protocol(e))
         if e == ProtocolError::ResetWithoutClosingHandshake => {},
@@ -679,7 +654,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream(test).await.unwrap_err();
+    let result = mock_stream::<TradeUpdates, _, _>(test).await.unwrap_err();
     match result {
       Error::Json(_) => (),
       e => panic!("received unexpected error: {}", e),
@@ -719,7 +694,7 @@ mod tests {
       }
     };
 
-    let (stream, _subscription) = mock_stream(test).await.unwrap();
+    let (stream, _subscription) = mock_stream::<TradeUpdates, _, _>(test).await.unwrap();
     let () = sender.send(()).unwrap();
 
     stream
@@ -756,7 +731,7 @@ mod tests {
       Ok(())
     }
 
-    let (stream, _subscription) = mock_stream(test).await.unwrap();
+    let (stream, _subscription) = mock_stream::<TradeUpdates, _, _>(test).await.unwrap();
     stream
       .map_err(Error::from)
       .try_for_each(|_| ready(Ok(())))

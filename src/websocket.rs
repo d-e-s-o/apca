@@ -71,3 +71,44 @@ pub async fn connect(
     .await
     .map(|stream| Wrapper::builder().build(stream))
 }
+
+
+#[cfg(test)]
+pub mod test {
+  use super::*;
+
+  use std::future::Future;
+
+  use websocket_util::test::mock_server;
+  use websocket_util::test::WebSocketStream;
+  use websocket_util::tungstenite::Error as WebSocketError;
+
+  use crate::subscribable::Subscribable;
+  use crate::ApiInfo;
+
+
+  /// The fake key-id we use.
+  pub const KEY_ID: &str = "USER12345678";
+  /// The fake secret we use.
+  pub const SECRET: &str = "justletmein";
+
+
+  /// Instantiate a dummy websocket server serving messages as per the
+  /// provided function `f` and attempt to connect to it to stream
+  /// messages.
+  pub async fn mock_stream<S, F, R>(f: F) -> Result<(S::Stream, S::Subscription), Error>
+  where
+    S: Subscribable<Input = ApiInfo>,
+    F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
+  {
+    let addr = mock_server(f).await;
+    let api_info = ApiInfo {
+      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
+      key_id: KEY_ID.to_string(),
+      secret: SECRET.to_string(),
+    };
+
+    S::connect(&api_info).await
+  }
+}
