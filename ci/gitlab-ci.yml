@@ -7,85 +7,110 @@
 # https://github.com/rust-lang/docker-rust/blob/4627bd25407065f8f8feafa11a33c46c51f759d8/1.56.1/buster/Dockerfile
 image: "rust:1.56.1"
 
-stages:
-  - cache
-  - build
-  - test
+variables:
+  FF_USE_FASTZIP: "true"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
+  CACHE_COMPRESSION_LEVEL: "fast"
 
-cache: &global-cache
-  key: global-cache
+.cargo-home: &cargo-home
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+
+.crates-io-cache: &crates-io-cache
+  key: crates-io-cache
   paths:
-  - target/
-  - tarpaulin/
-  policy: pull
+    # See https://doc.rust-lang.org/cargo/guide/cargo-home.html#caching-the-cargo-home-in-ci
+    - $CARGO_HOME/bin/
+    - $CARGO_HOME/git/db/
+    - $CARGO_HOME/registry/index/
+    - $CARGO_HOME/registry/cache/
+  policy: pull-push
 
-cache:tarpaulin:
-  stage: cache
-  image: rust:latest
-  cache:
-    <<: *global-cache
-    policy: pull-push
-  script:
-  - cargo install cargo-tarpaulin --root tarpaulin/
+.target-debug-cache: &target-debug-cache
+  key: target-debug-cache-$CI_JOB_IMAGE
+  paths:
+    - target/debug/
+    - Cargo.lock
+  policy: pull-push
 
-build:cargo:
-  stage: build
+.target-release-cache: &target-release-cache
+  key: target-release-cache-$CI_JOB_IMAGE
+  paths:
+    - target/release/
+    - Cargo.lock
+  policy: pull-push
+
+.tarpaulin-cache: &tarpaulin-cache
+  key: tarpaulin-cache-$CI_JOB_IMAGE
+  paths:
+    - tarpaulin/
+    - target/debug/
+    - Cargo.lock
+  policy: pull-push
+
+build-debug:cargo:
+  variables:
+    <<: *cargo-home
   cache:
-    <<: *global-cache
-    policy: pull-push
+  - <<: *target-debug-cache
+  - <<: *crates-io-cache
   script:
   - rustc --version && cargo --version
-  - cargo build --lib --tests --verbose
-  - cargo build --lib --tests --verbose --release
-  # Clean up stale parts of our target/ directory so that they don't
-  # accumulate endlessly within the cache. That's necessary because we
-  # never do a clean, but cargo will rename the target binary whenever
-  # it so pleases.
-  - find target/ -atime +7 -exec rm -rf {} \;
+  - cargo build --lib --tests
 
-build:tarpaulin-tests:
-  stage: build
+test-coverage:tarpaulin:
   image: rust:latest
+  variables:
+    <<: *cargo-home
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *tarpaulin-cache
   artifacts:
-    expire_in: 1h
     paths:
-    - target/
+    - tarpaulin-report/
+  coverage: '/^\d+.\d+% coverage/'
   script:
-  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --no-run
+  - cargo install cargo-tarpaulin --root tarpaulin/
+  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --exclude-files src/api/v2/de.rs --skip-clean --out html --output-dir tarpaulin-report/
 
-test:cargo:
-  stage: test
+lint:clippy:
+  variables:
+    <<: *cargo-home
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-debug-cache
+    policy: pull
   script:
-  - cargo test --verbose
+  - rustup component add clippy
+  - cargo clippy --no-deps --all-targets --all-features --tests -- -A unknown_lints -D warnings
+
+build-release:cargo:
+  variables:
+    <<: *cargo-home
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-release-cache
+  script:
+  - rustc --version && cargo --version
+  - cargo build --lib --release
 
 doc:cargo:
-  stage: test
+  variables:
+    <<: *cargo-home
+  cache:
+  - <<: *crates-io-cache
+    policy: pull
+  - <<: *target-debug-cache
+    policy: pull
   artifacts:
     paths:
     - target/doc/
   script:
   - cargo doc --no-deps
 
-lint:clippy:
-  stage: test
-  script:
-  - rustup component add clippy
-  - cargo clippy --all-targets --all-features -- -A unknown_lints -A clippy::unknown_clippy_lints -D warnings
-
 format:rustfmt:
-  stage: test
   script:
   - rustup toolchain install nightly -c rustfmt
   - cargo +nightly fmt -- --check
-
-coverage:tarpaulin:
-  stage: test
-  image: rust:latest
-  dependencies:
-  - build:tarpaulin-tests
-  artifacts:
-    paths:
-    - tarpaulin-report/
-  coverage: '/^\d+.\d+% coverage/'
-  script:
-  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --exclude-files src/api/v2/de.rs --skip-clean --out html --output-dir tarpaulin-report/
