@@ -1,11 +1,23 @@
 // Copyright (C) 2019-2021 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::borrow::Cow;
+
+use futures::Sink;
+
 use serde::Deserialize;
+use serde::Serialize;
+use serde_json::to_string as to_json;
+use serde_json::Error as JsonError;
+
+use websocket_util::subscribe;
+use websocket_util::tungstenite::Error as WebSocketError;
+use websocket_util::wrap;
 
 use crate::api::v2::order;
 use crate::events::EventStream;
 use crate::events::StreamType;
+use crate::Error;
 
 
 /// The status of a trade, as reported as part of a `TradeUpdate`.
@@ -77,6 +89,119 @@ pub enum TradeStatus {
 }
 
 
+/// A type capturing the stream types we may subscribe to.
+#[derive(Debug, Deserialize, Serialize)]
+struct Streams<'d> {
+  /// A list of stream types.
+  streams: Cow<'d, [StreamType]>,
+}
+
+impl<'d> From<&'d [StreamType]> for Streams<'d> {
+  #[inline]
+  fn from(src: &'d [StreamType]) -> Self {
+    Self {
+      streams: Cow::from(src),
+    }
+  }
+}
+
+
+/// The status reported in authentication control messages.
+#[derive(Debug, Deserialize, PartialEq)]
+enum AuthenticationStatus {
+  /// The client has been authorized.
+  #[serde(rename = "authorized")]
+  Authorized,
+  /// The client has not been authorized.
+  #[serde(rename = "unauthorized")]
+  Unauthorized,
+}
+
+
+/// The authentication related data provided in authentication control
+/// messages.
+#[derive(Debug, Deserialize)]
+struct Authentication {
+  /// The status of an operation.
+  #[serde(rename = "status")]
+  status: AuthenticationStatus,
+  /*
+   * TODO: Right now we just ignore the `action` field, as we would
+   *       not react on it anyway.
+   */
+}
+
+
+/// A custom [`Result`]-style type that we can implement a foreign trait
+/// on.
+#[derive(Debug)]
+enum MessageResult<T, E> {
+  /// The success value.
+  Ok(T),
+  /// The error value.
+  Err(E),
+}
+
+impl<T, E> From<Result<T, E>> for MessageResult<T, E> {
+  #[inline]
+  fn from(result: Result<T, E>) -> Self {
+    match result {
+      Ok(t) => Self::Ok(t),
+      Err(e) => Self::Err(e),
+    }
+  }
+}
+
+
+/// A control message "request" sent over a websocket channel.
+#[derive(Debug, Serialize)]
+#[serde(tag = "action", content = "data")]
+enum Request<'d> {
+  /// A control message indicating whether or not we were authenticated
+  /// successfully.
+  #[serde(rename = "authenticate")]
+  Authenticate {
+    #[serde(rename = "key_id")]
+    key_id: &'d str,
+    #[serde(rename = "secret_key")]
+    secret: &'d str,
+  },
+  /// A control message detailing the streams we are subscribed to.
+  #[serde(rename = "listen")]
+  Listen(Streams<'d>),
+}
+
+
+/// An enumeration of the supported control messages.
+#[derive(Debug)]
+enum ControlMessage {
+  /// A control message indicating whether or not we were authenticated.
+  AuthenticationMessage(Authentication),
+  /// A control message indicating which streams we are
+  /// subscribed/listening to now.
+  ListeningMessage(Streams<'static>),
+}
+
+
+/// An enum representing the different messages we may receive over our
+/// websocket channel.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "stream", content = "data")]
+#[allow(clippy::large_enum_variant)]
+enum TradeMessage {
+  /// A trade update.
+  #[serde(rename = "trade_updates")]
+  TradeUpdate(TradeUpdate),
+  /// A control message indicating whether or not we were authenticated
+  /// successfully.
+  #[serde(rename = "authorization")]
+  AuthenticationMessage(Authentication),
+  /// A control message detailing the streams we are subscribed to.
+  #[serde(rename = "listening")]
+  ListeningMessage(Streams<'static>),
+}
+
+
 /// A representation of a trade update that we receive through the
 /// "trade_updates" stream.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -89,6 +214,124 @@ pub struct TradeUpdate {
   #[serde(rename = "order")]
   pub order: order::Order,
 }
+
+
+/// A websocket message that we tried to parse.
+type ParsedMessage = MessageResult<Result<TradeMessage, JsonError>, WebSocketError>;
+
+impl subscribe::Message for ParsedMessage {
+  type UserMessage = Result<Result<TradeUpdate, JsonError>, WebSocketError>;
+  type ControlMessage = ControlMessage;
+
+  fn classify(self) -> subscribe::Classification<Self::UserMessage, Self::ControlMessage> {
+    match self {
+      MessageResult::Ok(Ok(message)) => match message {
+        TradeMessage::TradeUpdate(update) => subscribe::Classification::UserMessage(Ok(Ok(update))),
+        TradeMessage::AuthenticationMessage(authentication) => {
+          subscribe::Classification::ControlMessage(ControlMessage::AuthenticationMessage(
+            authentication,
+          ))
+        },
+        TradeMessage::ListeningMessage(streams) => {
+          subscribe::Classification::ControlMessage(ControlMessage::ListeningMessage(streams))
+        },
+      },
+      // JSON errors are directly passed through.
+      MessageResult::Ok(Err(err)) => subscribe::Classification::UserMessage(Ok(Err(err))),
+      // WebSocket errors are also directly pushed through.
+      MessageResult::Err(err) => subscribe::Classification::UserMessage(Err(err)),
+    }
+  }
+
+  #[inline]
+  fn is_error(user_message: &Self::UserMessage) -> bool {
+    // Both outer `WebSocketError` and inner `JsonError` errors
+    // constitute errors in our sense.
+    user_message
+      .as_ref()
+      .map(|result| result.is_err())
+      .unwrap_or(true)
+  }
+}
+
+
+/// A subscription allowing certain control operations pertaining trade
+/// update retrieval.
+#[derive(Debug)]
+pub struct Subscription<S>(subscribe::Subscription<S, ParsedMessage, wrap::Message>);
+
+impl<S> Subscription<S>
+where
+  S: Sink<wrap::Message> + Unpin,
+{
+  /// Authenticate the connection using Alpaca credentials.
+  async fn authenticate(
+    &mut self,
+    key_id: &str,
+    secret: &str,
+  ) -> Result<Result<(), Error>, S::Error> {
+    let request = Request::Authenticate { key_id, secret };
+    let json = match to_json(&request) {
+      Ok(json) => json,
+      Err(err) => return Ok(Err(Error::Json(err))),
+    };
+    let message = wrap::Message::Text(json);
+    let response = self.0.send(message).await?;
+
+    match response {
+      Some(response) => match response {
+        Ok(ControlMessage::AuthenticationMessage(authentication)) => {
+          if authentication.status != AuthenticationStatus::Authorized {
+            return Ok(Err(Error::Str("authentication not successful".into())))
+          }
+          Ok(Ok(()))
+        },
+        Ok(_) => Ok(Err(Error::Str(
+          "server responded with an unexpected message".into(),
+        ))),
+        Err(()) => Ok(Err(Error::Str("failed to authenticate with server".into()))),
+      },
+      None => Ok(Err(Error::Str(
+        "stream was closed before authorization message was received".into(),
+      ))),
+    }
+  }
+
+  /// Subscribe and listen to trade updates.
+  async fn listen(&mut self) -> Result<Result<(), Error>, S::Error> {
+    let streams = Streams::from([StreamType::TradeUpdates].as_ref());
+    let request = Request::Listen(streams);
+    let json = match to_json(&request) {
+      Ok(json) => json,
+      Err(err) => return Ok(Err(Error::Json(err))),
+    };
+    let message = wrap::Message::Text(json);
+    let response = self.0.send(message).await?;
+
+    match response {
+      Some(response) => match response {
+        Ok(ControlMessage::ListeningMessage(streams)) => {
+          if !streams.streams.contains(&StreamType::TradeUpdates) {
+            return Ok(Err(Error::Str(
+              "server did not subscribe us to trade update stream".into(),
+            )))
+          }
+          Ok(Ok(()))
+        },
+        Ok(_) => Ok(Err(Error::Str(
+          "server responded with an unexpected message".into(),
+        ))),
+        Err(()) => Ok(Err(Error::Str(
+          "failed to listen to trade update stream".into(),
+        ))),
+      },
+      None => Ok(Err(Error::Str(
+        "stream was closed before listen message was received".into(),
+      ))),
+    }
+  }
+}
+
 
 /// A type used for requesting a subscription to the "trade_updates"
 /// event stream.
