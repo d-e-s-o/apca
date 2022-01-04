@@ -673,19 +673,27 @@ where
 mod tests {
   use super::*;
 
+  use std::time::Duration;
+
   use chrono::TimeZone as _;
 
   use futures::SinkExt as _;
   use futures::TryStreamExt as _;
 
+  use serial_test::serial;
+
   use serde_json::from_str as json_from_str;
 
   use test_log::test;
 
+  use tokio::time::timeout;
+
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::Message;
 
+  use crate::api::API_BASE_URL;
   use crate::websocket::test::mock_stream;
+  use crate::Client;
 
 
   const CONN_RESP: &str = r#"[{"T":"success","msg":"connected"}]"#;
@@ -888,5 +896,115 @@ mod tests {
       .try_for_each(|result| async { result.map(|_data| ()).map_err(Error::Json) })
       .await
       .unwrap();
+  }
+
+  /// Check that we can adjust the current market data subscription on
+  /// the fly.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn subscribe_resubscribe() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_bars(["AAPL", "SPY"]);
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    assert_eq!(subscription.subscriptions(), &data);
+
+    let mut data = MarketData::default();
+    data.set_bars(["XLK"]);
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    let mut expected = MarketData::default();
+    expected.set_bars(["AAPL", "SPY", "XLK"]);
+    assert_eq!(subscription.subscriptions(), &expected);
+  }
+
+  /// Check that we can stream realtime market data updates.
+  ///
+  /// Note that we do not have any control over whether the market is
+  /// open or not and as such we can only try on a best-effort basis to
+  /// receive and decode updates.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn stream_market_data_updates() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_bars(["*"]);
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    let read = stream
+      .map_err(Error::WebSocket)
+      .try_for_each(|result| async { result.map(|_data| ()).map_err(Error::Json) });
+    if timeout(Duration::from_millis(100), read).await.is_ok() {
+      panic!("realtime data stream got exhausted unexpectedly")
+    }
+  }
+
+  /// Check that the Alpaca API reports no error when unsubscribing
+  /// from a symbol not currently subscribed to.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn unsubscribe_not_subscribed_symbol() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_bars(["AAPL"]);
+
+    let unsubscribe = subscription.unsubscribe(&data).boxed_local().fuse();
+    let () = drive(unsubscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    let mut expected = MarketData::default();
+    expected.set_bars([]);
+    assert_eq!(subscription.subscriptions(), &expected);
+  }
+
+  /// Test that we fail as expected when attempting to authenticate for
+  /// real time market updates using invalid credentials.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn stream_with_invalid_credentials() {
+    let api_base = Url::parse(API_BASE_URL).unwrap();
+    let api_info = ApiInfo {
+      base_url: api_base,
+      key_id: "invalid".to_string(),
+      secret: "invalid-too".to_string(),
+    };
+
+    let client = Client::new(api_info);
+    let err = client.subscribe::<RealtimeData<IEX>>().await.unwrap_err();
+
+    match err {
+      Error::Str(ref e) if e.starts_with("failed to authenticate with server") => (),
+      e => panic!("received unexpected error: {}", e),
+    }
   }
 }
