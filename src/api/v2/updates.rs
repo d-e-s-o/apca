@@ -357,6 +357,8 @@ mod tests {
   use futures::StreamExt;
   use futures::TryStreamExt;
 
+  use serde_json::from_str as json_from_str;
+
   use test_log::test;
 
   use url::Url;
@@ -368,6 +370,103 @@ mod tests {
   use crate::Client;
   use crate::Error;
 
+
+  /// Check that we can encode an authentication request correctly.
+  #[test]
+  fn encode_authentication_request() {
+    let key_id = "some-key";
+    let secret = "super-secret-secret";
+    let expected = {
+      r#"{"action":"authenticate","data":{"key_id":"some-key","secret_key":"super-secret-secret"}}"#
+    };
+
+    let request = Request::Authenticate { key_id, secret };
+    let json = to_json(&request).unwrap();
+    assert_eq!(json, expected)
+  }
+
+  /// Check that we can encode a listen request properly.
+  #[test]
+  fn encode_listen_request() {
+    let expected = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
+    let streams = Streams::from([StreamType::TradeUpdates].as_ref());
+    let request = Request::Listen(streams);
+    let json = to_json(&request).unwrap();
+    assert_eq!(json, expected)
+  }
+
+  /// Verify that we can decode a trade update.
+  #[test]
+  fn decode_trade_update() {
+    let json = r#"{
+  "stream":"trade_updates","data":{
+    "event":"new","execution_id":"11111111-2222-3333-4444-555555555555","order":{
+      "asset_class":"us_equity","asset_id":"11111111-2222-3333-4444-555555555555",
+      "canceled_at":null,"client_order_id":"11111111-2222-3333-4444-555555555555",
+      "created_at":"2021-12-09T19:48:46.176628398Z","expired_at":null,
+      "extended_hours":false,"failed_at":null,"filled_at":null,
+      "filled_avg_price":null,"filled_qty":"0","hwm":null,
+      "id":"11111111-2222-3333-4444-555555555555","legs":null,"limit_price":"1",
+      "notional":null,"order_class":"simple","order_type":"limit","qty":"1",
+      "replaced_at":null,"replaced_by":null,"replaces":null,"side":"buy",
+      "status":"new","stop_price":null,"submitted_at":"2021-12-09T19:48:46.175261379Z",
+      "symbol":"AAPL","time_in_force":"day","trail_percent":null,"trail_price":null,
+      "type":"limit","updated_at":"2021-12-09T19:48:46.185346448Z"
+    },"timestamp":"2021-12-09T19:48:46.182987144Z"
+  }
+}"#;
+    let message = json_from_str::<TradeMessage>(json).unwrap();
+    match message {
+      TradeMessage::TradeUpdate(update) => {
+        assert_eq!(update.event, TradeStatus::New);
+        assert_eq!(update.order.side, order::Side::Buy);
+      },
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    }
+  }
+
+  /// Verify that we can decode a authentication control message.
+  #[test]
+  fn decode_authentication() {
+    let json =
+      { r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"# };
+    let message = json_from_str::<TradeMessage>(json).unwrap();
+    match message {
+      TradeMessage::AuthenticationMessage(authentication) => {
+        assert_eq!(authentication.status, AuthenticationStatus::Authorized);
+      },
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    }
+  }
+
+  /// Check that we can decode an authentication control message
+  /// indicating an unsuccessful authorization.
+  #[test]
+  fn decode_unauthorized_authentication() {
+    let json =
+      { r#"{"stream":"authorization","data":{"status":"unauthorized","action":"listen"}}"# };
+    let message = json_from_str::<TradeMessage>(json).unwrap();
+    match message {
+      TradeMessage::AuthenticationMessage(authentication) => {
+        assert_eq!(authentication.status, AuthenticationStatus::Unauthorized);
+      },
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    }
+  }
+
+  /// Verify that we can decode a listening control message.
+  #[test]
+  fn decode_listening() {
+    let json = r#"{"stream":"listening","data":{"streams":["trade_updates"]}}"#;
+
+    let message = json_from_str::<TradeMessage>(json).unwrap();
+    match message {
+      TradeMessage::ListeningMessage(streams) => {
+        assert_eq!(streams.streams, vec![StreamType::TradeUpdates]);
+      },
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    }
+  }
 
   #[test(tokio::test)]
   async fn stream_trade_events() {
