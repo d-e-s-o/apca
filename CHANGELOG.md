@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.22.1
+------
 - Added support for realtime market data streaming via
   `data::v2::stream::RealtimeData`
 
