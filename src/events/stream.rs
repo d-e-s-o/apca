@@ -10,6 +10,8 @@ use serde_json::from_slice as json_from_slice;
 use serde_json::from_str as json_from_str;
 use serde_json::Error as JsonError;
 
+use url::Url;
+
 use tokio::net::TcpStream;
 
 use tracing::debug;
@@ -23,7 +25,7 @@ use tungstenite::MaybeTlsStream;
 use tungstenite::WebSocketStream;
 
 use websocket_util::tungstenite::Error as WebSocketError;
-use websocket_util::wrap::Message;
+use websocket_util::tungstenite::Message as WebSocketMessage;
 use websocket_util::wrap::Wrapper;
 
 use crate::api_info::ApiInfo;
@@ -54,19 +56,10 @@ pub struct Event<T> {
 }
 
 
-/// Create a stream for the raw event data.
-#[allow(clippy::cognitive_complexity)]
-pub async fn stream_raw(
-  api_info: &ApiInfo,
-  stream_type: StreamType,
-) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {
-  let ApiInfo {
-    base_url: url,
-    key_id,
-    secret,
-  } = api_info;
-
-  let mut url = url.clone();
+/// Internal function to connect to websocket server.
+async fn connect_internal(
+  mut url: Url,
+) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
   // TODO: We really shouldn't need this conditional logic. Find a
   //       better way.
   match url.scheme() {
@@ -79,7 +72,7 @@ pub async fn stream_raw(
   }
   url.set_path("stream");
 
-  let span = span!(Level::DEBUG, "stream", events = debug(&stream_type));
+  let span = span!(Level::DEBUG, "stream");
 
   async move {
     debug!(message = "connecting", url = display(&url));
@@ -87,17 +80,24 @@ pub async fn stream_raw(
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
     // really.
-    let (mut stream, response) = connect_async(url).await?;
+    let (stream, response) = connect_async(url).await?;
     debug!("connection successful");
     trace!(response = debug(&response));
 
-    handshake(&mut stream, key_id, secret, stream_type).await?;
-    debug!("subscription successful");
-
-    Ok(Wrapper::builder().build(stream))
+    Ok(stream)
   }
   .instrument(span)
   .await
+}
+
+
+/// Connect to websocket server.
+pub async fn connect(
+  url: Url,
+) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {
+  connect_internal(url)
+    .await
+    .map(|stream| Wrapper::builder().build(stream))
 }
 
 /// Create a stream for decoded event data.
@@ -107,11 +107,32 @@ pub async fn stream<S>(
 where
   S: EventStream,
 {
-  let stream = stream_raw(api_info, S::stream()).await?.map(|stream| {
-    stream.map(|message| match message {
-      Message::Text(string) => json_from_str::<Event<S::Event>>(&string).map(|event| event.data),
-      Message::Binary(data) => json_from_slice::<Event<S::Event>>(&data).map(|event| event.data),
-    })
+  let ApiInfo {
+    base_url: url,
+    key_id,
+    secret,
+  } = api_info;
+
+  let mut stream = connect_internal(url.clone()).await?;
+
+  handshake(&mut stream, key_id, secret, S::stream()).await?;
+  debug!("subscription successful");
+
+  let stream = stream.filter_map(|result| async {
+    match result {
+      Ok(message) => match message {
+        WebSocketMessage::Text(string) => {
+          let result = json_from_str::<Event<S::Event>>(&string);
+          Some(Ok(result.map(|event| event.data)))
+        },
+        WebSocketMessage::Binary(data) => {
+          let result = json_from_slice::<Event<S::Event>>(&data);
+          Some(Ok(result.map(|event| event.data)))
+        },
+        WebSocketMessage::Ping(_) | WebSocketMessage::Pong(_) | WebSocketMessage::Close(_) => None,
+      },
+      Err(err) => Some(Err(err)),
+    }
   });
 
   Ok(stream)

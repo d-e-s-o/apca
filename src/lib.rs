@@ -78,8 +78,8 @@ pub use crate::error::RequestError;
 /// It is typically only in rare situations that this lower level
 /// functionality needs to be used directly.
 pub mod event {
+  pub use crate::events::connect;
   pub use crate::events::stream;
-  pub use crate::events::stream_raw;
   pub use crate::events::Event;
   pub use crate::events::EventStream;
   pub use crate::events::StreamType;
