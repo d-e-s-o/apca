@@ -65,6 +65,7 @@ mod api_info;
 mod client;
 mod error;
 mod events;
+mod subscribable;
 
 use std::borrow::Cow;
 
@@ -72,6 +73,7 @@ pub use crate::api_info::ApiInfo;
 pub use crate::client::Client;
 pub use crate::error::Error;
 pub use crate::error::RequestError;
+pub use crate::subscribable::Subscribable;
 
 /// A module providing access to lower level event streaming.
 ///

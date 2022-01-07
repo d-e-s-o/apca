@@ -21,6 +21,7 @@ A crate for interacting with the Alpaca API.
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
 [dependencies]
+async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
