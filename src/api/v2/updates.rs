@@ -3,20 +3,40 @@
 
 use std::borrow::Cow;
 
+use async_trait::async_trait;
+
+use futures::stream::Fuse;
+use futures::stream::Map;
+use futures::stream::SplitSink;
+use futures::stream::SplitStream;
+use futures::FutureExt as _;
 use futures::Sink;
+use futures::StreamExt as _;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::from_slice as json_from_slice;
+use serde_json::from_str as json_from_str;
 use serde_json::to_string as to_json;
 use serde_json::Error as JsonError;
 
+use tokio::net::TcpStream;
+
+use tungstenite::MaybeTlsStream;
+use tungstenite::WebSocketStream;
+
 use websocket_util::subscribe;
+use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
 use websocket_util::wrap;
+use websocket_util::wrap::Wrapper;
 
 use crate::api::v2::order;
+use crate::api_info::ApiInfo;
+use crate::events::connect;
 use crate::events::EventStream;
 use crate::events::StreamType;
+use crate::subscribable::Subscribable;
 use crate::Error;
 
 
@@ -91,7 +111,8 @@ pub enum TradeStatus {
 
 /// A type capturing the stream types we may subscribe to.
 #[derive(Debug, Deserialize, Serialize)]
-struct Streams<'d> {
+#[doc(hidden)]
+pub struct Streams<'d> {
   /// A list of stream types.
   streams: Cow<'d, [StreamType]>,
 }
@@ -121,7 +142,8 @@ enum AuthenticationStatus {
 /// The authentication related data provided in authentication control
 /// messages.
 #[derive(Debug, Deserialize)]
-struct Authentication {
+#[doc(hidden)]
+pub struct Authentication {
   /// The status of an operation.
   #[serde(rename = "status")]
   status: AuthenticationStatus,
@@ -135,7 +157,8 @@ struct Authentication {
 /// A custom [`Result`]-style type that we can implement a foreign trait
 /// on.
 #[derive(Debug)]
-enum MessageResult<T, E> {
+#[doc(hidden)]
+pub enum MessageResult<T, E> {
   /// The success value.
   Ok(T),
   /// The error value.
@@ -174,7 +197,8 @@ enum Request<'d> {
 
 /// An enumeration of the supported control messages.
 #[derive(Debug)]
-enum ControlMessage {
+#[doc(hidden)]
+pub enum ControlMessage {
   /// A control message indicating whether or not we were authenticated.
   AuthenticationMessage(Authentication),
   /// A control message indicating which streams we are
@@ -186,9 +210,10 @@ enum ControlMessage {
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
 #[derive(Debug, Deserialize)]
+#[doc(hidden)]
 #[serde(tag = "stream", content = "data")]
 #[allow(clippy::large_enum_variant)]
-enum TradeMessage {
+pub enum TradeMessage {
   /// A trade update.
   #[serde(rename = "trade_updates")]
   TradeUpdate(TradeUpdate),
@@ -333,6 +358,10 @@ where
 }
 
 
+type Stream = Map<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, MapFn>;
+type MapFn = fn(Result<wrap::Message, WebSocketError>) -> ParsedMessage;
+
+
 /// A type used for requesting a subscription to the "trade_updates"
 /// event stream.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -347,6 +376,59 @@ impl EventStream for TradeUpdates {
   }
 }
 
+#[async_trait(?Send)]
+impl Subscribable for TradeUpdates {
+  type Input = ApiInfo;
+  type Subscription = Subscription<SplitSink<Stream, wrap::Message>>;
+  type Stream = Fuse<MessageStream<SplitStream<Stream>, ParsedMessage>>;
+
+  async fn connect(api_info: &Self::Input) -> Result<(Self::Stream, Self::Subscription), Error> {
+    fn map(result: Result<wrap::Message, WebSocketError>) -> ParsedMessage {
+      MessageResult::from(result.map(|message| match message {
+        wrap::Message::Text(string) => json_from_str::<TradeMessage>(&string),
+        wrap::Message::Binary(data) => json_from_slice::<TradeMessage>(&data),
+      }))
+    }
+
+    let ApiInfo {
+      base_url: url,
+      key_id,
+      secret,
+    } = api_info;
+
+    let stream = connect(url.clone()).await?.map(map as MapFn);
+    let (send, recv) = stream.split();
+    let (stream, subscription) = subscribe::subscribe(recv, send);
+    let mut stream = stream.fuse();
+
+    let mut subscription = Subscription(subscription);
+    let authenticate = subscription
+      .authenticate(key_id, secret)
+      .boxed_local()
+      .fuse();
+    let () = subscribe::drive::<ParsedMessage, _, _>(authenticate, &mut stream)
+      .await
+      .map_err(|result| {
+        result
+          .map(|result| Error::Json(result.unwrap_err()))
+          .map_err(Error::WebSocket)
+          .unwrap_or_else(|err| err)
+      })???;
+
+    let listen = subscription.listen().boxed_local().fuse();
+    let () = subscribe::drive::<ParsedMessage, _, _>(listen, &mut stream)
+      .await
+      .map_err(|result| {
+        result
+          .map(|result| Error::Json(result.unwrap_err()))
+          .map_err(Error::WebSocket)
+          .unwrap_or_else(|err| err)
+      })???;
+
+    Ok((stream, subscription))
+  }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -354,7 +436,6 @@ mod tests {
 
   use futures::future::ok;
   use futures::pin_mut;
-  use futures::StreamExt;
   use futures::TryStreamExt;
 
   use serde_json::from_str as json_from_str;
@@ -366,7 +447,6 @@ mod tests {
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
   use crate::api::API_BASE_URL;
-  use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::Error;
 
