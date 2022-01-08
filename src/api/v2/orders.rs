@@ -98,7 +98,7 @@ mod tests {
   /// Cancel an order and wait for the corresponding cancellation event
   /// to arrive.
   async fn cancel_order(client: &Client, id: order::Id) {
-    let stream = client.subscribe::<updates::TradeUpdates>().await.unwrap();
+    let (stream, _subscription) = client.subscribe::<updates::TradeUpdates>().await.unwrap();
     pin_mut!(stream);
 
     client.issue::<order::Delete>(&id).await.unwrap();

@@ -556,7 +556,7 @@ mod tests {
     //       same when streaming events using Alpaca's Python client.
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let stream = client.subscribe::<TradeUpdates>().await.unwrap();
+    let (stream, _subscription) = client.subscribe::<TradeUpdates>().await.unwrap();
     pin_mut!(stream);
 
     let order = order_aapl(&client).await.unwrap();

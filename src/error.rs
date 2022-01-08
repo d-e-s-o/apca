@@ -73,7 +73,7 @@ pub enum Error {
     #[source]
     JsonError,
   ),
-  /// An error directly originating in this module.
+  /// An error directly originating in this crate.
   #[error("{0}")]
   Str(Str),
   /// An URL parsing error.

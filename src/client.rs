@@ -5,8 +5,6 @@ use std::borrow::Cow;
 use std::future::Future;
 use std::str::from_utf8;
 
-use futures::stream::Stream;
-
 use http::request::Builder as HttpRequestBuilder;
 use http::Request;
 use http_endpoint::Endpoint;
@@ -18,8 +16,6 @@ use hyper::Body;
 use hyper::Client as HttpClient;
 use hyper_tls::HttpsConnector;
 
-use serde_json::Error as JsonError;
-
 use tracing::debug;
 use tracing::instrument;
 use tracing::span;
@@ -27,16 +23,13 @@ use tracing::trace;
 use tracing::Level;
 use tracing_futures::Instrument;
 
-use websocket_util::tungstenite::Error as WebSocketError;
-
 use url::Url;
 
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
 use crate::error::RequestError;
-use crate::events::stream;
-use crate::events::EventStream;
+use crate::subscribable::Subscribable;
 use crate::Error;
 
 
@@ -192,15 +185,20 @@ impl Client {
     R::evaluate(status, body).map_err(RequestError::Endpoint)
   }
 
-  /// Subscribe to the given stream in order to receive updates.
+  /// Subscribe to the given subscribable in order to receive updates.
+  ///
+  /// # Notes
+  /// - this method is only a short-hand for
+  ///   [`S::connect`][Subscribable::connect] that supplies the client's
+  ///   [`ApiInfo`] object to the call; if your [`Subscribable`]
+  ///   requires a different input then invoke its `connect` method
+  ///   yourself
   #[instrument(level = "debug", skip(self))]
-  pub async fn subscribe<S>(
-    &self,
-  ) -> Result<impl Stream<Item = Result<Result<S::Event, JsonError>, WebSocketError>>, Error>
+  pub async fn subscribe<S>(&self) -> Result<(S::Stream, S::Subscription), Error>
   where
-    S: EventStream,
+    S: Subscribable<Input = ApiInfo>,
   {
-    stream::<S>(&self.api_info).await
+    S::connect(&self.api_info).await
   }
 
   /// Retrieve the `ApiInfo` object used by this `Client` instance.
