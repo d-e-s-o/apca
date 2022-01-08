@@ -11,6 +11,13 @@ variables:
   FF_USE_FASTZIP: "true"
   ARTIFACT_COMPRESSION_LEVEL: "fast"
   CACHE_COMPRESSION_LEVEL: "fast"
+  # Build without debug information enabled to decrease compilation time
+  # and binary sizes in CI. This option is assumed to only have marginal
+  # effects on the generated code, likely only in terms of section
+  # arrangement. See
+  # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+  # https://doc.rust-lang.org/rustc/codegen-options/index.html#debuginfo
+  RUSTFLAGS: '-C debuginfo=0'
 
 .cargo-home: &cargo-home
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
