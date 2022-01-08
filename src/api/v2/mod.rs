@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// Definitions pertaining the user's account.
@@ -11,7 +11,11 @@ pub mod account_config;
 pub mod asset;
 /// Functionality for listing available assets.
 pub mod assets;
-/// Functionality for retrieving market open/close timing information.
+/// Functionality for retrieving market open/close timing information
+/// for specific dates.
+pub mod calendar;
+/// Functionality for retrieving market open/close timing information
+/// for the current trading day.
 pub mod clock;
 /// Definitions surrounding orders.
 pub mod order;

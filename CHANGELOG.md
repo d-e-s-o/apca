@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Added `api::v2::calendar` module for retrieving historic and future
+  market open and close times
+
+
 0.22.2
 ------
 - Fixed JSON decoding error when no bars are returned in response to
