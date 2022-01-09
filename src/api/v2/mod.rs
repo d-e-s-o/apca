@@ -29,7 +29,6 @@ pub mod watchlist;
 pub mod watchlists;
 
 mod de;
-mod util;
 
 #[cfg(test)]
 mod order_util;

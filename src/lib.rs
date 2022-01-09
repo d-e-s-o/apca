@@ -65,6 +65,7 @@ mod api_info;
 mod client;
 mod error;
 mod subscribable;
+mod util;
 mod websocket;
 
 use std::borrow::Cow;

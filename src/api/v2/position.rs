@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
-use crate::api::v2::util::abs_num_from_str;
+use crate::util::abs_num_from_str;
 use crate::Str;
 
 

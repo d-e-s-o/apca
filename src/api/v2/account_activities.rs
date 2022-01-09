@@ -17,7 +17,7 @@ use serde_variant::to_variant_name;
 use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
-use crate::api::v2::util::abs_num_from_str;
+use crate::util::abs_num_from_str;
 use crate::Str;
 
 
