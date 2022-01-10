@@ -14,7 +14,6 @@ use num_decimal::Num;
 
 use serde::ser::SerializeStruct;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
 use serde_json::from_slice as from_json;
@@ -24,6 +23,7 @@ use serde_urlencoded::to_string as to_query;
 use uuid::Uuid;
 
 use crate::api::v2::asset;
+use crate::util::vec_from_str;
 use crate::Str;
 
 
@@ -494,17 +494,6 @@ pub struct ChangeReq {
   /// The new value of the `trail_price` or `trail_percent` value.
   #[serde(rename = "trail")]
   pub trail: Option<Num>,
-}
-
-
-/// Deserialize a `Vec` from a string that could contain a `null`.
-fn vec_from_str<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-  D: Deserializer<'de>,
-  T: Deserialize<'de>,
-{
-  let vec = Option::<Vec<T>>::deserialize(deserializer)?;
-  Ok(vec.unwrap_or_else(Vec::new))
 }
 
 
