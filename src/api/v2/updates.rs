@@ -434,8 +434,13 @@ impl Subscribable for TradeUpdates {
 mod tests {
   use super::*;
 
+  use std::future::Future;
+
+  use futures::channel::oneshot::channel;
   use futures::future::ok;
+  use futures::future::ready;
   use futures::pin_mut;
+  use futures::SinkExt;
   use futures::TryStreamExt;
 
   use serde_json::from_str as json_from_str;
@@ -444,11 +449,25 @@ mod tests {
 
   use url::Url;
 
+  use websocket_util::test::mock_server;
+  use websocket_util::test::WebSocketStream;
+  use websocket_util::tungstenite::error::ProtocolError;
+  use websocket_util::tungstenite::Message;
+
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
   use crate::api::API_BASE_URL;
   use crate::Client;
   use crate::Error;
+
+  const KEY_ID: &str = "USER12345678";
+  const SECRET: &str = "justletmein";
+  const AUTH_REQ: &str =
+    r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#;
+  const AUTH_RESP: &str =
+    r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#;
+  const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
+  const STREAM_RESP: &str = r#"{"stream":"listening","data":{"streams":["trade_updates"]}}"#;
 
 
   /// Check that we can encode an authentication request correctly.
@@ -546,6 +565,214 @@ mod tests {
       },
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     }
+  }
+
+
+  /// Instantiate a dummy websocket server serving messages as per the
+  /// provided function `f` and attempt to connect to it to stream trade
+  /// updates.
+  async fn mock_stream<F, R>(
+    f: F,
+  ) -> Result<
+    (
+      <TradeUpdates as Subscribable>::Stream,
+      <TradeUpdates as Subscribable>::Subscription,
+    ),
+    Error,
+  >
+  where
+    F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,
+    R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
+  {
+    let addr = mock_server(f).await;
+    let api_info = ApiInfo {
+      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
+      key_id: KEY_ID.to_string(),
+      secret: SECRET.to_string(),
+    };
+
+    TradeUpdates::connect(&api_info).await
+  }
+
+  /// Check that we report the expected error when the server closes the
+  /// connection unexpectedly.
+  #[test(tokio::test)]
+  async fn broken_stream() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      let msg = stream.next().await.unwrap()?;
+      assert_eq!(msg, Message::Text(AUTH_REQ.to_string()));
+      Ok(())
+    }
+
+    let result = mock_stream(test).await;
+    match result {
+      Ok(..) => panic!("authentication succeeded unexpectedly"),
+      Err(Error::WebSocket(WebSocketError::Protocol(e)))
+        if e == ProtocolError::ResetWithoutClosingHandshake => {},
+      Err(e) => panic!("received unexpected error: {}", e),
+    }
+  }
+
+  /// Test that we handle an early connection close during subscription
+  /// correctly.
+  #[test(tokio::test)]
+  async fn early_close() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(STREAM_REQ.to_string()),
+      );
+      // Just respond with a Close.
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let result = mock_stream(test).await;
+    match result {
+      Ok(..) => panic!("operation succeeded unexpectedly"),
+      Err(Error::Str(ref e)) if e.starts_with("stream was closed before listen") => (),
+      Err(e) => panic!("received unexpected error: {}", e),
+    }
+  }
+
+  /// Check that we can correctly handle a successful subscription
+  /// without trade update messages.
+  #[test(tokio::test)]
+  async fn no_messages() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(STREAM_REQ.to_string()),
+      );
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+      Ok(())
+    }
+
+    let err = mock_stream(test).await.unwrap_err();
+    match err {
+      Error::WebSocket(WebSocketError::Protocol(e))
+        if e == ProtocolError::ResetWithoutClosingHandshake => {},
+      e => panic!("received unexpected error: {}", e),
+    }
+  }
+
+  /// Check a JSON decoding error during subscription is reported
+  /// correctly.
+  #[test(tokio::test)]
+  async fn decode_error_during_handshake() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      stream
+        .send(Message::Text("{ foobarbaz }".to_string()))
+        .await?;
+      Ok(())
+    }
+
+    let result = mock_stream(test).await.unwrap_err();
+    match result {
+      Error::Json(_) => (),
+      e => panic!("received unexpected error: {}", e),
+    }
+  }
+
+  /// Check that JSON errors do not terminate the established stream.
+  #[test(tokio::test)]
+  async fn decode_error_errors_do_not_terminate() {
+    let (sender, receiver) = channel();
+
+    let test = |mut stream: WebSocketStream| {
+      async move {
+        // Authentication.
+        assert_eq!(
+          stream.next().await.unwrap()?,
+          Message::Text(AUTH_REQ.to_string()),
+        );
+        stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+        // Subscription.
+        assert_eq!(
+          stream.next().await.unwrap()?,
+          Message::Text(STREAM_REQ.to_string()),
+        );
+        stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+
+        // Wait until the connection was established before sending any
+        // additional messages.
+        let () = receiver.await.unwrap();
+
+        stream
+          .send(Message::Text("{ foobarbaz }".to_string()))
+          .await?;
+        stream.send(Message::Close(None)).await?;
+        Ok(())
+      }
+    };
+
+    let (stream, _subscription) = mock_stream(test).await.unwrap();
+    let () = sender.send(()).unwrap();
+
+    stream
+      .map_err(Error::from)
+      .try_for_each(|_| ready(Ok(())))
+      .await
+      .unwrap();
+  }
+
+  /// Verify that ping websocket messages are responded to with pongs.
+  #[test(tokio::test)]
+  async fn ping_pong() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(STREAM_REQ.to_string()),
+      );
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+
+      // Ping.
+      stream.send(Message::Ping(Vec::new())).await?;
+      // Expect Pong.
+      assert_eq!(stream.next().await.unwrap()?, Message::Pong(Vec::new()),);
+
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let (stream, _subscription) = mock_stream(test).await.unwrap();
+    stream
+      .map_err(Error::from)
+      .try_for_each(|_| ready(Ok(())))
+      .await
+      .unwrap();
   }
 
   #[test(tokio::test)]
