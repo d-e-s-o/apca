@@ -11,6 +11,7 @@ use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
 use crate::data::DATA_BASE_URL;
+use crate::util::vec_from_str;
 use crate::Str;
 
 
@@ -107,6 +108,7 @@ pub struct Bar {
 #[non_exhaustive]
 pub struct Bars {
   /// The list of returned bars.
+  #[serde(deserialize_with = "vec_from_str")]
   pub bars: Vec<Bar>,
   /// The symbol the bars correspond to.
   pub symbol: String,
@@ -196,6 +198,27 @@ mod tests {
     assert_eq!(bars[0].volume, 9876);
     assert_eq!(res.symbol, "AAPL".to_string());
     assert!(res.next_page_token.is_some())
+  }
+
+  /// Check that we can decode a response containing no bars correctly.
+  #[test(tokio::test)]
+  async fn no_bars() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let start = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
+    let end = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
+
+    let request = BarReq {
+      symbol: "SPY".to_string(),
+      limit: None,
+      start,
+      end,
+      timeframe: TimeFrame::OneDay,
+      page_token: None,
+      adjustment: None,
+    };
+    let res = client.issue::<Get>(&request).await.unwrap();
+    assert_eq!(res.bars, Vec::new())
   }
 
   /// Check that we can request historic bar data for a stock.

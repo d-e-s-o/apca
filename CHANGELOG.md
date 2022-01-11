@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Fixed JSON decoding error when no bars are returned in response to
+  `data::v2::bars::Get` request
+
+
 0.22.1
 ------
 - Added support for realtime market data streaming via
