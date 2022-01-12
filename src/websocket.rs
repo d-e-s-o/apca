@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use url::Url;
@@ -64,7 +64,7 @@ async fn connect_internal(url: &Url) -> Result<WebSocketStream<MaybeTlsStream<Tc
 
 
 /// Connect to websocket server.
-pub async fn connect(
+pub(crate) async fn connect(
   url: &Url,
 ) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {
   connect_internal(url)
@@ -74,7 +74,7 @@ pub async fn connect(
 
 
 #[cfg(test)]
-pub mod test {
+pub(crate) mod test {
   use super::*;
 
   use std::future::Future;
@@ -88,15 +88,15 @@ pub mod test {
 
 
   /// The fake key-id we use.
-  pub const KEY_ID: &str = "USER12345678";
+  pub(crate) const KEY_ID: &str = "USER12345678";
   /// The fake secret we use.
-  pub const SECRET: &str = "justletmein";
+  pub(crate) const SECRET: &str = "justletmein";
 
 
   /// Instantiate a dummy websocket server serving messages as per the
   /// provided function `f` and attempt to connect to it to stream
   /// messages.
-  pub async fn mock_stream<S, F, R>(f: F) -> Result<(S::Stream, S::Subscription), Error>
+  pub(crate) async fn mock_stream<S, F, R>(f: F) -> Result<(S::Stream, S::Subscription), Error>
   where
     S: Subscribable<Input = ApiInfo>,
     F: FnOnce(WebSocketStream) -> R + Send + Sync + 'static,

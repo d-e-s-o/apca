@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![type_length_limit = "536870912"]
@@ -34,6 +34,7 @@
   unconditional_recursion,
   unreachable_code,
   unreachable_patterns,
+  unreachable_pub,
   unstable_features,
   unstable_name_collisions,
   unused,

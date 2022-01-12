@@ -42,7 +42,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 
 #[derive(Debug)]
-pub enum Content<'de> {
+pub(crate) enum Content<'de> {
   Bool(bool),
 
   U8(u8),
@@ -441,7 +441,7 @@ where
   Ok(value)
 }
 
-pub struct ContentDeserializer<'de, E> {
+pub(crate) struct ContentDeserializer<'de, E> {
   content: Content<'de>,
   err: PhantomData<E>,
 }
@@ -450,7 +450,7 @@ impl<'de, E> ContentDeserializer<'de, E>
 where
   E: Error,
 {
-  pub fn new(content: Content<'de>) -> Self {
+  pub(crate) fn new(content: Content<'de>) -> Self {
     ContentDeserializer {
       content,
       err: PhantomData,
@@ -833,18 +833,18 @@ where
 }
 
 
-pub struct TaggedContent<'de, T> {
-  pub tag: T,
-  pub content: Content<'de>,
+pub(crate) struct TaggedContent<'de, T> {
+  pub(crate) tag: T,
+  pub(crate) content: Content<'de>,
 }
 
-pub struct TaggedContentVisitor<'de, T> {
+pub(crate) struct TaggedContentVisitor<'de, T> {
   tag_name: &'static str,
   value: PhantomData<TaggedContent<'de, T>>,
 }
 
 impl<'de, T> TaggedContentVisitor<'de, T> {
-  pub fn new(name: &'static str) -> Self {
+  pub(crate) fn new(name: &'static str) -> Self {
     TaggedContentVisitor {
       tag_name: name,
       value: PhantomData,
