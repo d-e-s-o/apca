@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.22.2
+------
 - Fixed JSON decoding error when no bars are returned in response to
   `data::v2::bars::Get` request
 
