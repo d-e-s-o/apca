@@ -6,5 +6,3 @@ mod stream;
 
 pub use handshake::StreamType;
 pub use stream::connect;
-pub use stream::Event;
-pub use stream::EventStream;

@@ -34,7 +34,6 @@ use websocket_util::wrap::Wrapper;
 use crate::api::v2::order;
 use crate::api_info::ApiInfo;
 use crate::events::connect;
-use crate::events::EventStream;
 use crate::events::StreamType;
 use crate::subscribable::Subscribable;
 use crate::Error;
@@ -366,15 +365,6 @@ type MapFn = fn(Result<wrap::Message, WebSocketError>) -> ParsedMessage;
 /// event stream.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TradeUpdates {}
-
-impl EventStream for TradeUpdates {
-  type Event = TradeUpdate;
-
-  #[inline]
-  fn stream() -> StreamType {
-    StreamType::TradeUpdates
-  }
-}
 
 #[async_trait(?Send)]
 impl Subscribable for TradeUpdates {

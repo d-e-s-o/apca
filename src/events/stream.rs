@@ -1,9 +1,6 @@
 // Copyright (C) 2019-2021 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-
 use url::Url;
 
 use tokio::net::TcpStream;
@@ -20,30 +17,7 @@ use tungstenite::WebSocketStream;
 
 use websocket_util::wrap::Wrapper;
 
-use crate::events::handshake::StreamType;
 use crate::Error;
-
-
-/// A trait representing a particular event stream.
-pub trait EventStream {
-  /// The events being reported through the stream.
-  type Event: DeserializeOwned;
-
-  /// The actual type of stream.
-  fn stream() -> StreamType;
-}
-
-
-/// A type representing the outer most event encapsulating type.
-#[derive(Clone, Debug, Deserialize)]
-pub struct Event<T> {
-  /// The stream type reported by the server.
-  #[serde(rename = "stream")]
-  pub stream: StreamType,
-  /// The inner data.
-  #[serde(rename = "data")]
-  pub data: T,
-}
 
 
 /// Internal function to connect to websocket server.

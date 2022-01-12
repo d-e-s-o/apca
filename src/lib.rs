@@ -81,8 +81,6 @@ pub use crate::subscribable::Subscribable;
 /// functionality needs to be used directly.
 pub mod event {
   pub use crate::events::connect;
-  pub use crate::events::Event;
-  pub use crate::events::EventStream;
   pub use crate::events::StreamType;
 }
 
