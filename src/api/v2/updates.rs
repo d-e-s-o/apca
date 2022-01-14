@@ -34,7 +34,6 @@ use websocket_util::wrap::Wrapper;
 use crate::api::v2::order;
 use crate::api_info::ApiInfo;
 use crate::events::connect;
-use crate::events::StreamType;
 use crate::subscribable::Subscribable;
 use crate::Error;
 
@@ -105,6 +104,15 @@ pub enum TradeStatus {
   /// Note that having any such status should be considered a bug.
   #[serde(other, rename(serialize = "unknown"))]
   Unknown,
+}
+
+
+/// An enumeration of the different event streams.
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
+enum StreamType {
+  /// A stream for trade updates.
+  #[serde(rename = "trade_updates")]
+  TradeUpdates,
 }
 
 
