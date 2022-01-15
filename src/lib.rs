@@ -64,8 +64,8 @@ pub mod data;
 mod api_info;
 mod client;
 mod error;
-mod events;
 mod subscribable;
+mod websocket;
 
 use std::borrow::Cow;
 
@@ -74,13 +74,5 @@ pub use crate::client::Client;
 pub use crate::error::Error;
 pub use crate::error::RequestError;
 pub use crate::subscribable::Subscribable;
-
-/// A module providing access to lower level event streaming.
-///
-/// It is typically only in rare situations that this lower level
-/// functionality needs to be used directly.
-pub mod event {
-  pub use crate::events::connect;
-}
 
 type Str = Cow<'static, str>;

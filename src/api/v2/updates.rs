@@ -33,8 +33,8 @@ use websocket_util::wrap::Wrapper;
 
 use crate::api::v2::order;
 use crate::api_info::ApiInfo;
-use crate::events::connect;
 use crate::subscribable::Subscribable;
+use crate::websocket::connect;
 use crate::Error;
 
 

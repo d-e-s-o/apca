@@ -1,6 +1,9 @@
 Unreleased
 ----------
-- Renamed `api::v2::events` to `api::v2::updates`
+- Reworked account update streaming support using a subscription based
+  design
+  - Renamed `api::v2::events` to `api::v2::updates`
+  - Removed `event` module providing low-level access to update streaming
 - Renamed `InsufficientFunds` variant of `api::v2::order::PostError` and
   `api::v2::order::PatchError` to `NotPermitted`
 - Removed support for streaming account updates
