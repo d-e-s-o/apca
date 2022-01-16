@@ -10,6 +10,7 @@ Unreleased
 - Removed `data::v2::stocks` module alias
 - Switched from using `test-env-log` to `test-log`
 - Bumped minimum supported Rust version to `1.56`
+- Switched to using Rust 2021 Edition
 - Added `async-trait` dependency in version `0.1.51`
 - Bumped `websocket-util` dependency to `0.10.1`
 - Bumped `tokio-tungstenite` dependency to `0.16`
