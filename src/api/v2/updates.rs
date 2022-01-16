@@ -437,7 +437,6 @@ mod tests {
   use futures::channel::oneshot::channel;
   use futures::future::ok;
   use futures::future::ready;
-  use futures::pin_mut;
   use futures::SinkExt;
   use futures::TryStreamExt;
 
@@ -773,6 +772,8 @@ mod tests {
       .unwrap();
   }
 
+  /// Test the end-to-end workflow of streaming a trade update for a
+  /// newly created order.
   #[test(tokio::test)]
   async fn stream_trade_events() {
     // TODO: There may be something amiss here. If we don't cancel the
@@ -782,7 +783,6 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let (stream, _subscription) = client.subscribe::<TradeUpdates>().await.unwrap();
-    pin_mut!(stream);
 
     let order = order_aapl(&client).await.unwrap();
     client.issue::<order::Delete>(&order.id).await.unwrap();
@@ -810,6 +810,8 @@ mod tests {
     assert_eq!(order.time_in_force, trade.order.time_in_force);
   }
 
+  /// Test that we fail as expected when attempting to authenticate for
+  /// trade updates using invalid credentials.
   #[test(tokio::test)]
   async fn stream_with_invalid_credentials() {
     let api_base = Url::parse(API_BASE_URL).unwrap();
@@ -820,12 +822,11 @@ mod tests {
     };
 
     let client = Client::new(api_info);
-    let result = client.subscribe::<TradeUpdates>().await;
+    let err = client.subscribe::<TradeUpdates>().await.unwrap_err();
 
-    match result {
-      Ok(_) => panic!("operation succeeded unexpectedly"),
-      Err(Error::Str(ref e)) if e == "authentication not successful" => (),
-      Err(e) => panic!("received unexpected error: {}", e),
+    match err {
+      Error::Str(ref e) if e == "authentication not successful" => (),
+      e => panic!("received unexpected error: {}", e),
     }
   }
 }
