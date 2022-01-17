@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.22.0
+------
 - Reworked account update streaming support using a subscription based
   design
   - Renamed `api::v2::events` to `api::v2::updates`
