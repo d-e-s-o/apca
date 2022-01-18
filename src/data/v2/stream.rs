@@ -260,6 +260,35 @@ pub struct Bar {
 }
 
 
+/// Aggregate data for an equity.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+
+pub struct Quote {
+  /// The bar's symbol.
+  #[serde(rename = "S")]
+  pub symbol: String,
+
+  /// The bid's price.
+  #[serde(rename = "bp")]
+  pub bid_price: Num,
+  /// The bid's size.
+  #[serde(rename = "bs")]
+  pub bid_size: u64,
+
+  /// The ask's price.
+  #[serde(rename = "ap")]
+  pub ask_price: Num,
+  /// The ask's size.
+  #[serde(rename = "as")]
+  pub ask_size: u64,
+
+
+  /// The bar's time stamp.
+  #[serde(rename = "t")]
+  pub timestamp: DateTime<Utc>,
+}
+
+
 /// An error as reported by the Alpaca Data API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct ApiError {
@@ -281,6 +310,9 @@ pub enum DataMessage {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
   Bar(Bar),
+  /// A variant representing aggregate data for a given symbol.
+  #[serde(rename = "q")]
+  Quotes(Quote),
   /// A control message describing the current list of subscriptions.
   #[serde(rename = "subscription")]
   Subscription(MarketData),
@@ -299,6 +331,8 @@ pub enum DataMessage {
 pub enum Data {
   /// A variant representing aggregate data for a given symbol.
   Bar(Bar),
+  /// A variant representing qoute data for a given symbol.
+  Quote(Quote),
 }
 
 
@@ -326,6 +360,7 @@ impl subscribe::Message for ParsedMessage {
     match self {
       MessageResult::Ok(Ok(message)) => match message {
         DataMessage::Bar(bar) => subscribe::Classification::UserMessage(Ok(Ok(Data::Bar(bar)))),
+        DataMessage::Quotes(quote) => subscribe::Classification::UserMessage(Ok(Ok(Data::Quote(quote)))),
         DataMessage::Subscription(data) => {
           subscribe::Classification::ControlMessage(ControlMessage::Subscription(data))
         },
@@ -333,6 +368,7 @@ impl subscribe::Message for ParsedMessage {
         DataMessage::Error(error) => {
           subscribe::Classification::ControlMessage(ControlMessage::Error(error))
         },
+
       },
       // JSON errors are directly passed through.
       MessageResult::Ok(Err(err)) => subscribe::Classification::UserMessage(Ok(Err(err))),
@@ -401,6 +437,9 @@ impl<const N: usize> From<[&'static str; N]> for Normalized {
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
   pub bars: Normalized,
+
+  /// The aggregate quotes to subscribe to.
+  pub quotes: Normalized,
 }
 
 impl MarketData {
@@ -411,6 +450,15 @@ impl MarketData {
     N: Into<Normalized>,
   {
     self.bars = symbols.into();
+  }
+
+  /// A convenience function for setting the [`bars`][MarketData::bars]
+  /// member.
+  pub fn set_quotes<N>(&mut self, symbols: N)
+  where
+    N: Into<Normalized>,
+  {
+    self.quotes = symbols.into();
   }
 }
 
@@ -735,6 +783,43 @@ mod tests {
     assert_eq!(
       bar.timestamp,
       Utc.ymd(2021, 2, 22).and_hms_milli(19, 15, 0, 0)
+    );
+  }
+#[test]
+  fn parse_quote() {
+    let json: &str = r#"
+    {
+        "T": "q",
+        "S": "NVDA",
+        "bx": "P",
+        "bp": 258.8,
+        "bs": 2,
+        "ax": "P",
+        "ap": 259.99,
+        "as": 5,
+        "c": [
+            "R"
+        ],
+        "z": "C",
+        "t": "2022-01-18T23:09:42.151875584Z"
+    }
+    "#;
+
+
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let quote = match message {
+      DataMessage::Quotes(qoute) => qoute,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+    assert_eq!(quote.symbol, "NVDA");
+    assert_eq!(quote.bid_price, Num::new(2588, 10));
+    assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.ask_price, Num::new(25999, 100));
+    assert_eq!(quote.ask_size, 5);
+
+    assert_eq!(
+        quote.timestamp,
+        Utc.ymd(2022, 1, 18).and_hms_nano(23, 9, 42, 151875584)
     );
   }
 
