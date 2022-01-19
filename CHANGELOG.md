@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.22.3
+------
 - Added `api::v2::calendar` module for retrieving historic and future
   market open and close times
 - Added support for historic quote retrieval via `data::v2::quotes`
