@@ -475,7 +475,7 @@ impl MarketData {
     self.bars = symbols.into();
   }
 
-  /// A convenience function for setting the [`bars`][MarketData::bars]
+  /// A convenience function for setting the [`quotes`][MarketData::quotes]
   /// member.
   pub fn set_quotes<N>(&mut self, symbols: N)
   where
