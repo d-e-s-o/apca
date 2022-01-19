@@ -3,6 +3,7 @@
 
 use std::borrow::Borrow as _;
 use std::borrow::Cow;
+use std::char;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
@@ -44,6 +45,7 @@ use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
 use websocket_util::wrap;
 use websocket_util::wrap::Wrapper;
+use crate::api::v2::asset::Exchange;
 
 use super::unfold::Unfold;
 
@@ -274,6 +276,8 @@ pub struct Quote {
   /// The bid's size.
   #[serde(rename = "bs")]
   pub bid_size: u64,
+  #[serde(rename = "bx", deserialize_with = "exchange_from_str")]
+  pub bid_exchange: Exchange,
 
   /// The ask's price.
   #[serde(rename = "ap")]
@@ -281,6 +285,8 @@ pub struct Quote {
   /// The ask's size.
   #[serde(rename = "as")]
   pub ask_size: u64,
+  #[serde(rename = "ax", deserialize_with = "exchange_from_str")]
+  pub ask_exchange: Exchange,
 
 
   /// The bar's time stamp.
@@ -390,6 +396,23 @@ impl subscribe::Message for ParsedMessage {
   }
 }
 
+
+/// Deserialize a normalized [`Symbols`] object from a string.
+fn exchange_from_str<'de, D>(deserializer: D) -> Result<Exchange, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let s = String::deserialize(deserializer)?;
+
+  Ok(match &s[..] {
+    "A" => Exchange::Amex,
+    "P" => Exchange::Nysearca,
+    "X" => Exchange::Nyse,
+    "T" => Exchange::Bats,
+    "B" => Exchange::Nasdaq,
+    _ => Exchange::Unknown,
+  })
+}
 
 /// Deserialize a normalized [`Symbols`] object from a string.
 fn normalized_from_str<'de, D>(deserializer: D) -> Result<Symbols, D::Error>
@@ -794,7 +817,7 @@ mod tests {
         "bx": "P",
         "bp": 258.8,
         "bs": 2,
-        "ax": "P",
+        "ax": "A",
         "ap": 259.99,
         "as": 5,
         "c": [
@@ -814,8 +837,10 @@ mod tests {
     assert_eq!(quote.symbol, "NVDA");
     assert_eq!(quote.bid_price, Num::new(2588, 10));
     assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.bid_exchange, Exchange::Nysearca);
     assert_eq!(quote.ask_price, Num::new(25999, 100));
     assert_eq!(quote.ask_size, 5);
+    assert_eq!(quote.ask_exchange, Exchange::Amex);
 
     assert_eq!(
         quote.timestamp,
