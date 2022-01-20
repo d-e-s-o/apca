@@ -664,6 +664,7 @@ where
   type Stream = Fuse<MessageStream<SplitStream<Stream>, ParsedMessage>>;
 
   async fn connect(api_info: &Self::Input) -> Result<(Self::Stream, Self::Subscription), Error> {
+    debug!("Connecting");
     fn parse(
       result: Result<wrap::Message, WebSocketError>,
     ) -> Result<Result<Vec<DataMessage>, JsonError>, WebSocketError> {
