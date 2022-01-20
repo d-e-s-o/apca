@@ -34,6 +34,8 @@ use serde_json::to_string as to_json;
 use serde_json::Error as JsonError;
 
 use tokio::net::TcpStream;
+use tracing::debug;
+use tracing::field::debug;
 
 use tungstenite::MaybeTlsStream;
 use tungstenite::WebSocketStream;
@@ -709,6 +711,8 @@ where
         .unwrap_or_else(|err| err)
     })?;
 
+    debug!("Message on connect: {:?}", message);
+
     match message {
       Some(Ok(ControlMessage::Success)) => (),
       Some(Ok(_)) => {
@@ -734,6 +738,8 @@ where
         .map_err(Error::WebSocket)
         .unwrap_or_else(|err| err)
     })???;
+
+    debug!("authenticated");
 
     Ok((stream, subscription))
   }
