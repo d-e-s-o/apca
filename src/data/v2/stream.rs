@@ -817,10 +817,10 @@ mod tests {
     assert_eq!(quote.symbol, "NVDA");
     assert_eq!(quote.bid_price, Num::new(2588, 10));
     assert_eq!(quote.bid_size, 2);
-    assert_eq!(quote.bid_exchange, Exchange::Nysearca);
+    assert_eq!(quote.bid_exchange, 'P');
     assert_eq!(quote.ask_price, Num::new(25999, 100));
     assert_eq!(quote.ask_size, 5);
-    assert_eq!(quote.ask_exchange, Exchange::Amex);
+    assert_eq!(quote.ask_exchange, 'A');
 
     assert_eq!(
         quote.timestamp,
