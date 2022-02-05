@@ -45,7 +45,6 @@ use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
 use websocket_util::wrap;
 use websocket_util::wrap::Wrapper;
-use crate::api::v2::asset::Exchange;
 
 use super::unfold::Unfold;
 
@@ -266,7 +265,7 @@ pub struct Bar {
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 
 pub struct Quote {
-  /// The bar's symbol.
+  /// The quote's symbol.
   #[serde(rename = "S")]
   pub symbol: String,
 
@@ -276,8 +275,8 @@ pub struct Quote {
   /// The bid's size.
   #[serde(rename = "bs")]
   pub bid_size: u64,
-  #[serde(rename = "bx", deserialize_with = "exchange_from_str")]
-  pub bid_exchange: Exchange,
+  #[serde(rename = "bx")]
+  pub bid_exchange: char,
 
   /// The ask's price.
   #[serde(rename = "ap")]
@@ -285,11 +284,10 @@ pub struct Quote {
   /// The ask's size.
   #[serde(rename = "as")]
   pub ask_size: u64,
-  #[serde(rename = "ax", deserialize_with = "exchange_from_str")]
-  pub ask_exchange: Exchange,
+  #[serde(rename = "ax")]
+  pub ask_exchange: char,
 
-
-  /// The bar's time stamp.
+  /// The quote's time stamp.
   #[serde(rename = "t")]
   pub timestamp: DateTime<Utc>,
 }
@@ -316,7 +314,7 @@ pub enum DataMessage {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
   Bar(Bar),
-  /// A variant representing aggregate data for a given symbol.
+  /// A variant representing quotes for a given symbol.
   #[serde(rename = "q")]
   Quotes(Quote),
   /// A control message describing the current list of subscriptions.
@@ -374,7 +372,6 @@ impl subscribe::Message for ParsedMessage {
         DataMessage::Error(error) => {
           subscribe::Classification::ControlMessage(ControlMessage::Error(error))
         },
-
       },
       // JSON errors are directly passed through.
       MessageResult::Ok(Err(err)) => subscribe::Classification::UserMessage(Ok(Err(err))),
@@ -396,23 +393,6 @@ impl subscribe::Message for ParsedMessage {
   }
 }
 
-
-/// Deserialize a normalized [`Symbols`] object from a string.
-fn exchange_from_str<'de, D>(deserializer: D) -> Result<Exchange, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let s = String::deserialize(deserializer)?;
-
-  Ok(match &s[..] {
-    "A" => Exchange::Amex,
-    "P" => Exchange::Nysearca,
-    "X" => Exchange::Nyse,
-    "T" => Exchange::Bats,
-    "B" => Exchange::Nasdaq,
-    _ => Exchange::Unknown,
-  })
-}
 
 /// Deserialize a normalized [`Symbols`] object from a string.
 fn normalized_from_str<'de, D>(deserializer: D) -> Result<Symbols, D::Error>
