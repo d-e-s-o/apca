@@ -261,9 +261,8 @@ pub struct Bar {
 }
 
 
-/// Aggregate data for an equity.
+/// Quote for an equity.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-
 pub struct Quote {
   /// The quote's symbol.
   #[serde(rename = "S")]
