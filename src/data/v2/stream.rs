@@ -440,7 +440,7 @@ pub struct MarketData {
   /// The aggregate bars to subscribe to.
   pub bars: Normalized,
 
-  /// The aggregate quotes to subscribe to.
+  /// The quotes to subscribe to.
   pub quotes: Normalized,
 }
 
