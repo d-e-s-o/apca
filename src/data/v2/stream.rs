@@ -80,6 +80,7 @@ mod private {
 /// A trait representing the source from which to stream real time data.
 pub trait Source: private::Sealed {
   /// Return a textual representation of the source.
+  #[doc(hidden)]
   fn as_str() -> &'static str;
 }
 
@@ -275,6 +276,7 @@ pub struct ApiError {
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
 #[derive(Clone, Debug, PartialEq, Deserialize)]
+#[doc(hidden)]
 #[serde(tag = "T")]
 #[allow(clippy::large_enum_variant)]
 pub enum DataMessage {
@@ -304,6 +306,7 @@ pub enum Data {
 
 /// An enumeration of the supported control messages.
 #[derive(Debug)]
+#[doc(hidden)]
 pub enum ControlMessage {
   /// A control message describing the current list of subscriptions.
   Subscription(MarketData),
