@@ -66,15 +66,15 @@ pub struct BarReq {
   /// Filter bars equal to or before this time.
   #[serde(rename = "end")]
   pub end: DateTime<Utc>,
-  /// If provided we will pass a page token to continue where we left off.
-  #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
-  pub page_token: Option<String>,
   /// The time frame for the bars.
   #[serde(rename = "timeframe")]
   pub timeframe: TimeFrame,
   /// The adjustment to use (defaults to raw)
   #[serde(rename = "adjustment")]
   pub adjustment: Option<Adjustment>,
+  /// If provided we will pass a page token to continue where we left off.
+  #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
+  pub page_token: Option<String>,
 }
 
 
@@ -214,8 +214,8 @@ mod tests {
       start,
       end,
       timeframe: TimeFrame::OneDay,
-      page_token: None,
       adjustment: None,
+      page_token: None,
     };
     let res = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(res.bars, Vec::new())
@@ -234,8 +234,8 @@ mod tests {
       start,
       end,
       timeframe: TimeFrame::OneDay,
-      page_token: None,
       adjustment: None,
+      page_token: None,
     };
     let res = client.issue::<Get>(&request).await.unwrap();
     let bars = res.bars;
@@ -274,8 +274,8 @@ mod tests {
       start,
       end,
       timeframe: TimeFrame::OneDay,
-      page_token: None,
       adjustment: None,
+      page_token: None,
     };
     let mut res = client.issue::<Get>(&request).await.unwrap();
     let bars = res.bars;
@@ -304,8 +304,8 @@ mod tests {
       start,
       end,
       timeframe: TimeFrame::OneDay,
-      page_token: None,
       adjustment: Some(adjustment),
+      page_token: None,
     };
     client.issue::<Get>(&request).await.unwrap()
   }
