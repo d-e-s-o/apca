@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -403,7 +403,7 @@ pub struct OrderReq {
   /// The order class.
   #[serde(rename = "order_class")]
   pub class: Class,
-  /// `market`, `limit`, `stop`, or `stop_limit`.
+  /// The type of the order.
   #[serde(rename = "type")]
   pub type_: Type,
   /// How long the order will be valid.
