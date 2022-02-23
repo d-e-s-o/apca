@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Adjusted `Subscribable` trait to make all created futures implement
+  `Send`
+
+
 0.22.3
 ------
 - Added `api::v2::calendar` module for retrieving historic and future

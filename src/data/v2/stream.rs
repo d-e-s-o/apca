@@ -549,8 +549,8 @@ where
 
   /// Unsubscribe from receiving market data for the provided symbols.
   ///
-  /// Subscriptions of market data for symbols other than the ones in
-  /// [`unsubscribe`][Self::unsubscribe] is left untouched.
+  /// Subscriptions of market data for symbols other than the ones
+  /// provide to this function are left untouched.
   pub async fn unsubscribe(
     &mut self,
     unsubscribe: &MarketData,
@@ -584,7 +584,7 @@ pub struct RealtimeData<S> {
   _phantom: PhantomData<S>,
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl<S> Subscribable for RealtimeData<S>
 where
   S: Source,
@@ -633,7 +633,7 @@ where
     let mut stream = stream.fuse();
     let mut subscription = Subscription::new(subscription);
 
-    let connect = subscription.subscription.read().boxed_local().fuse();
+    let connect = subscription.subscription.read().boxed().fuse();
     let message = drive(connect, &mut stream).await.map_err(|result| {
       result
         .map(|result| Error::Json(result.unwrap_err()))
@@ -656,10 +656,7 @@ where
       },
     }
 
-    let authenticate = subscription
-      .authenticate(key_id, secret)
-      .boxed_local()
-      .fuse();
+    let authenticate = subscription.authenticate(key_id, secret).boxed().fuse();
     let () = drive(authenticate, &mut stream).await.map_err(|result| {
       result
         .map(|result| Error::Json(result.unwrap_err()))

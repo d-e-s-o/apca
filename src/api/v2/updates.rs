@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -353,7 +353,7 @@ type MapFn = fn(Result<wrap::Message, WebSocketError>) -> ParsedMessage;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TradeUpdates {}
 
-#[async_trait(?Send)]
+#[async_trait]
 impl Subscribable for TradeUpdates {
   type Input = ApiInfo;
   type Subscription = Subscription<SplitSink<Stream, wrap::Message>>;
@@ -392,10 +392,7 @@ impl Subscribable for TradeUpdates {
     let mut stream = stream.fuse();
 
     let mut subscription = Subscription(subscription);
-    let authenticate = subscription
-      .authenticate(key_id, secret)
-      .boxed_local()
-      .fuse();
+    let authenticate = subscription.authenticate(key_id, secret).boxed().fuse();
     let () = subscribe::drive::<ParsedMessage, _, _>(authenticate, &mut stream)
       .await
       .map_err(|result| {
@@ -405,7 +402,7 @@ impl Subscribable for TradeUpdates {
           .unwrap_or_else(|err| err)
       })???;
 
-    let listen = subscription.listen().boxed_local().fuse();
+    let listen = subscription.listen().boxed().fuse();
     let () = subscribe::drive::<ParsedMessage, _, _>(listen, &mut stream)
       .await
       .map_err(|result| {

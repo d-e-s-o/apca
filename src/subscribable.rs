@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use async_trait::async_trait;
@@ -8,7 +8,7 @@ use crate::Error;
 
 /// A trait representing "something" that users can subscribe to to
 /// receive updates through a stream.
-#[async_trait(?Send)]
+#[async_trait]
 pub trait Subscribable {
   /// Input required to establish a connection.
   type Input;
