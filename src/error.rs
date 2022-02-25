@@ -1,7 +1,6 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::error::Error as StdError;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -21,10 +20,7 @@ use crate::Str;
 
 /// An error encountered while issuing a request.
 #[derive(Debug, Error)]
-pub enum RequestError<E>
-where
-  E: StdError + 'static,
-{
+pub enum RequestError<E> {
   /// An endpoint reported error.
   #[error("the endpoint reported an error")]
   Endpoint(#[source] E),
