@@ -95,7 +95,7 @@ Endpoint! {
   ],
   Err => GetError, [
     /// Some of the provided data was invalid or not found.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidValues,
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
   fn base_url() -> Option<Str> {
@@ -177,7 +177,7 @@ mod tests {
     let request = QuotesReqInit::default().init("ABC123", start, end);
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidValues(_)) => (),
+      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
@@ -199,7 +199,7 @@ mod tests {
 
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidValues(_)) => (),
+      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }

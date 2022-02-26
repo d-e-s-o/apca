@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Renamed various 422 HTTP status error variants to `InvalidInput`
+
+
 0.22.4
 ------
 - Adjusted `Subscribable` trait to make all created futures implement

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -126,7 +126,7 @@ Endpoint! {
   ],
   Err => GetError, [
     /// A query parameter was invalid.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidArgument,
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
   fn base_url() -> Option<Str> {
