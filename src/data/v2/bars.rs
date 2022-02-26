@@ -50,7 +50,7 @@ pub enum Adjustment {
 
 /// A GET request to be issued to the /v2/stocks/{symbol} endpoint.
 #[derive(Clone, Debug, PartialEq, Serialize)]
-pub struct BarReq {
+pub struct BarsReq {
   /// The symbol for which to retrieve market data.
   #[serde(skip)]
   pub symbol: String,
@@ -119,7 +119,7 @@ pub struct Bars {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/stocks/{symbol}/bars/ endpoint.
-  pub Get(BarReq),
+  pub Get(BarsReq),
   Ok => Bars, [
     /// The market data was retrieved successfully.
     /* 200 */ OK,
@@ -208,7 +208,7 @@ mod tests {
     let start = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
     let end = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
 
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "SPY".to_string(),
       limit: None,
       start,
@@ -228,7 +228,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 6).and_hms_milli(21, 47, 0, 0);
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: Some(2),
       start,
@@ -268,7 +268,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
-    let mut request = BarReq {
+    let mut request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: Some(2),
       start,
@@ -298,7 +298,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 4).and_hms_milli(21, 47, 0, 0);
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: None,
       start,
