@@ -14,7 +14,7 @@ use crate::data::DATA_BASE_URL;
 use crate::Str;
 
 
-/// A quote bar as returned by the /v2/stocks/{symbol}/quotes/latest endpoint.
+/// A quote bar as returned by the /v2/stocks/<symbol>/quotes/latest endpoint.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -38,7 +38,8 @@ pub struct Quote {
 
 
 EndpointNoParse! {
-  /// The representation of a GET request to the /v2/stocks/{symbol}/quotes/latest endpoint.
+  /// The representation of a GET request to the
+  /// /v2/stocks/<symbol>/quotes/latest endpoint.
   pub Get(String),
   Ok => Quote, [
     /// The last quote was retrieved successfully.
