@@ -78,6 +78,45 @@ pub struct BarsReq {
 }
 
 
+/// A helper for initializing [`BarsReq`] objects.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct BarsReqInit {
+  /// See `BarsReq::limit`.
+  pub limit: Option<usize>,
+  /// See `BarsReq::adjustment`.
+  pub adjustment: Option<Adjustment>,
+  /// See `BarsReq::page_token`.
+  pub page_token: Option<String>,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl BarsReqInit {
+  /// Create a [`BarsReq`] from a `BarsReqInit`.
+  #[inline]
+  pub fn init<S>(
+    self,
+    symbol: S,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    timeframe: TimeFrame,
+  ) -> BarsReq
+  where
+    S: Into<String>,
+  {
+    BarsReq {
+      symbol: symbol.into(),
+      start,
+      end,
+      timeframe,
+      limit: self.limit,
+      adjustment: self.adjustment,
+      page_token: self.page_token,
+    }
+  }
+}
+
+
 /// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -207,16 +246,8 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
     let end = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
+    let request = BarsReqInit::default().init("AAPL", start, end, TimeFrame::OneDay);
 
-    let request = BarsReq {
-      symbol: "SPY".to_string(),
-      limit: None,
-      start,
-      end,
-      timeframe: TimeFrame::OneDay,
-      adjustment: None,
-      page_token: None,
-    };
     let res = client.issue::<Get>(&request).await.unwrap();
     assert_eq!(res.bars, Vec::new())
   }
@@ -228,15 +259,12 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 6).and_hms_milli(21, 47, 0, 0);
-    let request = BarsReq {
-      symbol: "AAPL".to_string(),
+    let request = BarsReqInit {
       limit: Some(2),
-      start,
-      end,
-      timeframe: TimeFrame::OneDay,
-      adjustment: None,
-      page_token: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL", start, end, TimeFrame::OneDay);
+
     let res = client.issue::<Get>(&request).await.unwrap();
     let bars = res.bars;
 
@@ -268,15 +296,12 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
-    let mut request = BarsReq {
-      symbol: "AAPL".to_string(),
+    let mut request = BarsReqInit {
       limit: Some(2),
-      start,
-      end,
-      timeframe: TimeFrame::OneDay,
-      adjustment: None,
-      page_token: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL", start, end, TimeFrame::OneDay);
+
     let mut res = client.issue::<Get>(&request).await.unwrap();
     let bars = res.bars;
 
@@ -298,15 +323,12 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 4).and_hms_milli(21, 47, 0, 0);
-    let request = BarsReq {
-      symbol: "AAPL".to_string(),
-      limit: None,
-      start,
-      end,
-      timeframe: TimeFrame::OneDay,
+    let request = BarsReqInit {
       adjustment: Some(adjustment),
-      page_token: None,
-    };
+      ..Default::default()
+    }
+    .init("AAPL", start, end, TimeFrame::OneDay);
+
     client.issue::<Get>(&request).await.unwrap()
   }
 
