@@ -197,6 +197,7 @@ mod tests {
 
   use crate::api_info::ApiInfo;
   use crate::Client;
+  use crate::RequestError;
 
 
   /// Verify that we can properly parse a reference bar response.
@@ -384,5 +385,27 @@ mod tests {
     assert_eq!(bars[0].high.to_u64(), Some(44));
     assert_eq!(bars[0].low.to_u64(), Some(42));
     assert_eq!(bars[0].volume, 165377252);
+  }
+
+  /// Check that we fail as expected when an invalid page token is
+  /// specified.
+  #[test(tokio::test)]
+  async fn invalid_page_token() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
+    let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
+    let request = BarsReqInit {
+      page_token: Some("123456789abcdefghi".to_string()),
+      ..Default::default()
+    }
+    .init("SPY", start, end, TimeFrame::OneMinute);
+
+    let err = client.issue::<Get>(&request).await.unwrap_err();
+    match err {
+      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
   }
 }
