@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -34,7 +34,7 @@ pub struct OrdersReq {
   /// The maximum number of orders in response. Defaults to 50 and max
   /// is 500.
   #[serde(rename = "limit")]
-  pub limit: u64,
+  pub limit: usize,
   /// If false the result will not roll up multi-leg orders under the
   /// legs field of the primary order.
   #[serde(rename = "nested")]

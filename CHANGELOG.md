@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Renamed various 422 HTTP status error variants to `InvalidInput`
 - Renamed `data::v2::bars::BarReq` to `BarsReq`
+- Changed various limit types to `usize`
 
 
 0.22.4
