@@ -66,6 +66,7 @@ impl QuotesReqInit {
 #[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct QuotesReq {
   /// The symbol to retrieve quotes for.
+  #[serde(skip)]
   pub symbol: String,
   /// Filter data equal to or after this time in RFC-3339 format.
   /// Defaults to the current day in CT.
@@ -108,21 +109,7 @@ Endpoint! {
   }
 
   fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
-    #[derive(Serialize)]
-    struct Query<'s> {
-      start: DateTime<Utc>,
-      end: DateTime<Utc>,
-      limit: Option<usize>,
-      page_token: Option<&'s str>,
-    }
-
-    let query = Query {
-      start: input.start,
-      end: input.end,
-      limit: input.limit,
-      page_token: input.page_token.as_deref(),
-    };
-    Ok(Some(to_query(query)?.into()))
+    Ok(Some(to_query(input)?.into()))
   }
 }
 
