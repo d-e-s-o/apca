@@ -34,7 +34,7 @@ pub struct OrdersReq {
   /// The maximum number of orders in response. Defaults to 50 and max
   /// is 500.
   #[serde(rename = "limit")]
-  pub limit: usize,
+  pub limit: Option<usize>,
   /// If false the result will not roll up multi-leg orders under the
   /// legs field of the primary order.
   #[serde(rename = "nested")]
@@ -45,7 +45,7 @@ impl Default for OrdersReq {
   fn default() -> Self {
     Self {
       status: Status::Open,
-      limit: 50,
+      limit: None,
       // Nested orders merely appear as legs in each order being
       // returned. As such, having them included is very non-intrusive
       // and should be a reasonable default.
