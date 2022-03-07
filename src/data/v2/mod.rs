@@ -1,6 +1,7 @@
 // Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+mod feed;
 mod unfold;
 
 /// Definitions for retrieval of market data bars.
@@ -11,3 +12,5 @@ pub mod last_quote;
 pub mod quotes;
 /// Definitions for real-time streaming of market data.
 pub mod stream;
+
+pub use feed::Feed;

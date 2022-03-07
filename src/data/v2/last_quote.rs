@@ -7,11 +7,50 @@ use chrono::Utc;
 use num_decimal::Num;
 
 use serde::Deserialize;
-
+use serde::Serialize;
 use serde_json::from_slice as from_json;
+use serde_urlencoded::to_string as to_query;
 
+use crate::data::v2::Feed;
 use crate::data::DATA_BASE_URL;
 use crate::Str;
+
+
+/// A GET request to be made to the /v2/stocks/{symbol}/quotes/latest endpoint.
+#[derive(Clone, Serialize, PartialEq, Debug)]
+pub struct LastQuoteReq {
+  /// The symbol to retrieve the last quote for.
+  #[serde(skip)]
+  pub symbol: String,
+  /// The data feed to use.
+  #[serde(rename = "feed")]
+  pub feed: Option<Feed>,
+}
+
+
+/// A helper for initializing [`LastQuoteReq`] objects.
+#[derive(Clone, Debug, Default, PartialEq)]
+#[allow(missing_copy_implementations)]
+pub struct LastQuoteReqInit {
+  /// See `LastQuoteReq::feed`.
+  pub feed: Option<Feed>,
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl LastQuoteReqInit {
+  /// Create a [`LastQuoteReq`] from a `LastQuoteReqInit`.
+  #[inline]
+  pub fn init<S>(self, symbol: S) -> LastQuoteReq
+  where
+    S: Into<String>,
+  {
+    LastQuoteReq {
+      symbol: symbol.into(),
+      feed: self.feed,
+    }
+  }
+}
 
 
 /// A quote bar as returned by the /v2/stocks/<symbol>/quotes/latest endpoint.
@@ -40,13 +79,14 @@ pub struct Quote {
 EndpointNoParse! {
   /// The representation of a GET request to the
   /// /v2/stocks/<symbol>/quotes/latest endpoint.
-  pub Get(String),
+  pub Get(LastQuoteReq),
   Ok => Quote, [
     /// The last quote was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
-    /// The provided symbol was invalid or not found.
+    /// The provided symbol was invalid or not found or the data feed is
+    /// not supported.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
@@ -55,7 +95,11 @@ EndpointNoParse! {
   }
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/stocks/{}/quotes/latest", input).into()
+    format!("/v2/stocks/{}/quotes/latest", input.symbol).into()
+  }
+
+  fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
+    Ok(Some(to_query(input)?.into()))
   }
 
   fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
@@ -129,7 +173,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let quote = client.issue::<Get>(&"SPY".to_string()).await.unwrap();
+    let req = LastQuoteReqInit::default().init("SPY");
+    let quote = client.issue::<Get>(&req).await.unwrap();
     // Just as a rough sanity check, we require that the reported time
     // is some time after two weeks before today. That should safely
     // account for any combination of holidays, weekends, etc.
@@ -141,16 +186,35 @@ mod tests {
     assert_ne!(quote.bid_size, 0);
   }
 
+  /// Verify that we can specify the SIP feed as the data source to use.
+  #[test(tokio::test)]
+  async fn sip_feed() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let req = LastQuoteReq {
+      symbol: "SPY".to_string(),
+      feed: Some(Feed::SIP),
+    };
+
+    let result = client.issue::<Get>(&req).await;
+    // Unfortunately we can't really know whether the user has the
+    // unlimited plan and can access the SIP feed. So really all we can
+    // do here is accept both possible outcomes.
+    match result {
+      Ok(_) | Err(RequestError::Endpoint(GetError::InvalidInput(_))) => (),
+      err => panic!("Received unexpected error: {:?}", err),
+    }
+  }
+
   /// Verify that we can properly parse a reference bar response.
   #[test(tokio::test)]
   async fn nonexistent_symbol() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let err = client
-      .issue::<Get>(&"ABC123".to_string())
-      .await
-      .unwrap_err();
+    let req = LastQuoteReqInit::default().init("ABC123");
+    let err = client.issue::<Get>(&req).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),

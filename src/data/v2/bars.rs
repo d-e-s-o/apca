@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
+use crate::data::v2::Feed;
 use crate::data::DATA_BASE_URL;
 use crate::util::vec_from_str;
 use crate::Str;
@@ -72,6 +73,12 @@ pub struct BarsReq {
   /// The adjustment to use (defaults to raw)
   #[serde(rename = "adjustment")]
   pub adjustment: Option<Adjustment>,
+  /// The data feed to use.
+  ///
+  /// Defaults to [`IEX`][Feed::IEX] for free users and
+  /// [`SIP`][Feed::SIP] for users with an unlimited subscription.
+  #[serde(rename = "feed")]
+  pub feed: Option<Feed>,
   /// If provided we will pass a page token to continue where we left off.
   #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
   pub page_token: Option<String>,
@@ -85,6 +92,8 @@ pub struct BarsReqInit {
   pub limit: Option<usize>,
   /// See `BarsReq::adjustment`.
   pub adjustment: Option<Adjustment>,
+  /// See `BarsReq::feed`.
+  pub feed: Option<Feed>,
   /// See `BarsReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
@@ -111,6 +120,7 @@ impl BarsReqInit {
       timeframe,
       limit: self.limit,
       adjustment: self.adjustment,
+      feed: self.feed,
       page_token: self.page_token,
     }
   }

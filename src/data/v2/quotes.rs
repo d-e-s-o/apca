@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
+use crate::data::v2::Feed;
 use crate::data::DATA_BASE_URL;
 use crate::util::vec_from_str;
 use crate::Str;
@@ -37,6 +38,8 @@ pub struct Quotes {
 pub struct QuotesReqInit {
   /// See `QuotesReq::limit`.
   pub limit: Option<usize>,
+  /// See `QuotesReq::feed`.
+  pub feed: Option<Feed>,
   /// See `QuotesReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
@@ -55,6 +58,7 @@ impl QuotesReqInit {
       start,
       end,
       limit: self.limit,
+      feed: self.feed,
       page_token: self.page_token,
     }
   }
@@ -80,6 +84,9 @@ pub struct QuotesReq {
   /// 1000.
   #[serde(rename = "limit")]
   pub limit: Option<usize>,
+  /// The data feed to use.
+  #[serde(rename = "feed")]
+  pub feed: Option<Feed>,
   /// Pagination token to continue from.
   #[serde(rename = "page_token")]
   pub page_token: Option<String>,
