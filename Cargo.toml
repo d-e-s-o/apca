@@ -20,6 +20,13 @@ A crate for interacting with the Alpaca API.
 """
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
+incremental = false
+
 [dependencies]
 async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}

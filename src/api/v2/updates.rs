@@ -421,6 +421,8 @@ impl Subscribable for TradeUpdates {
 mod tests {
   use super::*;
 
+  use chrono::Utc;
+
   use futures::channel::oneshot::channel;
   use futures::future::ok;
   use futures::future::ready;
@@ -430,6 +432,8 @@ mod tests {
   use serde_json::from_str as json_from_str;
 
   use test_log::test;
+
+  use tracing::info;
 
   use url::Url;
 
@@ -792,5 +796,74 @@ mod tests {
       Error::Str(ref e) if e == "authentication not successful" => (),
       e => panic!("received unexpected error: {}", e),
     }
+  }
+
+  /// Measure the throughput of our trade update streaming.
+  #[ignore = "poor man's benchmark"]
+  #[test(tokio::test)]
+  async fn throughput() {
+    const NUM_MESSAGES: usize = 10_000_000;
+
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(STREAM_REQ.to_string()),
+      );
+      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+
+      let json = r#"{
+      "stream":"trade_updates","data":{
+        "event":"new","execution_id":"11111111-2222-3333-4444-555555555555","order":{
+          "asset_class":"us_equity","asset_id":"11111111-2222-3333-4444-555555555555",
+          "canceled_at":null,"client_order_id":"11111111-2222-3333-4444-555555555555",
+          "created_at":"2021-12-09T19:48:46.176628398Z","expired_at":null,
+          "extended_hours":false,"failed_at":null,"filled_at":null,
+          "filled_avg_price":null,"filled_qty":"0","hwm":null,
+          "id":"11111111-2222-3333-4444-555555555555","legs":null,"limit_price":"1",
+          "notional":null,"order_class":"simple","order_type":"limit","qty":"1",
+          "replaced_at":null,"replaced_by":null,"replaces":null,"side":"buy",
+          "status":"new","stop_price":null,"submitted_at":"2021-12-09T19:48:46.175261379Z",
+          "symbol":"AAPL","time_in_force":"day","trail_percent":null,"trail_price":null,
+          "type":"limit","updated_at":"2021-12-09T19:48:46.185346448Z"
+        },"timestamp":"2021-12-09T19:48:46.182987144Z"
+      }
+    }"#
+        .to_string();
+
+      for _ in 0..NUM_MESSAGES {
+        let _ = stream.send(Message::Text(json.clone())).await.unwrap();
+      }
+
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let (stream, _subscription) = mock_stream::<TradeUpdates, _, _>(test).await.unwrap();
+
+    info!("STARTING");
+    let start = Utc::now();
+
+    let () = stream
+      .map_err(Error::from)
+      .try_for_each(|result| {
+        let update = result.unwrap();
+        assert_eq!(update.event, TradeStatus::New);
+        ready(Ok(()))
+      })
+      .await
+      .unwrap();
+
+    let duration = Utc::now() - start;
+    let throughput =
+      NUM_MESSAGES as f64 / (duration.num_nanoseconds().unwrap() as f64 / 1_000_000_000f64);
+    info!("DONE streaming {NUM_MESSAGES} in {duration}; throughput = {throughput:.2} msg/s");
   }
 }
