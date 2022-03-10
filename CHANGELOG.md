@@ -8,6 +8,7 @@ Unreleased
 - Renamed `data::v2::bars::BarReq` to `BarsReq`
 - Changed various limit types to `usize`
 - Changed `api::v2::orders::OrdersReq::limit` to be an `Option`
+- Added example illustrating how to stream realtime market data
 
 
 0.22.4

@@ -47,7 +47,7 @@
   while_true
 )]
 
-//! A create for interacting with the Alpaca API.
+//! A crate for interacting with the Alpaca API.
 
 #[macro_use]
 extern crate http_endpoint;
