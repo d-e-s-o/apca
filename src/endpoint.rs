@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -48,6 +48,9 @@ macro_rules! EndpointNoParse {
         // prey to the rate limit and so we include these variants into
         // all our error definitions.
         /// Authentication failed for the request.
+        // TODO: This status actually got changed to 403, which now
+        //       shadows other error conditions by specific endpoints
+        //       (e.g., insufficient funds when submitting an order).
         /* 401 */ UNAUTHORIZED => AuthenticationFailed,
         /// The rate limit was exceeded, causing the request to be
         /// denied.

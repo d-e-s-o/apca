@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -176,6 +176,7 @@ mod tests {
   use crate::RequestError;
 
 
+  /// Make sure that we can parse the reference account response.
   #[test]
   fn parse_reference_account() {
     let response = r#"{
@@ -222,6 +223,7 @@ mod tests {
     assert_eq!(acc.daytrade_count, 0);
   }
 
+  /// Test that we can retrieve information about the account.
   #[test(tokio::test)]
   async fn request_account() {
     let api_info = ApiInfo::from_env().unwrap();
@@ -239,7 +241,10 @@ mod tests {
     );
   }
 
+  /// Check that we get back the expected error when requesting account
+  /// data with invalid credentials.
   #[test(tokio::test)]
+  #[ignore]
   async fn request_account_with_invalid_credentials() {
     let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
     let client = Client::new(api_info);

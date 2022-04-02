@@ -54,10 +54,13 @@ mod tests {
 
   use test_log::test;
 
+  use crate::api::API_BASE_URL;
   use crate::api_info::ApiInfo;
   use crate::Client;
+  use crate::RequestError;
 
 
+  /// Check that we can parse the reference clock response.
   #[test]
   fn parse_reference_clock() {
     let response = r#"{
@@ -71,6 +74,7 @@ mod tests {
     assert!(clock.open);
   }
 
+  /// Verify that we can retrieve the current market clock.
   #[test(tokio::test)]
   async fn current_market_clock() {
     let api_info = ApiInfo::from_env().unwrap();
@@ -93,6 +97,22 @@ mod tests {
       assert!(clock.next_open > clock.next_close);
     } else {
       assert!(clock.next_open < clock.next_close);
+    }
+  }
+
+  /// Check that we get back the expected error when requesting the
+  /// market clock with invalid credentials.
+  #[test(tokio::test)]
+  #[ignore]
+  async fn request_clock_with_invalid_credentials() {
+    let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
+    let client = Client::new(api_info);
+    let result = client.issue::<Get>(&()).await;
+
+    let err = result.unwrap_err();
+    match err {
+      RequestError::Endpoint(GetError::AuthenticationFailed(_)) => (),
+      e => panic!("received unexpected error: {:?}", e),
     }
   }
 }
