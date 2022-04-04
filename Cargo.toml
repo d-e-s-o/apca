@@ -33,7 +33,7 @@ serde = {version = "1.0", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
-thiserror = "1.0"
+thiserror = "1.0.30"
 tokio = {version = "1.0", default-features = false, features = ["net"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
