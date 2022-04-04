@@ -133,11 +133,6 @@ mod tests {
     // is some time after two weeks before today. That should safely
     // account for any combination of holidays, weekends, etc.
     assert!(quote.time >= Utc::now() - Duration::weeks(2));
-    assert!(quote.ask_price >= quote.bid_price);
-    assert_ne!(quote.ask_price, Num::from(0));
-    assert_ne!(quote.bid_price, Num::from(0));
-    assert_ne!(quote.ask_size, 0);
-    assert_ne!(quote.bid_size, 0);
   }
 
   /// Verify that we can properly parse a reference bar response.
