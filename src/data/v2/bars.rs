@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -50,7 +50,7 @@ pub enum Adjustment {
 
 /// A GET request to be issued to the /v2/stocks/{symbol} endpoint.
 #[derive(Clone, Debug, PartialEq, Serialize)]
-pub struct BarReq {
+pub struct BarsReq {
   /// The symbol for which to retrieve market data.
   #[serde(skip)]
   pub symbol: String,
@@ -76,6 +76,13 @@ pub struct BarReq {
   #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
   pub page_token: Option<String>,
 }
+
+
+/// A GET request to be issued to the /v2/stocks/{symbol}/bars endpoint.
+// TODO: Remove this alias with the next backwards compatibility
+//       breaking release.
+#[deprecated(note = "use BarReq instead")]
+pub type BarReq = BarsReq;
 
 
 /// A market data bar as returned by the /v2/stocks/{symbol} endpoint.
@@ -119,7 +126,7 @@ pub struct Bars {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/stocks/{symbol}/bars/ endpoint.
-  pub Get(BarReq),
+  pub Get(BarsReq),
   Ok => Bars, [
     /// The market data was retrieved successfully.
     /* 200 */ OK,
@@ -208,7 +215,7 @@ mod tests {
     let start = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
     let end = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
 
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "SPY".to_string(),
       limit: None,
       start,
@@ -228,7 +235,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 6).and_hms_milli(21, 47, 0, 0);
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: Some(2),
       start,
@@ -268,7 +275,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
-    let mut request = BarReq {
+    let mut request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: Some(2),
       start,
@@ -298,7 +305,7 @@ mod tests {
     let client = Client::new(api_info);
     let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
     let end = Utc.ymd(2018, 12, 4).and_hms_milli(21, 47, 0, 0);
-    let request = BarReq {
+    let request = BarsReq {
       symbol: "AAPL".to_string(),
       limit: None,
       start,
