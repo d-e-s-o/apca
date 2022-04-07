@@ -43,7 +43,6 @@ impl Not for Side {
 /// A single position as returned by the /v2/positions endpoint on a GET
 /// request.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[non_exhaustive]
 pub struct Position {
   /// The ID of the asset represented by the position.
   #[serde(rename = "asset_id")]
