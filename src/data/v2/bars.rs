@@ -48,7 +48,7 @@ pub enum Adjustment {
 }
 
 
-/// A GET request to be issued to the /v2/stocks/{symbol}/bars endpoint.
+/// A GET request to be issued to the /v2/stocks/<symbol>/bars endpoint.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct BarsReq {
   /// The symbol for which to retrieve market data.
@@ -78,14 +78,14 @@ pub struct BarsReq {
 }
 
 
-/// A GET request to be issued to the /v2/stocks/{symbol}/bars endpoint.
+/// A GET request to be issued to the /v2/stocks/<symbol>/bars endpoint.
 // TODO: Remove this alias with the next backwards compatibility
 //       breaking release.
 #[deprecated(note = "use BarReq instead")]
 pub type BarReq = BarsReq;
 
 
-/// A market data bar as returned by the /v2/stocks/{symbol}/bars endpoint.
+/// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
 pub struct Bar {
@@ -125,7 +125,7 @@ pub struct Bars {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/stocks/{symbol}/bars endpoint.
+  /// The representation of a GET request to the /v2/stocks/<symbol>/bars endpoint.
   pub Get(BarsReq),
   Ok => Bars, [
     /// The market data was retrieved successfully.
