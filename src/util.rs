@@ -29,7 +29,7 @@ where
   T: Deserialize<'de>,
 {
   let vec = Option::<Vec<T>>::deserialize(deserializer)?;
-  Ok(vec.unwrap_or_else(Vec::new))
+  Ok(vec.unwrap_or_default())
 }
 
 
