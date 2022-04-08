@@ -330,7 +330,7 @@ pub enum DataMessage {
 }
 
 
-/// A data item as received over the our websocket channel.
+/// A data item as received over our websocket channel.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Data {

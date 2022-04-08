@@ -167,7 +167,7 @@ mod tests {
     assert_eq!(quote.bid_size, 1);
   }
 
-  /// Verify that we can properly parse a reference bar response.
+  /// Verify that we can retrieve the last quote for an asset.
   #[test(tokio::test)]
   async fn request_last_quote() {
     let api_info = ApiInfo::from_env().unwrap();

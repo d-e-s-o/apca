@@ -124,7 +124,7 @@ impl Client {
       .header(HDR_KEY_ID, self.api_info.key_id.as_str())
       .header(HDR_SECRET, self.api_info.secret.as_str())
       .body(Body::from(
-        R::body(input)?.unwrap_or_else(|| Cow::Borrowed(&[0; 0])),
+        R::body(input)?.unwrap_or(Cow::Borrowed(&[0; 0])),
       ))?;
 
     Ok(request)
