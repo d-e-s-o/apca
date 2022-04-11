@@ -3,6 +3,7 @@ Unreleased
 - Renamed `data::v2::bars::BarReq` to `BarsReq`
   - Deprecated `data::v2::bars::BarReq`
 - Introduced `data::v2::bars::BarsReqInit` type
+- Introduced `ApiInfo::into_parts` method
 
 
 0.22.4
