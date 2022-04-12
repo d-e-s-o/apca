@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.22.5
+------
 - Renamed `data::v2::bars::BarReq` to `BarsReq`
   - Deprecated `data::v2::bars::BarReq`
 - Introduced `data::v2::bars::BarsReqInit` type
