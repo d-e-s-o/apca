@@ -370,10 +370,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1543899600, 0), Utc)
     );
-    assert_eq!(bars[0].open, Num::new(181, 4));
-    assert_eq!(bars[0].close, Num::new(17669, 400));
-    assert_eq!(bars[0].high, Num::new(1823899, 40000));
-    assert_eq!(bars[0].low, Num::new(17627, 400));
+    assert_eq!(bars[0].open.to_u64(), Some(45));
+    assert_eq!(bars[0].close.to_u64(), Some(44));
+    assert_eq!(bars[0].high.to_u64(), Some(45));
+    assert_eq!(bars[0].low.to_u64(), Some(44));
     assert_eq!(bars[0].volume, 165377252);
   }
 
