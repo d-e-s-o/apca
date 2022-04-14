@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Borrow as _;
@@ -31,6 +31,8 @@ use serde_json::from_slice as json_from_slice;
 use serde_json::from_str as json_from_str;
 use serde_json::to_string as to_json;
 use serde_json::Error as JsonError;
+
+use thiserror::Error as ThisError;
 
 use tokio::net::TcpStream;
 
@@ -262,7 +264,8 @@ pub struct Bar {
 
 
 /// An error as reported by the Alpaca Data API.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, ThisError)]
+#[error("{message} (error code: {code})")]
 pub struct ApiError {
   /// The error code being reported.
   #[serde(rename = "code")]
@@ -526,6 +529,9 @@ where
           self.subscriptions = data;
           Ok(Ok(()))
         },
+        Ok(ControlMessage::Error(error)) => Ok(Err(Error::Str(
+          format!("failed to subscribe: {}", error).into(),
+        ))),
         Ok(_) => Ok(Err(Error::Str(
           "server responded with unexpected message".into(),
         ))),
@@ -705,6 +711,8 @@ mod tests {
   const AUTH_RESP: &str = r#"[{"T":"success","msg":"authenticated"}]"#;
   const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"]}"#;
   const SUB_RESP: &str = r#"[{"T":"subscription","bars":["AAPL","VOO"]}]"#;
+  const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[]}"#;
+  const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
 
   /// Check that we can deserialize the [`DataMessage::Bar`] variant.
@@ -896,6 +904,47 @@ mod tests {
       .try_for_each(|result| async { result.map(|_data| ()).map_err(Error::Json) })
       .await
       .unwrap();
+  }
+
+  /// Check that we correctly handle errors reported as part of
+  /// subscription.
+  #[test(tokio::test)]
+  async fn subscribe_error() {
+    async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
+      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      // Authentication.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(AUTH_REQ.to_string()),
+      );
+      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+
+      // Subscription.
+      assert_eq!(
+        stream.next().await.unwrap()?,
+        Message::Text(SUB_ERR_REQ.to_string()),
+      );
+      stream.send(Message::Text(SUB_ERR_RESP.to_string())).await?;
+      stream.send(Message::Close(None)).await?;
+      Ok(())
+    }
+
+    let (mut stream, mut subscription) =
+      mock_stream::<RealtimeData<IEX>, _, _>(test).await.unwrap();
+
+    let data = MarketData::default();
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let error = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap_err();
+
+    match error {
+      Error::Str(ref e) if e == "failed to subscribe: invalid syntax (error code: 400)" => {},
+      e => panic!("received unexpected error: {}", e),
+    }
   }
 
   /// Check that we can adjust the current market data subscription on
