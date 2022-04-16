@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Renamed various 422 HTTP status error variants to `InvalidInput`
+
+
 0.22.5
 ------
 - Renamed `data::v2::bars::BarReq` to `BarsReq`

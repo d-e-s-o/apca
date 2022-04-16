@@ -47,7 +47,7 @@ EndpointNoParse! {
   ],
   Err => GetError, [
     /// The provided symbol was invalid or not found.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidSymbol,
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
   fn base_url() -> Option<Str> {
@@ -147,7 +147,7 @@ mod tests {
       .await
       .unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidSymbol(_)) => (),
+      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }

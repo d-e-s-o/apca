@@ -172,7 +172,7 @@ Endpoint! {
   ],
   Err => GetError, [
     /// A query parameter was invalid.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidArgument,
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
 
   fn base_url() -> Option<Str> {
@@ -411,7 +411,7 @@ mod tests {
 
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidArgument(_)) => (),
+      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
