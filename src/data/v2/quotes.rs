@@ -36,7 +36,7 @@ pub struct Quotes {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct QuotesReqInit {
   /// See `QuotesReq::limit`.
-  pub limit: Option<u64>,
+  pub limit: Option<usize>,
   /// See `QuotesReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
@@ -79,7 +79,7 @@ pub struct QuotesReq {
   /// Number of quotes to return. Must be in range 1-10000, defaults to
   /// 1000.
   #[serde(rename = "limit")]
-  pub limit: Option<u64>,
+  pub limit: Option<usize>,
   /// Pagination token to continue from.
   #[serde(rename = "page_token")]
   pub page_token: Option<String>,
