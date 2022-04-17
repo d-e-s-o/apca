@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Renamed various 422 HTTP status error variants to `InvalidInput`
 - Changed various limit types to `usize`
+- Changed `api::v2::orders::OrdersReq::limit` to be an `Option`
 
 
 0.22.5
