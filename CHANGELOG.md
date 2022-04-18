@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Adjusted data API request types to include optional data feed to use
+- Adjusted `data::v2::last_quote::Get` to accept a `LastQuoteReq` object
 - Renamed various 422 HTTP status error variants to `InvalidInput`
 - Changed various limit types to `usize`
 - Changed `api::v2::orders::OrdersReq::limit` to be an `Option`

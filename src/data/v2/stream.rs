@@ -80,6 +80,9 @@ mod private {
 
 
 /// A trait representing the source from which to stream real time data.
+// TODO: Once we can use enumerations as const generic parameters we
+//       should probably switch over to repurposing `data::v2::Feed`
+//       here instead.
 pub trait Source: private::Sealed {
   /// Return a textual representation of the source.
   #[doc(hidden)]
