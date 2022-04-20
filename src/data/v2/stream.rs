@@ -331,6 +331,7 @@ pub enum DataMessage {
 
 /// A data item as received over the our websocket channel.
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Data {
   /// A variant representing aggregate data for a given symbol.
   Bar(Bar),
@@ -397,7 +398,7 @@ impl subscribe::Message for ParsedMessage {
   #[inline]
   fn is_error(user_message: &Self::UserMessage) -> bool {
     // Both outer `WebSocketError` and inner `JsonError` errors
-    // constitute errors in our sense. Note however than an API error
+    // constitute errors in our sense. Note, however, that an API error
     // does not. It's just a regular control message from our
     // perspective.
     user_message
