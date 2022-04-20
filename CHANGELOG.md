@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Added support for subscribing to realtime quotes in addition to
+  aggregate bar data
 - Adjusted data API request types to include optional data feed to use
 - Adjusted `data::v2::last_quote::Get` to accept a `LastQuoteReq` object
 - Renamed various 422 HTTP status error variants to `InvalidInput`

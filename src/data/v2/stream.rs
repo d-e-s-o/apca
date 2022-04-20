@@ -266,6 +266,30 @@ pub struct Bar {
 }
 
 
+/// A quote for an equity.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Quote {
+  /// The quote's symbol.
+  #[serde(rename = "S")]
+  pub symbol: String,
+  /// The bid's price.
+  #[serde(rename = "bp")]
+  pub bid_price: Num,
+  /// The bid's size.
+  #[serde(rename = "bs")]
+  pub bid_size: u64,
+  /// The ask's price.
+  #[serde(rename = "ap")]
+  pub ask_price: Num,
+  /// The ask's size.
+  #[serde(rename = "as")]
+  pub ask_size: u64,
+  /// The quote's time stamp.
+  #[serde(rename = "t")]
+  pub timestamp: DateTime<Utc>,
+}
+
+
 /// An error as reported by the Alpaca Data API.
 #[derive(Clone, Debug, Deserialize, PartialEq, ThisError)]
 #[error("{message} (error code: {code})")]
@@ -289,6 +313,9 @@ pub enum DataMessage {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
   Bar(Bar),
+  /// A variant representing a quote for a given symbol.
+  #[serde(rename = "q")]
+  Quote(Quote),
   /// A control message describing the current list of subscriptions.
   #[serde(rename = "subscription")]
   Subscription(MarketData),
@@ -307,6 +334,20 @@ pub enum DataMessage {
 pub enum Data {
   /// A variant representing aggregate data for a given symbol.
   Bar(Bar),
+  /// A variant representing quote data for a given symbol.
+  Quote(Quote),
+}
+
+impl Data {
+  /// Check whether this object is of the `Bar` variant.
+  pub fn is_bar(&self) -> bool {
+    matches!(self, Self::Bar(..))
+  }
+
+  /// Check whether this object is of the `Quote` variant.
+  pub fn is_quote(&self) -> bool {
+    matches!(self, Self::Quote(..))
+  }
 }
 
 
@@ -335,6 +376,9 @@ impl subscribe::Message for ParsedMessage {
     match self {
       MessageResult::Ok(Ok(message)) => match message {
         DataMessage::Bar(bar) => subscribe::Classification::UserMessage(Ok(Ok(Data::Bar(bar)))),
+        DataMessage::Quote(quote) => {
+          subscribe::Classification::UserMessage(Ok(Ok(Data::Quote(quote))))
+        },
         DataMessage::Subscription(data) => {
           subscribe::Classification::ControlMessage(ControlMessage::Subscription(data))
         },
@@ -409,7 +453,11 @@ impl<const N: usize> From<[&'static str; N]> for Normalized {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
+  #[serde(default)]
   pub bars: Normalized,
+  /// The quotes to subscribe to.
+  #[serde(default)]
+  pub quotes: Normalized,
 }
 
 impl MarketData {
@@ -420,6 +468,15 @@ impl MarketData {
     N: Into<Normalized>,
   {
     self.bars = symbols.into();
+  }
+
+  /// A convenience function for setting the [`quotes`][MarketData::quotes]
+  /// member.
+  pub fn set_quotes<N>(&mut self, symbols: N)
+  where
+    N: Into<Normalized>,
+  {
+    self.quotes = symbols.into();
   }
 }
 
@@ -712,9 +769,9 @@ mod tests {
   //       `crate::websocket::test::SECRET` here.
   const AUTH_REQ: &str = r#"{"action":"auth","key":"USER12345678","secret":"justletmein"}"#;
   const AUTH_RESP: &str = r#"[{"T":"success","msg":"authenticated"}]"#;
-  const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"]}"#;
+  const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[]}"#;
   const SUB_RESP: &str = r#"[{"T":"subscription","bars":["AAPL","VOO"]}]"#;
-  const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[]}"#;
+  const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[]}"#;
   const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
 
@@ -746,6 +803,42 @@ mod tests {
     assert_eq!(
       bar.timestamp,
       Utc.ymd(2021, 2, 22).and_hms_milli(19, 15, 0, 0)
+    );
+  }
+
+  /// Check that we can deserialize the [`DataMessage::Quote`] variant.
+  #[test]
+  fn parse_quote() {
+    let json: &str = r#"{
+  "T": "q",
+  "S": "NVDA",
+  "bx": "P",
+  "bp": 258.8,
+  "bs": 2,
+  "ax": "A",
+  "ap": 259.99,
+  "as": 5,
+  "c": [
+      "R"
+  ],
+  "z": "C",
+  "t": "2022-01-18T23:09:42.151875584Z"
+}"#;
+
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let quote = match message {
+      DataMessage::Quote(qoute) => qoute,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+    assert_eq!(quote.symbol, "NVDA");
+    assert_eq!(quote.bid_price, Num::new(2588, 10));
+    assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.ask_price, Num::new(25999, 100));
+    assert_eq!(quote.ask_size, 5);
+
+    assert_eq!(
+      quote.timestamp,
+      Utc.ymd(2022, 1, 18).and_hms_nano(23, 9, 42, 151875584)
     );
   }
 
@@ -807,7 +900,7 @@ mod tests {
     let request = Request::Subscribe(&data);
 
     let json = to_json(&request).unwrap();
-    let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"]}"#;
+    let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[]}"#;
     assert_eq!(json, expected);
   }
 
@@ -820,7 +913,7 @@ mod tests {
     let request = Request::Unsubscribe(&data);
 
     let json = to_json(&request).unwrap();
-    let expected = r#"{"action":"unsubscribe","bars":["VOO"]}"#;
+    let expected = r#"{"action":"unsubscribe","bars":["VOO"],"quotes":[]}"#;
     assert_eq!(json, expected);
   }
 
@@ -1009,7 +1102,51 @@ mod tests {
 
     let read = stream
       .map_err(Error::WebSocket)
-      .try_for_each(|result| async { result.map(|_data| ()).map_err(Error::Json) });
+      .try_for_each(|result| async {
+        result
+          .map(|data| {
+            assert!(data.is_bar());
+          })
+          .map_err(Error::Json)
+      });
+
+    if timeout(Duration::from_millis(100), read).await.is_ok() {
+      panic!("realtime data stream got exhausted unexpectedly")
+    }
+  }
+
+  /// Check that we can stream realtime stock quotes.
+  ///
+  /// Note that we do not have any control over whether the market is
+  /// open or not and as such we can only try on a best-effort basis to
+  /// receive and decode updates.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn stream_quotes() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_quotes(["SPY"]);
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    let read = stream
+      .map_err(Error::WebSocket)
+      .try_for_each(|result| async {
+        result
+          .map(|data| {
+            assert!(data.is_quote());
+          })
+          .map_err(Error::Json)
+      });
+
     if timeout(Duration::from_millis(100), read).await.is_ok() {
       panic!("realtime data stream got exhausted unexpectedly")
     }
