@@ -58,6 +58,7 @@ impl Default for Class {
 impl FromStr for Class {
   type Err = ();
 
+  #[inline]
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s == Class::UsEquity.as_ref() {
       Ok(Class::UsEquity)

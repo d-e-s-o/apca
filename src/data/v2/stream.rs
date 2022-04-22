@@ -98,6 +98,7 @@ pub trait Source: private::Sealed {
 pub enum IEX {}
 
 impl Source for IEX {
+  #[inline]
   fn as_str() -> &'static str {
     "iex"
   }
@@ -114,6 +115,7 @@ impl private::Sealed for IEX {}
 pub enum SIP {}
 
 impl Source for SIP {
+  #[inline]
   fn as_str() -> &'static str {
     "sip"
   }
@@ -153,6 +155,7 @@ pub enum Symbol {
 }
 
 impl From<&'static str> for Symbol {
+  #[inline]
   fn from(symbol: &'static str) -> Self {
     if symbol == "*" {
       Symbol::All
@@ -163,6 +166,7 @@ impl From<&'static str> for Symbol {
 }
 
 impl From<String> for Symbol {
+  #[inline]
   fn from(symbol: String) -> Self {
     if symbol == "*" {
       Symbol::All
@@ -341,11 +345,13 @@ pub enum Data {
 
 impl Data {
   /// Check whether this object is of the `Bar` variant.
+  #[inline]
   pub fn is_bar(&self) -> bool {
     matches!(self, Self::Bar(..))
   }
 
   /// Check whether this object is of the `Quote` variant.
+  #[inline]
   pub fn is_quote(&self) -> bool {
     matches!(self, Self::Quote(..))
   }
@@ -410,6 +416,7 @@ impl subscribe::Message for ParsedMessage {
 
 
 /// Deserialize a normalized [`Symbols`] object from a string.
+#[inline]
 fn normalized_from_str<'de, D>(deserializer: D) -> Result<Symbols, D::Error>
 where
   D: Deserializer<'de>,
@@ -424,12 +431,14 @@ where
 pub struct Normalized(#[serde(deserialize_with = "normalized_from_str")] Symbols);
 
 impl From<Symbols> for Normalized {
+  #[inline]
   fn from(symbols: Symbols) -> Self {
     Self(normalize(symbols))
   }
 }
 
 impl From<Vec<String>> for Normalized {
+  #[inline]
   fn from(symbols: Vec<String>) -> Self {
     Self(normalize(Cow::from(
       IntoIterator::into_iter(symbols)
@@ -440,6 +449,7 @@ impl From<Vec<String>> for Normalized {
 }
 
 impl<const N: usize> From<[&'static str; N]> for Normalized {
+  #[inline]
   fn from(symbols: [&'static str; N]) -> Self {
     Self(normalize(Cow::from(
       IntoIterator::into_iter(symbols)
@@ -464,6 +474,7 @@ pub struct MarketData {
 impl MarketData {
   /// A convenience function for setting the [`bars`][MarketData::bars]
   /// member.
+  #[inline]
   pub fn set_bars<N>(&mut self, symbols: N)
   where
     N: Into<Normalized>,
@@ -473,6 +484,7 @@ impl MarketData {
 
   /// A convenience function for setting the [`quotes`][MarketData::quotes]
   /// member.
+  #[inline]
   pub fn set_quotes<N>(&mut self, symbols: N)
   where
     N: Into<Normalized>,
@@ -525,6 +537,7 @@ pub struct Subscription<S> {
 
 impl<S> Subscription<S> {
   /// Create a `Subscription` object wrapping the `websocket_util` based one.
+  #[inline]
   fn new(subscription: subscribe::Subscription<S, ParsedMessage, wrap::Message>) -> Self {
     Self {
       subscription,
@@ -609,6 +622,7 @@ where
   /// Contained in `subscribe` are the *additional* symbols to subscribe
   /// to. Use the [`unsubscribe`][Self::unsubscribe] method to
   /// unsubscribe from receiving data for certain symbols.
+  #[inline]
   pub async fn subscribe(&mut self, subscribe: &MarketData) -> Result<Result<(), Error>, S::Error> {
     let request = Request::Subscribe(subscribe);
     self.subscribe_unsubscribe(&request).await
@@ -618,6 +632,7 @@ where
   ///
   /// Subscriptions of market data for symbols other than the ones
   /// provide to this function are left untouched.
+  #[inline]
   pub async fn unsubscribe(
     &mut self,
     unsubscribe: &MarketData,
@@ -627,6 +642,7 @@ where
   }
 
   /// Inquire the currently active individual market data subscriptions.
+  #[inline]
   pub fn subscriptions(&self) -> &MarketData {
     &self.subscriptions
   }
