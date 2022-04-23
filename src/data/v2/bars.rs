@@ -203,6 +203,8 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use std::str::FromStr as _;
+
   use chrono::NaiveDateTime;
   use chrono::TimeZone;
 
@@ -422,6 +424,25 @@ mod tests {
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      _ => panic!("Received unexpected error: {:?}", err),
+    };
+  }
+
+  /// Verify that we error out as expected when attempting to retrieve
+  /// aggregate data bars for a non-existent symbol.
+  #[test(tokio::test)]
+  async fn nonexistent_symbol() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let start = DateTime::from_str("2022-02-01T00:00:00Z").unwrap();
+    let end = DateTime::from_str("2022-02-20T00:00:00Z").unwrap();
+    let request = BarsReqInit::default().init("ABC123", start, end, TimeFrame::OneDay);
+
+    let err = client.issue::<Get>(&request).await.unwrap_err();
+    match err {
+      // 42210000 is the error code reported for "invalid symbol".
+      RequestError::Endpoint(GetError::InvalidInput(Ok(message))) if message.code == 42210000 => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }

@@ -104,7 +104,7 @@ pub(crate) mod test {
   {
     let addr = mock_server(f).await;
     let api_info = ApiInfo {
-      base_url: Url::parse(&format!("ws://{}", addr.to_string())).unwrap(),
+      base_url: Url::parse(&format!("ws://{}", addr)).unwrap(),
       key_id: KEY_ID.to_string(),
       secret: SECRET.to_string(),
     };
