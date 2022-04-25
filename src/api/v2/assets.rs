@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Serialize;
@@ -76,8 +76,9 @@ mod tests {
   use crate::Client;
 
 
+  /// Make sure that we can list available US stock assets.
   #[test(tokio::test)]
-  async fn list_assets() {
+  async fn list_us_stock_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let request = AssetsReqInit::default().init();
@@ -87,5 +88,23 @@ mod tests {
     assert_eq!(asset.class, Class::UsEquity);
     assert_eq!(asset.exchange, Exchange::Nasdaq);
     assert_eq!(asset.status, Status::Active);
+  }
+
+
+  /// Make sure that we can list available crypto currency assets.
+  #[test(tokio::test)]
+  async fn list_crypto_assets() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let request = AssetsReqInit {
+      class: Class::Crypto,
+      ..Default::default()
+    }
+    .init();
+
+    let assets = client.issue::<Get>(&request).await.unwrap();
+
+    let asset = assets.iter().find(|x| x.symbol == "BTCUSD").unwrap();
+    assert_eq!(asset.class, Class::Crypto);
   }
 }

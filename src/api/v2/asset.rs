@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Display;
@@ -37,6 +37,9 @@ pub enum Class {
   /// US equities.
   #[serde(rename = "us_equity")]
   UsEquity,
+  /// Crypto currencies.
+  #[serde(rename = "crypto")]
+  Crypto,
 }
 
 impl AsRef<str> for Class {
@@ -44,6 +47,7 @@ impl AsRef<str> for Class {
   fn as_ref(&self) -> &'static str {
     match *self {
       Class::UsEquity => "us_equity",
+      Class::Crypto => "crypto",
     }
   }
 }
@@ -62,6 +66,8 @@ impl FromStr for Class {
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if s == Class::UsEquity.as_ref() {
       Ok(Class::UsEquity)
+    } else if s == Class::Crypto.as_ref() {
+      Ok(Class::Crypto)
     } else {
       Err(())
     }
