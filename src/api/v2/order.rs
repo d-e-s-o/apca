@@ -123,6 +123,18 @@ pub enum Status {
   Unknown,
 }
 
+impl Status {
+  /// Check whether the status is terminal, i.e., no more changes will
+  /// occur to the associated order.
+  #[inline]
+  pub fn is_terminal(self) -> bool {
+    matches!(
+      self,
+      Self::Replaced | Self::Filled | Self::Canceled | Self::Expired | Self::Rejected
+    )
+  }
+}
+
 
 /// The side an order is on.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
