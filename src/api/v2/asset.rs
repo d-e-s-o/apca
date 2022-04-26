@@ -40,6 +40,12 @@ pub enum Class {
   /// Crypto currencies.
   #[serde(rename = "crypto")]
   Crypto,
+  /// Any other asset class that we have not accounted for.
+  ///
+  /// Note that having any such unknown asset class should be considered
+  /// a bug.
+  #[serde(other, rename(serialize = "unknown"))]
+  Unknown,
 }
 
 impl AsRef<str> for Class {
@@ -48,6 +54,7 @@ impl AsRef<str> for Class {
     match *self {
       Class::UsEquity => "us_equity",
       Class::Crypto => "crypto",
+      Class::Unknown => "unknown",
     }
   }
 }
@@ -69,6 +76,9 @@ impl FromStr for Class {
     } else if s == Class::Crypto.as_ref() {
       Ok(Class::Crypto)
     } else {
+      // Note that we do not support creating the `Unknown` variant
+      // here. This variant is really only meant to cover
+      // deserialization.
       Err(())
     }
   }
@@ -251,7 +261,8 @@ pub enum Exchange {
   Nysearca,
   /// Any other exchange that we have not accounted for.
   ///
-  /// Note that having any such status should be considered a bug.
+  /// Note that having any such unknown exchange should be considered a
+  /// bug.
   #[serde(other)]
   Unknown,
 }
