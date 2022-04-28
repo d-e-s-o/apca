@@ -33,6 +33,7 @@ impl Deref for Id {
 
 /// An enumeration of the various asset classes available.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[non_exhaustive]
 pub enum Class {
   /// US equities.
   #[serde(rename = "us_equity")]
