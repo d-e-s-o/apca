@@ -584,6 +584,9 @@ pub struct Order {
   /// The type of order.
   #[serde(rename = "type")]
   pub type_: Type,
+  /// The order class.
+  #[serde(rename = "order_class")]
+  pub order_class: Class,
   /// The side the order is on.
   #[serde(rename = "side")]
   pub side: Side,
@@ -893,6 +896,7 @@ mod tests {
     "qty": "15",
     "filled_qty": "0",
     "type": "market",
+    "order_class": "oto",
     "side": "buy",
     "time_in_force": "day",
     "limit_price": "107.00",
@@ -913,6 +917,7 @@ mod tests {
     assert_eq!(order.symbol, "AAPL");
     assert_eq!(order.amount, Amount::quantity(15));
     assert_eq!(order.type_, Type::Market);
+    assert_eq!(order.order_class, Class::OneTriggersOther);
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from(107)));
     assert_eq!(order.stop_price, Some(Num::from(106)));
@@ -965,6 +970,7 @@ mod tests {
       assert_eq!(order.amount, Amount::quantity(1));
       assert_eq!(order.side, Side::Buy);
       assert_eq!(order.type_, Type::Limit);
+      assert_eq!(order.order_class, Class::default());
       assert_eq!(order.time_in_force, TimeInForce::Day);
       assert_eq!(order.limit_price, Some(Num::from(1)));
       assert_eq!(order.stop_price, None);
@@ -1069,6 +1075,7 @@ mod tests {
     assert_eq!(order.amount, Amount::quantity(1));
     assert_eq!(order.side, Side::Buy);
     assert_eq!(order.type_, Type::Limit);
+    assert_eq!(order.order_class, Class::Bracket);
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from(2)));
     assert_eq!(order.stop_price, None);
@@ -1103,6 +1110,7 @@ mod tests {
     assert_eq!(order.amount, Amount::quantity(1));
     assert_eq!(order.side, Side::Buy);
     assert_eq!(order.type_, Type::Limit);
+    assert_eq!(order.order_class, Class::OneTriggersOther);
     assert_eq!(order.time_in_force, TimeInForce::Day);
     assert_eq!(order.limit_price, Some(Num::from(2)));
     assert_eq!(order.stop_price, None);
