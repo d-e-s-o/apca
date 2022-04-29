@@ -376,12 +376,17 @@ pub struct OrderReqInit {
 
 impl OrderReqInit {
   /// Create an `OrderReq` from an `OrderReqInit`.
+  ///
+  /// The provided symbol is assumed to be a "simple" symbol and not any
+  /// of the composite forms of the [`Symbol`][asset::Symbol] enum. That
+  /// is, it is not being parsed but directly treated as the
+  /// [`Sym`][asset::Symbol::Sym] variant.
   pub fn init<S>(self, symbol: S, side: Side, amount: Amount) -> OrderReq
   where
-    S: Into<asset::Symbol>,
+    S: Into<String>,
   {
     OrderReq {
-      symbol: symbol.into(),
+      symbol: asset::Symbol::Sym(symbol.into()),
       amount,
       side,
       class: self.class,
@@ -890,13 +895,22 @@ mod tests {
   async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), RequestError<PostError>> {
       let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
-      let request = OrderReqInit {
+      let request = OrderReq {
+        symbol,
+        amount: Amount::quantity(1),
+        side: Side::Buy,
+        class: Class::default(),
         type_: Type::Limit,
+        time_in_force: TimeInForce::default(),
         limit_price: Some(Num::from(1)),
+        stop_price: None,
+        trail_price: None,
+        trail_percent: None,
+        take_profit: None,
+        stop_loss: None,
         extended_hours,
-        ..Default::default()
-      }
-      .init(symbol, Side::Buy, Amount::quantity(1));
+        client_order_id: None,
+      };
 
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
@@ -933,13 +947,12 @@ mod tests {
   /// Check that we can properly submit a trailing stop price order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_price_order() {
-    let symbol = Symbol::Sym("SPY".to_string());
     let request = OrderReqInit {
       type_: Type::TrailingStop,
       trail_price: Some(Num::from(50)),
       ..Default::default()
     }
-    .init(symbol, Side::Buy, Amount::quantity(1));
+    .init("SPY", Side::Buy, Amount::quantity(1));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
@@ -962,13 +975,12 @@ mod tests {
   /// Check that we can properly submit a trailing stop percent order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_percent_order() {
-    let symbol = Symbol::Sym("SPY".to_string());
     let request = OrderReqInit {
       type_: Type::TrailingStop,
       trail_percent: Some(Num::from(10)),
       ..Default::default()
     }
-    .init(symbol, Side::Buy, Amount::quantity(1));
+    .init("SPY", Side::Buy, Amount::quantity(1));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);

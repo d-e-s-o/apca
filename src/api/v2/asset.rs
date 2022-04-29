@@ -165,16 +165,6 @@ impl From<Id> for Symbol {
   }
 }
 
-impl<S> From<S> for Symbol
-where
-  S: Into<String>,
-{
-  #[inline]
-  fn from(symbol: S) -> Self {
-    Self::Sym(symbol.into())
-  }
-}
-
 impl FromStr for Symbol {
   type Err = ParseSymbolError;
 
