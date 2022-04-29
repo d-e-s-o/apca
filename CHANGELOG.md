@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added `class` member to `api::v2::order::Order` type
+
+
 0.24.0
 ------
 - Made more types serializable/deserializable
