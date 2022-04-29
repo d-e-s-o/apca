@@ -240,6 +240,7 @@ impl Serialize for Symbol {
 
 /// An enumeration of the various supported exchanges.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub enum Exchange {
   /// American Stock Exchange.
   #[serde(rename = "AMEX")]
@@ -260,6 +261,9 @@ pub enum Exchange {
   /// NYSE Arca.
   #[serde(rename = "NYSEARCA")]
   Nysearca,
+  /// An over-the-counter desk.
+  #[serde(rename = "OTC")]
+  Otc,
   /// Any other exchange that we have not accounted for.
   ///
   /// Note that having any such unknown exchange should be considered a
@@ -277,6 +281,7 @@ impl AsRef<str> for Exchange {
       Exchange::Nasdaq => "NASDAQ",
       Exchange::Nyse => "NYSE",
       Exchange::Nysearca => "NYSEARCA",
+      Exchange::Otc => "OTC",
       Exchange::Unknown => "unknown",
     }
   }
