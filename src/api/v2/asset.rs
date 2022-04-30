@@ -223,7 +223,7 @@ impl Display for Symbol {
       Self::SymExchgCls(sym, exchg, cls) => {
         write!(fmt, "{}:{}:{}", sym, exchg.as_ref(), cls.as_ref())
       },
-      Self::Id(id) => write!(fmt, "{}", id.to_hyphenated_ref()),
+      Self::Id(id) => write!(fmt, "{}", id.as_hyphenated()),
     }
   }
 }

@@ -635,7 +635,7 @@ Endpoint! {
   ]
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/orders/{}", input.to_simple()).into()
+    format!("/v2/orders/{}", input.as_simple()).into()
   }
 }
 
@@ -744,7 +744,7 @@ Endpoint! {
 
   fn path(input: &Self::Input) -> Str {
     let (id, _) = input;
-    format!("/v2/orders/{}", id.to_simple()).into()
+    format!("/v2/orders/{}", id.as_simple()).into()
   }
 
   fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
@@ -777,7 +777,7 @@ EndpointNoParse! {
   }
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/orders/{}", input.to_simple()).into()
+    format!("/v2/orders/{}", input.as_simple()).into()
   }
 
   #[inline]
@@ -1373,7 +1373,7 @@ mod tests {
     // We need a truly random identifier here, because Alpaca will never
     // forget any client order ID and any ID previously used one cannot
     // be reused again.
-    let client_order_id = Uuid::new_v4().to_simple().to_string();
+    let client_order_id = Uuid::new_v4().as_simple().to_string();
 
     let request = OrderReqInit {
       type_: Type::Limit,
