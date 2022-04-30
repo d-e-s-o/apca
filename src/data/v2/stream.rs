@@ -741,8 +741,9 @@ mod tests {
   use super::*;
 
   use std::time::Duration;
+  use std::str::FromStr;
 
-  use chrono::TimeZone as _;
+  use chrono::DateTime;
 
   use futures::SinkExt as _;
   use futures::TryStreamExt as _;
@@ -803,7 +804,7 @@ mod tests {
     assert_eq!(bar.volume, 49378);
     assert_eq!(
       bar.timestamp,
-      Utc.ymd(2021, 2, 22).and_hms_milli(19, 15, 0, 0)
+      DateTime::<Utc>::from_str("2021-02-22T19:15:00Z").unwrap()
     );
   }
 
@@ -839,7 +840,7 @@ mod tests {
 
     assert_eq!(
       quote.timestamp,
-      Utc.ymd(2022, 1, 18).and_hms_nano(23, 9, 42, 151875584)
+      DateTime::<Utc>::from_str("2022-01-18T23:09:42.151875584Z").unwrap()
     );
   }
 

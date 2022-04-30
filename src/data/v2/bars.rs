@@ -199,7 +199,6 @@ mod tests {
   use std::str::FromStr as _;
 
   use chrono::NaiveDateTime;
-  use chrono::TimeZone;
 
   use http_endpoint::Endpoint;
 
@@ -240,7 +239,7 @@ mod tests {
 
     let res = from_json::<<Get as Endpoint>::Output>(response).unwrap();
     let bars = res.bars;
-    let expected_time = Utc.ymd(2021, 2, 1).and_hms_milli(16, 1, 0, 0);
+    let expected_time = DateTime::<Utc>::from_str("2021-02-01T16:01:00Z").unwrap();
     assert_eq!(bars.len(), 2);
     assert_eq!(bars[0].time, expected_time);
     assert_eq!(bars[0].open, Num::new(13332, 100));
@@ -257,8 +256,8 @@ mod tests {
   async fn no_bars() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let start = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
-    let end = Utc.ymd(2021, 11, 5).and_hms_milli(0, 0, 0, 0);
+    let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
+    let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
     let request = BarsReqInit::default().init("AAPL", start, end, TimeFrame::OneDay);
 
     let res = client.issue::<Get>(&request).await.unwrap();
@@ -270,8 +269,8 @@ mod tests {
   async fn request_bars() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
-    let end = Utc.ymd(2018, 12, 6).and_hms_milli(21, 47, 0, 0);
+    let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
+    let end = DateTime::from_str("2018-12-06T21:47:00Z").unwrap();
     let request = BarsReqInit {
       limit: Some(2),
       ..Default::default()
@@ -307,8 +306,8 @@ mod tests {
   async fn can_follow_pagination() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
-    let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
+    let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
+    let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
     let mut request = BarsReqInit {
       limit: Some(2),
       ..Default::default()
@@ -334,8 +333,8 @@ mod tests {
   async fn request_with_adjustment(adjustment: Adjustment) -> Bars {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
-    let end = Utc.ymd(2018, 12, 4).and_hms_milli(21, 47, 0, 0);
+    let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
+    let end = DateTime::from_str("2018-12-04T21:47:00Z").unwrap();
     let request = BarsReqInit {
       adjustment: Some(adjustment),
       ..Default::default()
@@ -406,8 +405,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let start = Utc.ymd(2018, 12, 3).and_hms_milli(21, 47, 0, 0);
-    let end = Utc.ymd(2018, 12, 7).and_hms_milli(21, 47, 0, 0);
+    let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
+    let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
     let request = BarsReqInit {
       page_token: Some("123456789abcdefghi".to_string()),
       ..Default::default()
