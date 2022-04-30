@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -114,7 +114,7 @@ Endpoint! {
   ]
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/watchlists/{}", input.to_simple()).into()
+    format!("/v2/watchlists/{}", input.as_simple()).into()
   }
 }
 
@@ -138,7 +138,7 @@ EndpointNoParse! {
   }
 
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/watchlists/{}", input.to_simple()).into()
+    format!("/v2/watchlists/{}", input.as_simple()).into()
   }
 
   #[inline]

@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `class` member to `api::v2::order::Order` type
+- Bumped `uuid` dependency to `1.0`
 
 
 0.24.0
