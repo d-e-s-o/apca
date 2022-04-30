@@ -9,7 +9,8 @@ Unreleased
 - Added `Otc` variant to `api::v2::asset::Exchange` enum and made it
   non-exhaustive
 - Introduced `api::v2::order::Status::is_terminal` method
-- Removed `From<Into<String>>` conversion for `asset::Symbol`
+- Replaced infallible `From<Into<String>>` conversion for
+  `asset::Symbol` with fallible `TryFrom`
 - Renamed various 422 HTTP status error variants to `InvalidInput`
 - Changed various limit types to `usize`
 - Changed `api::v2::orders::OrdersReq::limit` to be an `Option`

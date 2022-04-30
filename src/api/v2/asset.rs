@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::convert::TryFrom;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
@@ -162,6 +163,14 @@ impl From<Id> for Symbol {
   #[inline]
   fn from(symbol: Id) -> Self {
     Self::Id(symbol)
+  }
+}
+
+impl TryFrom<&str> for Symbol {
+  type Error = ParseSymbolError;
+
+  fn try_from(other: &str) -> Result<Self, Self::Error> {
+    Symbol::from_str(other)
   }
 }
 
@@ -376,6 +385,7 @@ mod tests {
   use crate::Client;
 
 
+  /// Verify that we can parse various symbols.
   #[test]
   fn parse_symbol() {
     let id = "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415";
