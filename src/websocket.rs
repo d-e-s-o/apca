@@ -103,11 +103,7 @@ pub(crate) mod test {
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
-    let api_info = ApiInfo {
-      base_url: Url::parse(&format!("ws://{}", addr)).unwrap(),
-      key_id: KEY_ID.to_string(),
-      secret: SECRET.to_string(),
-    };
+    let api_info = ApiInfo::from_parts(format!("ws://{}", addr), KEY_ID, SECRET).unwrap();
 
     S::connect(&api_info).await
   }

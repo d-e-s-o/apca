@@ -431,8 +431,6 @@ mod tests {
 
   use test_log::test;
 
-  use url::Url;
-
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::error::ProtocolError;
   use websocket_util::tungstenite::Message;
@@ -778,12 +776,7 @@ mod tests {
   /// trade updates using invalid credentials.
   #[test(tokio::test)]
   async fn stream_with_invalid_credentials() {
-    let api_base = Url::parse(API_BASE_URL).unwrap();
-    let api_info = ApiInfo {
-      base_url: api_base,
-      key_id: "invalid".to_string(),
-      secret: "invalid-too".to_string(),
-    };
+    let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
 
     let client = Client::new(api_info);
     let err = client.subscribe::<TradeUpdates>().await.unwrap_err();
