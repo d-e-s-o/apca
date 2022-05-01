@@ -10,15 +10,30 @@ use crate::api::v2::order::Type;
 use crate::Client;
 use crate::RequestError;
 
-pub(crate) async fn order_aapl(
+
+/// Create a limit order for a single share of the stock with the given
+/// symbol.
+pub(crate) async fn order_stock<S>(
   client: &Client,
-) -> Result<order::Order, RequestError<order::PostError>> {
+  symbol: S,
+) -> Result<order::Order, RequestError<order::PostError>>
+where
+  S: Into<String>,
+{
   let request = order::OrderReqInit {
     type_: Type::Limit,
     limit_price: Some(Num::from(1)),
     ..Default::default()
   }
-  .init("AAPL", Side::Buy, Amount::quantity(1));
+  .init(symbol, Side::Buy, Amount::quantity(1));
 
   client.issue::<order::Post>(&request).await
+}
+
+
+/// Create a limit order for a single share of AAPL.
+pub(crate) async fn order_aapl(
+  client: &Client,
+) -> Result<order::Order, RequestError<order::PostError>> {
+  order_stock(client, "AAPL").await
 }
