@@ -16,7 +16,7 @@ use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
 use crate::util::abs_num_from_str;
-use crate::util::slice_to_str;
+use crate::util::enum_slice_to_str;
 use crate::Str;
 
 
@@ -372,7 +372,7 @@ pub struct ActivityReq {
   /// The types of activities to retrieve.
   ///
   /// If empty all activities will be retrieved.
-  #[serde(rename = "activity_types", serialize_with = "slice_to_str")]
+  #[serde(rename = "activity_types", serialize_with = "enum_slice_to_str")]
   pub types: Vec<ActivityType>,
   /// The direction in which to report account activities.
   #[serde(rename = "direction")]
