@@ -1,5 +1,7 @@
-// Copyright (C) 2020-2021 The apca Developers
+// Copyright (C) 2020-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
+
+use crate::Str;
 
 use num_decimal::Num;
 
@@ -41,7 +43,7 @@ pub(crate) fn slice_to_str<S, F, T>(
 ) -> Result<S::Ok, S::Error>
 where
   S: Serializer,
-  F: Fn(&T) -> &'static str,
+  F: Fn(&T) -> Str,
   T: Serialize,
 {
   if !slice.is_empty() {
@@ -67,14 +69,14 @@ where
   S: Serializer,
   T: Serialize,
 {
-  fn name_fn<T>(variant: &T) -> &'static str
+  fn name_fn<T>(variant: &T) -> Str
   where
     T: Serialize,
   {
     // We know that we are dealing with an enum variant and the
     // function will never return an error for those, so it's fine
     // to unwrap.
-    to_variant_name(variant).unwrap()
+    to_variant_name(variant).unwrap().into()
   }
 
   slice_to_str(slice, name_fn, serializer)
