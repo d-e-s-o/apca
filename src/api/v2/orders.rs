@@ -1,12 +1,34 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
+use serde::Serialize;
+use serde::Serializer;
 
 use crate::api::v2::order::Order;
 use crate::Str;
 
+
+/// Serialize a slice into a string of textual representations of the
+/// elements separated by comma.
+fn slice_to_str<S>(slice: &[String], serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  if !slice.is_empty() {
+    // `serde_urlencoded` seemingly does not know how to handle a
+    // `Vec`. So what we do is we convert each and every element to a
+    // string and then concatenate them, separating each by comma.
+    let s = slice
+      .iter()
+      .map(|val| val.to_uppercase())
+      .collect::<Vec<_>>()
+      .join(",");
+    serializer.serialize_str(&s)
+  } else {
+    serializer.serialize_none()
+  }
+}
 
 /// The status of orders to list.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
@@ -26,8 +48,11 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
+  /// A list of simple symbols used as filters for the returned orders.
+  #[serde(rename = "symbols", serialize_with = "slice_to_str")]
+  pub symbols: Vec<String>,
   /// The status of orders to list.
   #[serde(rename = "status")]
   pub status: Status,
@@ -44,6 +69,7 @@ pub struct OrdersReq {
 impl Default for OrdersReq {
   fn default() -> Self {
     Self {
+      symbols: vec![],
       status: Status::Open,
       limit: None,
       // Nested orders merely appear as legs in each order being
@@ -86,6 +112,7 @@ mod tests {
 
   use num_decimal::Num;
 
+  use serial_test::serial;
   use test_log::test;
 
   use crate::api::v2::order;
@@ -122,6 +149,7 @@ mod tests {
   }
 
   #[test(tokio::test)]
+  #[serial]
   async fn list_orders() {
     async fn test(status: Status) {
       let api_info = ApiInfo::from_env().unwrap();
@@ -163,6 +191,7 @@ mod tests {
   }
 
   #[test(tokio::test)]
+  #[serial]
   async fn list_nested_order() {
     let request = order::OrderReqInit {
       class: order::Class::OneTriggersOther,
@@ -191,5 +220,38 @@ mod tests {
     assert_eq!(listed.legs.len(), 1);
     // There shouldn't be any other orders with the given ID.
     assert_eq!(filtered.next(), None);
+  }
+
+  #[test(tokio::test)]
+  #[serial]
+  async fn symbol_filter_orders() {
+    let api_info = ApiInfo::from_env().unwrap();
+      let client = Client::new(api_info);
+      let order = order_aapl(&client).await.expect("Could not buy appl");
+
+      let request = OrdersReq {
+        symbols: vec!["goog".to_string()],
+        ..Default::default()
+      };
+      let orders = client.issue::<Get>(&request).await.unwrap();
+      assert_eq!(orders.len(), 0);
+
+      let request = OrdersReq {
+        symbols: vec!["aapl".to_string()],
+        ..Default::default()
+      };
+      let orders = client.issue::<Get>(&request).await.unwrap();
+      assert_eq!(orders.len(), 1);
+      assert_eq!(orders[0].symbol, "AAPL");
+
+      // Confirm no symbols correctly returns all open.
+      let request = OrdersReq {
+        ..Default::default()
+      };
+      let orders = client.issue::<Get>(&request).await.unwrap();
+      assert_eq!(orders.len(), 1);
+      assert_eq!(orders[0].symbol, "AAPL");
+
+      cancel_order(&client, order.id).await;
   }
 }
