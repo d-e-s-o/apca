@@ -81,3 +81,17 @@ where
 
   slice_to_str(slice, name_fn, serializer)
 }
+
+/// Serialize a slice of strings into a comma-separated string combining
+/// the individual strings.
+pub(crate) fn string_slice_to_str<S>(slice: &[String], serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  #[allow(clippy::ptr_arg)]
+  fn name_fn(string: &String) -> Str {
+    string.clone().into()
+  }
+
+  slice_to_str(slice, name_fn, serializer)
+}

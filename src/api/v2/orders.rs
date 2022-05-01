@@ -5,8 +5,8 @@ use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
 use crate::api::v2::order::Order;
+use crate::util::string_slice_to_str;
 use crate::Str;
-
 
 /// The status of orders to list.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
@@ -26,8 +26,11 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
+  /// A list of simple symbols used as filters for the returned orders.
+  #[serde(rename = "symbols", serialize_with = "string_slice_to_str")]
+  pub symbols: Vec<String>,
   /// The status of orders to list.
   #[serde(rename = "status")]
   pub status: Status,
@@ -44,6 +47,7 @@ pub struct OrdersReq {
 impl Default for OrdersReq {
   fn default() -> Self {
     Self {
+      symbols: Vec::new(),
       status: Status::Open,
       limit: None,
       // Nested orders merely appear as legs in each order being
@@ -90,6 +94,7 @@ mod tests {
 
   use crate::api::v2::order;
   use crate::api::v2::order_util::order_aapl;
+  use crate::api::v2::order_util::order_stock;
   use crate::api::v2::updates;
   use crate::api_info::ApiInfo;
   use crate::Client;
@@ -191,5 +196,39 @@ mod tests {
     assert_eq!(listed.legs.len(), 1);
     // There shouldn't be any other orders with the given ID.
     assert_eq!(filtered.next(), None);
+  }
+
+  /// Test that orders can be correctly filtered by a list of symbols.
+  #[test(tokio::test)]
+  async fn symbol_filter_orders() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    // Get the number of current open orders and the number of open GOOG
+    // orders. This allows the test to function based on the current
+    // state of the account rather than requiring preconditions to be
+    // met.
+    let request = OrdersReq::default();
+    let orders = client.issue::<Get>(&request).await.unwrap();
+    let num_goog = orders.iter().filter(|x| x.symbol == "GOOG").count();
+    let num_ibm = orders.iter().filter(|x| x.symbol == "IBM").count();
+
+    let buy_order = order_stock(&client, "GOOG")
+      .await
+      .expect("Failed to create GOOG order");
+    let request = OrdersReq {
+      symbols: vec!["IBM".to_string()],
+      ..Default::default()
+    };
+    let ibm_orders = client.issue::<Get>(&request).await;
+    let request = OrdersReq {
+      symbols: vec!["GOOG".to_string()],
+      ..Default::default()
+    };
+    let goog_orders = client.issue::<Get>(&request).await;
+
+    cancel_order(&client, buy_order.id).await;
+
+    assert_eq!(ibm_orders.unwrap().len(), num_ibm);
+    assert_eq!(goog_orders.unwrap().len(), num_goog + 1);
   }
 }
