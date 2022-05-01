@@ -3,32 +3,10 @@
 
 use serde_urlencoded::to_string as to_query;
 use serde::Serialize;
-use serde::Serializer;
 
 use crate::api::v2::order::Order;
+use crate::util::string_slice_to_str;
 use crate::Str;
-
-
-/// Serialize a slice into a string of textual representations of the
-/// elements separated by comma.
-fn slice_to_str<S>(slice: &[String], serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-{
-  if !slice.is_empty() {
-    // `serde_urlencoded` seemingly does not know how to handle a
-    // `Vec`. So what we do is we convert each and every element to a
-    // string and then concatenate them, separating each by comma.
-    let s = slice
-      .iter()
-      .map(|val| val.to_uppercase())
-      .collect::<Vec<_>>()
-      .join(",");
-    serializer.serialize_str(&s)
-  } else {
-    serializer.serialize_none()
-  }
-}
 
 /// The status of orders to list.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
@@ -51,7 +29,7 @@ pub enum Status {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct OrdersReq {
   /// A list of simple symbols used as filters for the returned orders.
-  #[serde(rename = "symbols", serialize_with = "slice_to_str")]
+  #[serde(rename = "symbols", serialize_with = "string_slice_to_str")]
   pub symbols: Vec<String>,
   /// The status of orders to list.
   #[serde(rename = "status")]
@@ -112,10 +90,10 @@ mod tests {
 
   use num_decimal::Num;
 
-  use serial_test::serial;
   use test_log::test;
 
   use crate::api::v2::order;
+  use crate::api::v2::order_util::order_stock;
   use crate::api::v2::order_util::order_aapl;
   use crate::api::v2::updates;
   use crate::api_info::ApiInfo;
@@ -149,7 +127,6 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  #[serial]
   async fn list_orders() {
     async fn test(status: Status) {
       let api_info = ApiInfo::from_env().unwrap();
@@ -191,7 +168,6 @@ mod tests {
   }
 
   #[test(tokio::test)]
-  #[serial]
   async fn list_nested_order() {
     let request = order::OrderReqInit {
       class: order::Class::OneTriggersOther,
@@ -222,36 +198,34 @@ mod tests {
     assert_eq!(filtered.next(), None);
   }
 
+  // Tests that orders can be correctly filtered by a list of symbols.
   #[test(tokio::test)]
-  #[serial]
   async fn symbol_filter_orders() {
     let api_info = ApiInfo::from_env().unwrap();
-      let client = Client::new(api_info);
-      let order = order_aapl(&client).await.expect("Could not buy appl");
+    let client = Client::new(api_info);
+    // Get the number of current open orders and the number of open GOOG orders.
+    // This allows the test to function based on the current state of the
+    // account rather than requiring preconditions be met.
+    let request = OrdersReq::default();
+    let orders = client.issue::<Get>(&request).await.unwrap();
+    let num_goog = orders.iter().filter(|x| x.symbol.eq("GOOG")).count();
+    let num_ibm = orders.iter().filter(|x| x.symbol.eq("IBM")).count();
+    
+    let buy_order = order_stock(&client, "GOOG").await.expect("Could not buy goog");
+    let request = OrdersReq {
+      symbols: vec!["IBM".to_string()],
+      ..Default::default()
+    };
+    let ibm_orders = client.issue::<Get>(&request).await;
+    let request = OrdersReq {
+      symbols: vec!["goog".to_string()],
+      ..Default::default()
+    };
+    let goog_orders = client.issue::<Get>(&request).await;
+    
+    cancel_order(&client, buy_order.id).await;
 
-      let request = OrdersReq {
-        symbols: vec!["goog".to_string()],
-        ..Default::default()
-      };
-      let orders = client.issue::<Get>(&request).await.unwrap();
-      assert_eq!(orders.len(), 0);
-
-      let request = OrdersReq {
-        symbols: vec!["aapl".to_string()],
-        ..Default::default()
-      };
-      let orders = client.issue::<Get>(&request).await.unwrap();
-      assert_eq!(orders.len(), 1);
-      assert_eq!(orders[0].symbol, "AAPL");
-
-      // Confirm no symbols correctly returns all open.
-      let request = OrdersReq {
-        ..Default::default()
-      };
-      let orders = client.issue::<Get>(&request).await.unwrap();
-      assert_eq!(orders.len(), 1);
-      assert_eq!(orders[0].symbol, "AAPL");
-
-      cancel_order(&client, order.id).await;
+    assert_eq!(ibm_orders.unwrap().len(), num_ibm);
+    assert_eq!(goog_orders.unwrap().len(), num_goog + 1);
   }
 }

@@ -41,7 +41,7 @@ pub(crate) fn slice_to_str<S, F, T>(
 ) -> Result<S::Ok, S::Error>
 where
   S: Serializer,
-  F: Fn(&T) -> &'static str,
+  F: Fn(&T) -> String,
   T: Serialize,
 {
   if !slice.is_empty() {
@@ -67,14 +67,28 @@ where
   S: Serializer,
   T: Serialize,
 {
-  fn name_fn<T>(variant: &T) -> &'static str
+  fn name_fn<T>(variant: &T) -> String
   where
     T: Serialize,
   {
     // We know that we are dealing with an enum variant and the
     // function will never return an error for those, so it's fine
     // to unwrap.
-    to_variant_name(variant).unwrap()
+    to_variant_name(variant).unwrap().to_string()
+  }
+
+  slice_to_str(slice, name_fn, serializer)
+}
+
+/// Serialize a slice of strings into a comma-separated string combining the
+/// individual strings.
+pub(crate) fn string_slice_to_str<S>(slice: &[String], serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  fn name_fn(string: &String) -> String
+  {
+    string.to_string()
   }
 
   slice_to_str(slice, name_fn, serializer)

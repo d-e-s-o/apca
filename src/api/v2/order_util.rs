@@ -10,15 +10,22 @@ use crate::api::v2::order::Type;
 use crate::Client;
 use crate::RequestError;
 
-pub(crate) async fn order_aapl(
+pub(crate) async fn order_stock(
   client: &Client,
+  symbol: &str,
 ) -> Result<order::Order, RequestError<order::PostError>> {
   let request = order::OrderReqInit {
     type_: Type::Limit,
     limit_price: Some(Num::from(1)),
     ..Default::default()
   }
-  .init("AAPL", Side::Buy, Amount::quantity(1));
+  .init(symbol.to_string(), Side::Buy, Amount::quantity(1));
 
   client.issue::<order::Post>(&request).await
+}
+
+pub(crate) async fn order_aapl(
+  client: &Client,
+) -> Result<order::Order, RequestError<order::PostError>> {
+  order_stock(client, "AAPL").await
 }
