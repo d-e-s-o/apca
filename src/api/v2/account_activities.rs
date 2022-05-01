@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 The apca Developers
+// Copyright (C) 2020-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -10,14 +10,13 @@ use num_decimal::Num;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
 use serde_urlencoded::to_string as to_query;
-use serde_variant::to_variant_name;
 
 use crate::api::v2::de::ContentDeserializer;
 use crate::api::v2::de::TaggedContentVisitor;
 use crate::api::v2::order;
 use crate::util::abs_num_from_str;
+use crate::util::enum_slice_to_str;
 use crate::Str;
 
 
@@ -346,31 +345,6 @@ impl<'de> Deserialize<'de> for Activity {
 }
 
 
-/// Serialize a slice into a string of textual representations of the
-/// elements separated by comma.
-fn slice_to_str<S, T>(slice: &[T], serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-  T: Serialize,
-{
-  if !slice.is_empty() {
-    // `serde_urlencoded` seemingly does not know how to handle a
-    // `Vec`. So what we do is we convert each and every element to a
-    // string and then concatenate them, separating each by comma.
-    let s = slice
-      .iter()
-      // We know that we are dealing with an enum variant and the
-      // function will never return an error for those, so it's fine
-      // to unwrap.
-      .map(|type_| to_variant_name(type_).unwrap())
-      .collect::<Vec<_>>()
-      .join(",");
-    serializer.serialize_str(&s)
-  } else {
-    serializer.serialize_none()
-  }
-}
-
 /// The direction in which account activities are reported.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
 pub enum Direction {
@@ -398,7 +372,7 @@ pub struct ActivityReq {
   /// The types of activities to retrieve.
   ///
   /// If empty all activities will be retrieved.
-  #[serde(rename = "activity_types", serialize_with = "slice_to_str")]
+  #[serde(rename = "activity_types", serialize_with = "enum_slice_to_str")]
   pub types: Vec<ActivityType>,
   /// The direction in which to report account activities.
   #[serde(rename = "direction")]
