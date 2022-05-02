@@ -15,6 +15,9 @@ pub enum ConversionError {
   /// A variant used when we fail to URL-encode a piece of data.
   #[error("failed to URL-encode data")]
   UrlEncode(#[from] UrlEncodeError),
+  /// A variant used when a Reqwest fails to convert from an HttpRequest.
+  #[error("failed to URL-encode data")]
+  ReqwestError(#[from] reqwest::Error),
 }
 
 use thiserror::Error;

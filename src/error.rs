@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use reqwest;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -9,7 +10,6 @@ use std::str::from_utf8;
 
 use http::Error as HttpError;
 use http::StatusCode as HttpStatusCode;
-use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
 use url::ParseError;
@@ -24,12 +24,12 @@ pub enum RequestError<E> {
   /// An endpoint reported error.
   #[error("the endpoint reported an error")]
   Endpoint(#[source] E),
-  /// An error reported by the `hyper` crate.
-  #[error("the hyper crate reported an error")]
-  Hyper(
+  /// An error reported by the `reqwest` crate.
+  #[error("the reqwest crate reported an error")]
+  Reqwest(
     #[from]
     #[source]
-    HyperError,
+    reqwest::Error,
   ),
 }
 

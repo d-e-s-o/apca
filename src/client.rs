@@ -6,15 +6,16 @@ use std::future::Future;
 use std::str::from_utf8;
 
 use http::request::Builder as HttpRequestBuilder;
-use http::Request;
 use http_endpoint::Endpoint;
+// HyperBody implements From<Cow<'static, [u8]]>>, whereas reqwest::Body has
+// From<'static, [u8]> and From<hyper::Body>. This is used to allow conversion
+// from Endpoint::body(input) -> hyper::Body -> reqwest::Body.
+use hyper::Body as HyperBody;
 
-use hyper::body::to_bytes;
-use hyper::client::Builder as HttpClientBuilder;
-use hyper::client::HttpConnector;
-use hyper::Body;
-use hyper::Client as HttpClient;
-use hyper_tls::HttpsConnector;
+use reqwest::Body;
+use reqwest::Client as HttpClient;
+use reqwest::ClientBuilder as HttpClientBuilder;
+use reqwest::Request;
 
 use tracing::debug;
 use tracing::instrument;
@@ -42,16 +43,16 @@ pub struct Builder {
 impl Builder {
   /// Adjust the maximum number of idle connections per host.
   #[inline]
-  pub fn max_idle_per_host(&mut self, max_idle: usize) -> &mut Self {
-    let _ = self.builder.pool_max_idle_per_host(max_idle);
+  pub fn max_idle_per_host(mut self, max_idle: usize) -> Self {
+    self.builder = self.builder.pool_max_idle_per_host(max_idle);
     self
   }
 
   /// Build the final `Client` object.
-  pub fn build(&self, api_info: ApiInfo) -> Client {
-    let https = HttpsConnector::new();
-    let client = self.builder.build(https);
-
+  pub fn build(self, api_info: ApiInfo) -> Client {
+    debug!("{:?}", self.builder);
+    let client = self.builder.build().unwrap();
+    debug!("{:?}", client);
     Client { api_info, client }
   }
 }
@@ -67,9 +68,7 @@ impl Default for Builder {
     // disable idle connections for them.
     // While at it, also use the minimum number of threads for the
     // `HttpsConnector`.
-    let mut builder = HttpClient::builder();
-    let _ = builder.pool_max_idle_per_host(0);
-
+    let builder = HttpClient::builder().pool_max_idle_per_host(0);
     Self { builder }
   }
 
@@ -88,7 +87,7 @@ impl Default for Builder {
 #[derive(Debug)]
 pub struct Client {
   api_info: ApiInfo,
-  client: HttpClient<HttpsConnector<HttpConnector>, Body>,
+  client: HttpClient,
 }
 
 impl Client {
@@ -106,12 +105,13 @@ impl Client {
   }
 
   /// Create a `Request` to the endpoint.
-  fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
+  fn request<R>(&self, input: &R::Input) -> Result<Request, R::Error>
   where
-    R: Endpoint,
+    R: Endpoint, <R as Endpoint>::Error: From<crate::endpoint::ConversionError>
   {
     let mut url = R::base_url()
-      .map(|url| Url::parse(url.as_ref()).expect("endpoint definition contains invalid URL"))
+      .map(|url| Url::parse(url.as_ref()).expect(
+        "endpoint definition contains invalid URL"))
       .unwrap_or_else(|| self.api_info.api_base_url.clone());
 
     url.set_path(&R::path(input));
@@ -123,9 +123,11 @@ impl Client {
       // Add required authentication information.
       .header(HDR_KEY_ID, self.api_info.key_id.as_str())
       .header(HDR_SECRET, self.api_info.secret.as_str())
-      .body(Body::from(
+      .body(Body::from(HyperBody::from(
         R::body(input)?.unwrap_or_else(|| Cow::Borrowed(&[0; 0])),
-      ))?;
+      )))?;
+    let request = Request::try_from(request).map_err(
+      |x| crate::endpoint::ConversionError::from(x))?;
 
     Ok(request)
   }
@@ -136,7 +138,7 @@ impl Client {
     input: &R::Input,
   ) -> impl Future<Output = Result<R::Output, RequestError<R::Error>>> + '_
   where
-    R: Endpoint,
+    R: Endpoint, <R as Endpoint>::Error: From<crate::endpoint::ConversionError>
   {
     let result = self.request::<R>(input);
     async move {
@@ -145,7 +147,7 @@ impl Client {
         Level::INFO,
         "issue",
         method = display(request.method()),
-        uri = display(request.uri())
+        uri = display(request.url())
       );
       self.issue_::<R>(request).instrument(span).await
     }
@@ -153,14 +155,14 @@ impl Client {
 
   /// Issue a request.
   #[allow(clippy::cognitive_complexity)]
-  async fn issue_<R>(&self, request: Request<Body>) -> Result<R::Output, RequestError<R::Error>>
+  async fn issue_<R>(&self, request: Request) -> Result<R::Output, RequestError<R::Error>>
   where
     R: Endpoint,
   {
     debug!("requesting");
     trace!(body = debug(request.body()));
 
-    let result = self.client.request(request).await?;
+    let result = self.client.execute(request).await?;
     let status = result.status();
     debug!(status = debug(&status));
     trace!(response = debug(&result));
@@ -174,7 +176,7 @@ impl Client {
     //       to cause trouble: when we receive, for example, the
     //       list of all orders it now needs to be stored in memory
     //       in its entirety. That may blow things.
-    let bytes = to_bytes(result.into_body()).await?;
+    let bytes = result.bytes().await?;
     let body = bytes.as_ref();
 
     match from_utf8(body) {
@@ -214,7 +216,8 @@ mod tests {
   use super::*;
 
   use http::StatusCode;
-
+  #[cfg(feature = "gzip")]
+  use reqwest::ClientBuilder as HttpClientBuilder;
   use test_log::test;
 
   use crate::endpoint::ApiError;
@@ -249,5 +252,18 @@ mod tests {
       },
       _ => panic!("Received unexpected error: {:?}", err),
     };
+  }
+
+  // Confirms that gzip can be set on the `reqwest::ClientBuilder` when the gzip
+  // feature is enabled for apca. Because [the docs](https://docs.rs/reqwest/0.11.10/reqwest/struct.ClientBuilder.html#method.gzip)
+  // state that the `reqwest::ClientBuilder::gzip` method is only enabled when
+  // the gzip feature is set to true, this test is really confirming that the
+  // feature is correctly passed to the reqwest module in the Cargo.toml. To run
+  // this test, use `cargo test --features gzip`.
+  #[cfg(feature = "gzip")]
+  #[test]
+  fn gzip_is_enabled() {
+    let builder = HttpClientBuilder::new();
+    let _ = builder.gzip(true);
   }
 }
