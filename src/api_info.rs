@@ -20,13 +20,14 @@ const ENV_SECRET: &str = "APCA_API_SECRET_KEY";
 /// An object encapsulating the information used for working with the
 /// Alpaca API.
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub struct ApiInfo {
   /// The base URL for the API.
-  pub(crate) base_url: Url,
+  pub base_url: Url,
   /// The key ID to use for authentication.
-  pub(crate) key_id: String,
+  pub key_id: String,
   /// The secret to use for authentication.
-  pub(crate) secret: String,
+  pub secret: String,
 }
 
 impl ApiInfo {
@@ -87,20 +88,6 @@ impl ApiInfo {
       secret,
     })
   }
-
-  /// Split this `ApiInfo` object back into its constituent parts.
-  ///
-  /// This method is the inverse of the [`from_parts`][Self::from_parts]
-  /// constructor. It returns a tuple comprising the base URL, key ID,
-  /// and secret.
-  pub fn into_parts(self) -> (String, String, String) {
-    let ApiInfo {
-      base_url,
-      key_id,
-      secret,
-    } = self;
-    (base_url.into(), key_id, secret)
-  }
 }
 
 
@@ -110,18 +97,16 @@ mod tests {
 
 
   /// Check that we can create an [`ApiInfo`] object from its
-  /// constituent parts and destructure it back into them.
+  /// constituent parts.
   #[test]
-  fn from_into_parts() {
+  fn from_parts() {
     let base_url = "https://paper-api.alpaca.markets/";
     let key_id = "XXXXXXXXXXXXXXXXXXXX";
     let secret = "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY";
 
     let api_info = ApiInfo::from_parts(base_url, key_id, secret).unwrap();
-    let (new_base_url, new_key_id, new_secret) = api_info.into_parts();
-
-    assert_eq!(new_base_url, base_url);
-    assert_eq!(new_key_id, key_id);
-    assert_eq!(new_secret, secret);
+    assert_eq!(api_info.base_url.as_str(), base_url);
+    assert_eq!(api_info.key_id, key_id);
+    assert_eq!(api_info.secret, secret);
   }
 }
