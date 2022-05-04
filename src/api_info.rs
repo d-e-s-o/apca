@@ -10,7 +10,7 @@ use crate::api::API_BASE_URL;
 use crate::Error;
 
 /// The base URL to the API to use.
-const ENV_API_URL: &str = "APCA_API_BASE_URL";
+const ENV_API_BASE_URL: &str = "APCA_API_BASE_URL";
 /// The environment variable representing the key ID.
 const ENV_KEY_ID: &str = "APCA_API_KEY_ID";
 /// The environment variable representing the secret key.
@@ -60,11 +60,17 @@ impl ApiInfo {
   /// - the Alpaca account secret is retrieved from the APCA_API_SECRET_KEY
   ///   variable
   pub fn from_env() -> Result<Self, Error> {
-    let base_url = var_os(ENV_API_URL)
+    let base_url = var_os(ENV_API_BASE_URL)
       .unwrap_or_else(|| OsString::from(API_BASE_URL))
       .into_string()
       .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_API_URL).into())
+        Error::Str(
+          format!(
+            "{} environment variable is not a valid string",
+            ENV_API_BASE_URL
+          )
+          .into(),
+        )
       })?;
     let base_url = Url::parse(&base_url)?;
 
