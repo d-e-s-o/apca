@@ -32,6 +32,8 @@ async fn main() {
   data.set_bars(["SPY", "XLK"]);
   // ... and realtime quotes for AAPL.
   data.set_quotes(["AAPL"]);
+  // ... and realtime trades for MSFT.
+  data.set_trades(["MSFT"]);
 
   let subscribe = subscription.subscribe(&data).boxed();
   // Actually subscribe with the websocket server.
