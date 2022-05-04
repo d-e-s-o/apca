@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Added support for subscribing to realtime trades
 - Added `order_class` member to `api::v2::order::Order` type
 - Added `symbols` member to `api::v2::orders::OrdersReq` type
 - Bumped `uuid` dependency to `1.0`

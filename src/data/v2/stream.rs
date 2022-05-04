@@ -291,6 +291,27 @@ pub struct Quote {
 }
 
 
+/// A trade for an equity.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct Trade {
+  /// The trade's symbol.
+  #[serde(rename = "S")]
+  pub symbol: String,
+  /// The trade's ID.
+  #[serde(rename = "i")]
+  pub trade_id: u64,
+  /// The trade's price.
+  #[serde(rename = "p")]
+  pub trade_price: Num,
+  /// The trade's size.
+  #[serde(rename = "s")]
+  pub trade_size: u64,
+  /// The trade's time stamp.
+  #[serde(rename = "t")]
+  pub timestamp: DateTime<Utc>,
+}
+
+
 /// An error as reported by the Alpaca Stream API.
 #[derive(Clone, Debug, Deserialize, PartialEq, ThisError)]
 #[error("{message} ({code})")]
@@ -317,6 +338,9 @@ pub enum DataMessage {
   /// A variant representing a quote for a given symbol.
   #[serde(rename = "q")]
   Quote(Quote),
+  /// A variant representing a trade for a given symbol.
+  #[serde(rename = "t")]
+  Trade(Trade),
   /// A control message describing the current list of subscriptions.
   #[serde(rename = "subscription")]
   Subscription(MarketData),
@@ -338,6 +362,8 @@ pub enum Data {
   Bar(Bar),
   /// A variant representing quote data for a given symbol.
   Quote(Quote),
+  /// A variant representing trade data for a given symbol.
+  Trade(Trade),
 }
 
 impl Data {
@@ -351,6 +377,12 @@ impl Data {
   #[inline]
   pub fn is_quote(&self) -> bool {
     matches!(self, Self::Quote(..))
+  }
+
+  /// Check whether this object is of the `Trade` variant.
+  #[inline]
+  pub fn is_trade(&self) -> bool {
+    matches!(self, Self::Trade(..))
   }
 }
 
@@ -382,6 +414,9 @@ impl subscribe::Message for ParsedMessage {
         DataMessage::Bar(bar) => subscribe::Classification::UserMessage(Ok(Ok(Data::Bar(bar)))),
         DataMessage::Quote(quote) => {
           subscribe::Classification::UserMessage(Ok(Ok(Data::Quote(quote))))
+        },
+        DataMessage::Trade(trade) => {
+          subscribe::Classification::UserMessage(Ok(Ok(Data::Trade(trade))))
         },
         DataMessage::Subscription(data) => {
           subscribe::Classification::ControlMessage(ControlMessage::Subscription(data))
@@ -466,6 +501,9 @@ pub struct MarketData {
   /// The quotes to subscribe to.
   #[serde(default)]
   pub quotes: Normalized,
+  /// The trades to subscribe to.
+  #[serde(default)]
+  pub trades: Normalized,
 }
 
 impl MarketData {
@@ -487,6 +525,16 @@ impl MarketData {
     N: Into<Normalized>,
   {
     self.quotes = symbols.into();
+  }
+
+  /// A convenience function for setting the [`trades`][MarketData::trades]
+  /// member.
+  #[inline]
+  pub fn set_trades<N>(&mut self, symbols: N)
+  where
+    N: Into<Normalized>,
+  {
+    self.trades = symbols.into();
   }
 }
 
@@ -771,9 +819,9 @@ mod tests {
   //       `crate::websocket::test::SECRET` here.
   const AUTH_REQ: &str = r#"{"action":"auth","key":"USER12345678","secret":"justletmein"}"#;
   const AUTH_RESP: &str = r#"[{"T":"success","msg":"authenticated"}]"#;
-  const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[]}"#;
+  const SUB_REQ: &str = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[],"trades":[]}"#;
   const SUB_RESP: &str = r#"[{"T":"subscription","bars":["AAPL","VOO"]}]"#;
-  const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[]}"#;
+  const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[],"trades":[]}"#;
   const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
 
@@ -844,6 +892,37 @@ mod tests {
     );
   }
 
+  /// Check that we can deserialize the [`DataMessage::Trade`] variant.
+  #[test]
+  fn parse_trade() {
+    let json: &str = r#"{
+  "T": "t",
+  "i": 96921,
+  "S": "AAPL",
+  "x": "D",
+  "p": 126.55,
+  "s": 1,
+  "t": "2021-02-22T15:51:44.208Z",
+  "c": ["@", "I"],
+  "z": "C"
+}"#;
+
+    let message = json_from_str::<DataMessage>(json).unwrap();
+    let trade = match message {
+      DataMessage::Trade(trade) => trade,
+      _ => panic!("Decoded unexpected message variant: {:?}", message),
+    };
+    assert_eq!(trade.symbol, "AAPL");
+    assert_eq!(trade.trade_id, 96921);
+    assert_eq!(trade.trade_price, Num::new(12655, 100));
+    assert_eq!(trade.trade_size, 1);
+
+    assert_eq!(
+      trade.timestamp,
+      DateTime::<Utc>::from_str("2021-02-22T15:51:44.208Z").unwrap()
+    );
+  }
+
   /// Check that we can deserialize the [`DataMessage::Success`] variant.
   #[test]
   fn parse_success() {
@@ -902,7 +981,7 @@ mod tests {
     let request = Request::Subscribe(&data);
 
     let json = to_json(&request).unwrap();
-    let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[]}"#;
+    let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[],"trades":[]}"#;
     assert_eq!(json, expected);
   }
 
@@ -915,7 +994,7 @@ mod tests {
     let request = Request::Unsubscribe(&data);
 
     let json = to_json(&request).unwrap();
-    let expected = r#"{"action":"unsubscribe","bars":["VOO"],"quotes":[]}"#;
+    let expected = r#"{"action":"unsubscribe","bars":["VOO"],"quotes":[],"trades":[]}"#;
     assert_eq!(json, expected);
   }
 
@@ -1145,6 +1224,39 @@ mod tests {
         result
           .map(|data| {
             assert!(data.is_quote());
+          })
+          .map_err(Error::Json)
+      });
+
+    if timeout(Duration::from_millis(100), read).await.is_ok() {
+      panic!("realtime data stream got exhausted unexpectedly")
+    }
+  }
+
+  /// Check that we can stream realtime stock trades.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn stream_trades() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+
+    let mut data = MarketData::default();
+    data.set_trades(["SPY"]);
+
+    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let () = drive(subscribe, &mut stream)
+      .await
+      .unwrap()
+      .unwrap()
+      .unwrap();
+
+    let read = stream
+      .map_err(Error::WebSocket)
+      .try_for_each(|result| async {
+        result
+          .map(|data| {
+            assert!(data.is_trade());
           })
           .map_err(Error::Json)
       });
