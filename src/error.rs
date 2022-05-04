@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
+use std::io::Error as IoError;
 use std::str::from_utf8;
 
 use http::Error as HttpError;
@@ -30,6 +31,13 @@ pub enum RequestError<E> {
     #[from]
     #[source]
     HyperError,
+  ),
+  /// An error reported by the `hyper` crate.
+  #[error("could not convert hyper body to AsyncRead")]
+  AsyncReadConversion(
+    #[from]
+    #[source]
+    IoError,
   ),
 }
 

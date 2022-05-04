@@ -21,9 +21,11 @@ A crate for interacting with the Alpaca API.
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
 [dependencies]
+async-compression = {version = "0.3.12", optional = true}
 async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}
+futures-util = {version = "0.3.21", optional = true}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
@@ -35,6 +37,7 @@ serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
 thiserror = "1.0.30"
 tokio = {version = "1.0", default-features = false, features = ["net"]}
+tokio-util = {version = "0.7.1", optional = true, features = ["compat"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "tokio-tungstenite", version = "0.16", features = ["connect", "native-tls"]}
@@ -49,3 +52,6 @@ tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread
 tracing-subscriber = {version = "0.3", default-features = false, features = ["ansi", "env-filter", "fmt"]}
 uuid = {version = "1.0", default-features = false, features = ["v4"]}
 websocket-util = {version = "0.10.1", features = ["test"]}
+
+[features]
+gzip = ["async-compression/gzip", "async-compression/tokio", "tokio/io-util", "dep:futures-util", "dep:tokio-util"]
