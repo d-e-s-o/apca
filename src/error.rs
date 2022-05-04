@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
+use std::io::Error as IoError;
 use std::str::from_utf8;
 
 use http::Error as HttpError;
@@ -30,6 +31,13 @@ pub enum RequestError<E> {
     #[from]
     #[source]
     HyperError,
+  ),
+  /// An error reported while reading data.
+  #[error("failed to read data")]
+  Io(
+    #[from]
+    #[source]
+    IoError,
   ),
 }
 

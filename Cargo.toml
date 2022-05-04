@@ -20,7 +20,12 @@ A crate for interacting with the Alpaca API.
 """
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
+[features]
+default = ["gzip"]
+gzip = ["async-compression/futures-io", "async-compression/gzip"]
+
 [dependencies]
+async-compression = {version = "0.3.12", default-features = false, optional = true}
 async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}

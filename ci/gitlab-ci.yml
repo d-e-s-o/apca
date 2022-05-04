@@ -62,7 +62,7 @@ build-debug:cargo:
   - <<: *crates-io-cache
   script:
   - rustc --version && cargo --version
-  - cargo build --lib --tests
+  - cargo build --lib --tests --all-features
 
 test-coverage:tarpaulin:
   image: rust:latest
@@ -78,7 +78,7 @@ test-coverage:tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
   - cargo install cargo-tarpaulin --root tarpaulin/
-  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --exclude-files src/api/v2/de.rs --skip-clean --out html --output-dir tarpaulin-report/
+  - PATH="$PWD/tarpaulin/bin/:$PATH" cargo tarpaulin --all-features --exclude-files src/api/v2/de.rs --skip-clean --out html --output-dir tarpaulin-report/
 
 lint:clippy:
   variables:
@@ -101,7 +101,7 @@ build-release:cargo:
   - <<: *target-release-cache
   script:
   - rustc --version && cargo --version
-  - cargo build --lib --release
+  - cargo build --lib --all-features --release
 
 doc:cargo:
   variables:

@@ -6,14 +6,18 @@ use std::future::Future;
 use std::str::from_utf8;
 
 use http::request::Builder as HttpRequestBuilder;
+use http::HeaderValue;
 use http::Request;
+use http::Response;
 use http_endpoint::Endpoint;
 
 use hyper::body::to_bytes;
+use hyper::body::Bytes;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::Body;
 use hyper::Client as HttpClient;
+use hyper::Error as HyperError;
 use hyper_tls::HttpsConnector;
 
 use tracing::debug;
@@ -105,6 +109,20 @@ impl Client {
     Builder::default().build(api_info)
   }
 
+  /// Add "gzip" as an accepted encoding to the request.
+  #[cfg(feature = "gzip")]
+  fn maybe_add_gzip_header(request: &mut Request<Body>) {
+    use http::header::ACCEPT_ENCODING;
+
+    let _ = request
+      .headers_mut()
+      .insert(ACCEPT_ENCODING, HeaderValue::from_static("gzip"));
+  }
+
+  /// An implementation stub not actually doing anything.
+  #[cfg(not(feature = "gzip"))]
+  fn maybe_add_gzip_header(_request: &mut Request<Body>) {}
+
   /// Create a `Request` to the endpoint.
   fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
   where
@@ -117,7 +135,7 @@ impl Client {
     url.set_path(&R::path(input));
     url.set_query(R::query(input)?.as_ref().map(AsRef::as_ref));
 
-    let request = HttpRequestBuilder::new()
+    let mut request = HttpRequestBuilder::new()
       .method(R::method())
       .uri(url.as_str())
       // Add required authentication information.
@@ -127,7 +145,52 @@ impl Client {
         R::body(input)?.unwrap_or(Cow::Borrowed(&[0; 0])),
       ))?;
 
+    Self::maybe_add_gzip_header(&mut request);
     Ok(request)
+  }
+
+  async fn retrieve_raw_body(response: Body) -> Result<Bytes, HyperError> {
+    // We unconditionally wait for the full body to be received
+    // before even evaluating the header. That is mostly done for
+    // simplicity and it shouldn't really matter anyway because most
+    // if not all requests evaluate the body on success and on error
+    // the server shouldn't send back much.
+    // TODO: However, there may be one case that has the potential
+    //       to cause trouble: when we receive, for example, the
+    //       list of all orders it now needs to be stored in memory
+    //       in its entirety. That may blow things.
+    to_bytes(response).await
+  }
+
+  /// Retrieve the HTTP body, possible uncompressing it if it was gzip
+  /// encoded.
+  #[cfg(feature = "gzip")]
+  async fn retrieve_body<E>(response: Response<Body>) -> Result<Bytes, RequestError<E>> {
+    use async_compression::futures::bufread::GzipDecoder;
+    use futures::AsyncReadExt as _;
+    use http::header::CONTENT_ENCODING;
+
+    let (parts, body) = response.into_parts();
+    let encoding = parts.headers.get(CONTENT_ENCODING);
+
+    let bytes = Self::retrieve_raw_body(body).await?;
+    let bytes = match encoding {
+      Some(value) if value == HeaderValue::from_static("gzip") => {
+        let mut buffer = Vec::new();
+        let _count = GzipDecoder::new(&*bytes).read_to_end(&mut buffer).await?;
+        buffer.into()
+      },
+      _ => bytes,
+    };
+
+    Ok(bytes)
+  }
+
+  /// Retrieve the HTTP body.
+  #[cfg(not(feature = "gzip"))]
+  async fn retrieve_body<E>(response: Response<Body>) -> Result<Bytes, RequestError<E>> {
+    let bytes = Self::retrieve_raw_body(response.into_body()).await?;
+    Ok(bytes)
   }
 
   /// Create and issue a request and decode the response.
@@ -165,18 +228,8 @@ impl Client {
     debug!(status = debug(&status));
     trace!(response = debug(&result));
 
-    // We unconditionally wait for the full body to be received
-    // before even evaluating the header. That is mostly done for
-    // simplicity and it shouldn't really matter anyway because most
-    // if not all requests evaluate the body on success and on error
-    // the server shouldn't send back much.
-    // TODO: However, there may be one case that has the potential
-    //       to cause trouble: when we receive, for example, the
-    //       list of all orders it now needs to be stored in memory
-    //       in its entirety. That may blow things.
-    let bytes = to_bytes(result.into_body()).await?;
+    let bytes = Self::retrieve_body::<R::Error>(result).await?;
     let body = bytes.as_ref();
-
     match from_utf8(body) {
       Ok(s) => trace!(body = display(&s)),
       Err(b) => trace!(body = display(&b)),
