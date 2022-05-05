@@ -1216,7 +1216,7 @@ mod tests {
     }
   }
 
-  /// Check that we can stream realtime stock quotes.
+  /// Check that we can stream realtime stock trades.
   ///
   /// the equivalent to the `stream_quotes` test but with trades
   #[test(tokio::test)]
