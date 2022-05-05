@@ -687,7 +687,7 @@ where
     }
 
     let ApiInfo {
-      base_url: url,
+      api_base_url: url,
       key_id,
       secret,
     } = api_info;

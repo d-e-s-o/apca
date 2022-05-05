@@ -112,7 +112,7 @@ impl Client {
   {
     let mut url = R::base_url()
       .map(|url| Url::parse(url.as_ref()).expect("endpoint definition contains invalid URL"))
-      .unwrap_or_else(|| self.api_info.base_url.clone());
+      .unwrap_or_else(|| self.api_info.api_base_url.clone());
 
     url.set_path(&R::path(input));
     url.set_query(R::query(input)?.as_ref().map(AsRef::as_ref));

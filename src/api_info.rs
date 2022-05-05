@@ -22,8 +22,8 @@ const ENV_SECRET: &str = "APCA_API_SECRET_KEY";
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub struct ApiInfo {
-  /// The base URL for the API.
-  pub base_url: Url,
+  /// The base URL for the Trading API.
+  pub api_base_url: Url,
   /// The key ID to use for authentication.
   pub key_id: String,
   /// The secret to use for authentication.
@@ -34,15 +34,15 @@ impl ApiInfo {
   /// Create an `ApiInfo` from the required data.
   ///
   /// # Errors
-  /// - [`Error::Url`](crate::Error::Url) If `base_url` cannot be parsed
+  /// - [`Error::Url`](crate::Error::Url) If `api_base_url` cannot be parsed
   ///   into a [`url::Url`](url::Url).
   pub fn from_parts(
-    base_url: impl AsRef<str>,
+    api_base_url: impl AsRef<str>,
     key_id: impl ToString,
     secret: impl ToString,
   ) -> Result<Self, Error> {
     Ok(Self {
-      base_url: Url::parse(base_url.as_ref())?,
+      api_base_url: Url::parse(api_base_url.as_ref())?,
       key_id: key_id.to_string(),
       secret: secret.to_string(),
     })
@@ -60,7 +60,7 @@ impl ApiInfo {
   /// - the Alpaca account secret is retrieved from the APCA_API_SECRET_KEY
   ///   variable
   pub fn from_env() -> Result<Self, Error> {
-    let base_url = var_os(ENV_API_BASE_URL)
+    let api_base_url = var_os(ENV_API_BASE_URL)
       .unwrap_or_else(|| OsString::from(API_BASE_URL))
       .into_string()
       .map_err(|_| {
@@ -72,7 +72,7 @@ impl ApiInfo {
           .into(),
         )
       })?;
-    let base_url = Url::parse(&base_url)?;
+    let api_base_url = Url::parse(&api_base_url)?;
 
     let key_id = var_os(ENV_KEY_ID)
       .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?
@@ -89,7 +89,7 @@ impl ApiInfo {
       })?;
 
     Ok(Self {
-      base_url,
+      api_base_url,
       key_id,
       secret,
     })
@@ -106,12 +106,12 @@ mod tests {
   /// constituent parts.
   #[test]
   fn from_parts() {
-    let base_url = "https://paper-api.alpaca.markets/";
+    let api_base_url = "https://paper-api.alpaca.markets/";
     let key_id = "XXXXXXXXXXXXXXXXXXXX";
     let secret = "YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY";
 
-    let api_info = ApiInfo::from_parts(base_url, key_id, secret).unwrap();
-    assert_eq!(api_info.base_url.as_str(), base_url);
+    let api_info = ApiInfo::from_parts(api_base_url, key_id, secret).unwrap();
+    assert_eq!(api_info.api_base_url.as_str(), api_base_url);
     assert_eq!(api_info.key_id, key_id);
     assert_eq!(api_info.secret, secret);
   }
