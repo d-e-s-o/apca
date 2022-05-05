@@ -12,7 +12,9 @@ use http_endpoint::Bytes;
 
 use num_decimal::Num;
 
+use serde::de::IntoDeserializer;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
 use serde_json::from_slice as from_json;
 use serde_json::to_vec as to_json;
@@ -535,6 +537,23 @@ pub struct ChangeReq {
 }
 
 
+/// A deserialization function for order classes that may be an empty
+/// string.
+///
+/// If the order class is empty, the default one will be used.
+fn empty_to_default<'de, D>(deserializer: D) -> Result<Class, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let class = <&str>::deserialize(deserializer)?;
+  if class.is_empty() {
+    Ok(Class::default())
+  } else {
+    Class::deserialize(class.into_deserializer())
+  }
+}
+
+
 /// A single order as returned by the /v2/orders endpoint on a GET
 /// request.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -585,7 +604,7 @@ pub struct Order {
   #[serde(rename = "type")]
   pub type_: Type,
   /// The order class.
-  #[serde(rename = "order_class")]
+  #[serde(rename = "order_class", deserialize_with = "empty_to_default")]
   pub class: Class,
   /// The side the order is on.
   #[serde(rename = "side")]
@@ -922,6 +941,43 @@ mod tests {
     assert_eq!(order.limit_price, Some(Num::from(107)));
     assert_eq!(order.stop_price, Some(Num::from(106)));
     assert_eq!(order.average_fill_price, Some(Num::new(10625, 100)));
+  }
+
+  /// Verify that we can deserialize an order with an empty order class.
+  ///
+  /// Unfortunately, the Alpaca API may return such an empty class for
+  /// requests that don't explicitly set the class.
+  #[test]
+  fn deserialize_order_with_empty_order_class() {
+    let json = br#"{
+    "id": "904837e3-3b76-47ec-b432-046db621571b",
+    "client_order_id": "904837e3-3b76-47ec-b432-046db621571b",
+    "created_at": "2018-10-05T05:48:59Z",
+    "updated_at": "2018-10-05T05:48:59Z",
+    "submitted_at": "2018-10-05T05:48:59Z",
+    "filled_at": "2018-10-05T05:48:59Z",
+    "expired_at": "2018-10-05T05:48:59Z",
+    "canceled_at": "2018-10-05T05:48:59Z",
+    "failed_at": "2018-10-05T05:48:59Z",
+    "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
+    "symbol": "AAPL",
+    "asset_class": "us_equity",
+    "qty": "15",
+    "filled_qty": "0",
+    "type": "market",
+    "order_class": "",
+    "side": "buy",
+    "time_in_force": "day",
+    "limit_price": "107.00",
+    "stop_price": "106.00",
+    "filled_avg_price": "106.25",
+    "status": "accepted",
+    "extended_hours": false,
+    "legs": null
+}"#;
+
+    let order = from_json::<Order>(json).unwrap();
+    assert_eq!(order.class, Class::Simple);
   }
 
   /// Check that we can serialize and deserialize an [`OrderReq`].
