@@ -371,6 +371,7 @@ impl Subscribable for TradeUpdates {
       api_base_url: url,
       key_id,
       secret,
+      ..
     } = api_info;
 
     let mut url = url.clone();

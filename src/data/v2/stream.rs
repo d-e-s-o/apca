@@ -690,6 +690,7 @@ where
       api_base_url: url,
       key_id,
       secret,
+      ..
     } = api_info;
 
     let mut url = url.clone();
@@ -702,8 +703,9 @@ where
     match url.scheme() {
       "ws" | "wss" => (),
       _ => {
-        // We basically only work statically defined URL parts here which we
-        // know can be parsed successfully, so unwrapping is fine.
+        // We basically only work with statically defined URL parts here
+        // which we know can be parsed successfully, so unwrapping is
+        // fine.
         url = Url::parse(DATA_WEBSOCKET_BASE_URL).unwrap();
         url.set_path(&format!("v2/{}", S::as_str()));
       },
