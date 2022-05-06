@@ -49,7 +49,7 @@ use websocket_util::wrap::Wrapper;
 
 use super::unfold::Unfold;
 
-use crate::data::DATA_WEBSOCKET_BASE_URL;
+use crate::data::DATA_STREAM_BASE_URL;
 use crate::subscribable::Subscribable;
 use crate::websocket::connect;
 use crate::websocket::MessageResult;
@@ -706,7 +706,7 @@ where
         // We basically only work with statically defined URL parts here
         // which we know can be parsed successfully, so unwrapping is
         // fine.
-        url = Url::parse(DATA_WEBSOCKET_BASE_URL).unwrap();
+        url = Url::parse(DATA_STREAM_BASE_URL).unwrap();
         url.set_path(&format!("v2/{}", S::as_str()));
       },
     }
