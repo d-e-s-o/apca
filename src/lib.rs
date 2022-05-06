@@ -79,9 +79,3 @@ pub use crate::error::RequestError;
 pub use crate::subscribable::Subscribable;
 
 type Str = Cow<'static, str>;
-
-/// A response header key defining the response encoding.
-pub(crate) const CONTENT_ENCODING_KEY: &str = "Content-Encoding";
-/// A Content-Encoding value denoting gzip encoding.
-#[cfg(feature = "gzip")]
-pub(crate) const GZIP_ENCODING: &str = "gzip";

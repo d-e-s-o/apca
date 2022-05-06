@@ -25,7 +25,6 @@ async-compression = {version = "0.3.12", optional = true}
 async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}
-futures-util = {version = "0.3.21", optional = true}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
@@ -54,4 +53,4 @@ uuid = {version = "1.0", default-features = false, features = ["v4"]}
 websocket-util = {version = "0.10.1", features = ["test"]}
 
 [features]
-gzip = ["async-compression/gzip", "async-compression/tokio", "tokio/io-util", "dep:futures-util", "dep:tokio-util"]
+gzip = ["async-compression/gzip", "async-compression/futures-io"]

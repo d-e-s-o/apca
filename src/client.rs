@@ -1,36 +1,21 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#[cfg(feature = "gzip")]
-use async_compression::tokio::bufread::GzipDecoder;
-
 use std::borrow::Cow;
 use std::future::Future;
 use std::str::from_utf8;
 
-#[cfg(feature = "gzip")]
-use futures::StreamExt;
-#[cfg(feature = "gzip")]
-use futures::TryStreamExt;
-
 use http::request::Builder as HttpRequestBuilder;
+use http::response::Parts;
 use http::Request;
 use http_endpoint::Endpoint;
 
-use hyper::body::to_bytes;
+use hyper::body::{to_bytes, Bytes};
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
-#[cfg(feature = "gzip")]
-use hyper::header::HeaderValue;
 use hyper::Body;
 use hyper::Client as HttpClient;
 use hyper_tls::HttpsConnector;
-use http::StatusCode;
-
-#[cfg(feature = "gzip")]
-use tokio::io::AsyncReadExt;
-#[cfg(feature = "gzip")]
-use tokio_util::compat::FuturesAsyncReadCompatExt;
 
 use tracing::debug;
 use tracing::instrument;
@@ -41,9 +26,6 @@ use tracing_futures::Instrument;
 
 use url::Url;
 
-use crate::CONTENT_ENCODING_KEY;
-#[cfg(feature = "gzip")]
-use crate::GZIP_ENCODING;
 use crate::api::HDR_KEY_ID;
 use crate::api::HDR_SECRET;
 use crate::api_info::ApiInfo;
@@ -124,6 +106,21 @@ impl Client {
     Builder::default().build(api_info)
   }
 
+  /// Add "gzip" as an accepted encoding to the request.
+  #[cfg(feature = "gzip")]
+  fn maybe_add_gzip_header(request: &mut Request<Body>) {
+    use http::header::ACCEPT_ENCODING;
+    use http::HeaderValue;
+
+    let _ = request
+      .headers_mut()
+      .insert(ACCEPT_ENCODING, HeaderValue::from_static("gzip"));
+  }
+
+  /// Do nothing.
+  #[cfg(not(feature = "gzip"))]
+  fn maybe_add_gzip_header(_request: &mut Request<Body>) {}
+
   /// Create a `Request` to the endpoint.
   fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
   where
@@ -146,13 +143,7 @@ impl Client {
       .body(Body::from(
         R::body(input)?.unwrap_or(Cow::Borrowed(&[0; 0])),
       ))?;
-    #[cfg(feature = "gzip")]
-    {
-      trace!("Add {}: {}", hyper::header::ACCEPT_ENCODING, GZIP_ENCODING);
-      let header_name = hyper::header::ACCEPT_ENCODING;
-      let header_value = HeaderValue::from_static(GZIP_ENCODING);
-      let _unused = request.headers_mut().insert(header_name, header_value); 
-    }
+    Self::maybe_add_gzip_header(&mut request);
     Ok(request)
   }
 
@@ -177,46 +168,36 @@ impl Client {
     }
   }
 
-  fn parse_and_evaluate<R>(status: StatusCode, bytes: &[u8]) -> Result<R::Output, RequestError<R::Error>>
-  where
-    R: Endpoint,
-  {
-    match from_utf8(bytes) {
-      Ok(s) => trace!(body = display(&s)),
-      Err(b) => trace!(body = display(&b)),
-    }
-
-    R::evaluate(status, bytes).map_err(RequestError::Endpoint)
-  }
-
   #[cfg(feature = "gzip")]
-  async fn decompress_body<R>(status: StatusCode, body: Body) -> Result<R::Output, RequestError<R::Error>>
-  where
-    R: Endpoint,
-  {
-    let async_read = FuturesAsyncReadCompatExt::compat(
-      body
-        .map(|result| result.map_err(
-          |_| std::io::Error::new(std::io::ErrorKind::Other,
-            "Error converting Body to AsyncRead")))
-        .into_async_read());
-    futures_util::pin_mut!(async_read);
+  async fn retrieve_body<E>(parts: &Parts, response: Body) -> Result<Bytes, RequestError<E>> {
+    use async_compression::futures::bufread::GzipDecoder;
+    use futures::AsyncReadExt as _;
+    use http::header::CONTENT_ENCODING;
+    use http::HeaderValue;
 
-    let mut decoder = GzipDecoder::new(async_read);
-    let mut buffer = Vec::new();
-    let span = span!(Level::TRACE, "gzip_decoding", gzip_decoding = true);
-    let bytes_read = decoder.read_to_end(&mut buffer).instrument(span).await?;
-    trace!("gzip decompressed {} bytes", bytes_read);
-    Client::parse_and_evaluate::<R>(status, &buffer)
+    let encoding = parts.headers.get(CONTENT_ENCODING);
+    trace!("{}: {:?}", CONTENT_ENCODING, encoding);
+    let span = span!(Level::TRACE, "to_bytes");
+
+    let bytes = to_bytes(response).instrument(span).await?;
+    let body_bytes = match encoding {
+      Some(value) if value == HeaderValue::from_static("gzip") => {
+        let mut buffer = Vec::new();
+        let count = GzipDecoder::new(&*bytes).read_to_end(&mut buffer).await?;
+        trace!("gzip decoded {} bytes", count);
+        buffer.into()
+      },
+      _ => bytes,
+    };
+
+    Ok(body_bytes)
   }
 
-  async fn parse_body<R>(status: StatusCode, body: Body) -> Result<R::Output, RequestError<R::Error>>
-  where
-    R: Endpoint,
-  {
+  #[cfg(not(feature = "gzip"))]
+  async fn retrieve_body<E>(_parts: &Parts, response: Body) -> Result<Bytes, RequestError<E>> {
     let span = span!(Level::TRACE, "to_bytes");
-    let bytes = to_bytes(body).instrument(span).await?;
-    Client::parse_and_evaluate::<R>(status, bytes.as_ref())
+    let bytes = to_bytes(response).instrument(span).await?;
+    Ok(bytes)
   }
 
   /// Issue a request.
@@ -229,11 +210,9 @@ impl Client {
     trace!(body = debug(request.body()));
 
     let result = self.client.request(request).await?;
-    let status = result.status();
-    debug!(status = debug(&status));
-    trace!(response = debug(&result));
-    let encoding_header = result.headers().get(CONTENT_ENCODING_KEY);
-    trace!("{}: {:?}", CONTENT_ENCODING_KEY, encoding_header);
+    let (parts, body) = result.into_parts();
+    debug!(status = debug(&parts.status));
+    trace!(response = debug(&body));
 
     // We unconditionally wait for the full body to be received
     // before even evaluating the header. That is mostly done for
@@ -244,19 +223,14 @@ impl Client {
     //       to cause trouble: when we receive, for example, the
     //       list of all orders it now needs to be stored in memory
     //       in its entirety. That may blow things.
-    #[cfg(feature = "gzip")]
-    {
-      let gzip_encoded = match encoding_header {
-        Some(value) => value == HeaderValue::from_static(GZIP_ENCODING),
-        _ => false,
-      };
-      if gzip_encoded {
-        let body = result.into_body();
-        return Client::decompress_body::<R>(status, body).await
-      }
+    let bytes = Self::retrieve_body::<R::Error>(&parts, body).await?;
+    let body_bytes = bytes.as_ref();
+    match from_utf8(body_bytes) {
+      Ok(s) => trace!(body = display(&s)),
+      Err(b) => trace!(body = display(&b)),
     }
-    let body = result.into_body();
-    Client::parse_body::<R>(status, body).await
+
+    R::evaluate(parts.status, body_bytes).map_err(RequestError::Endpoint)
   }
 
   /// Subscribe to the given subscribable in order to receive updates.
