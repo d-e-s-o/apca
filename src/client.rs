@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
 use std::future::Future;
 use std::str::from_utf8;
 
 use http::request::Builder as HttpRequestBuilder;
+use http::HeaderMap;
 use http::HeaderValue;
 use http::Request;
 use http::Response;
@@ -21,6 +25,8 @@ use hyper::Error as HyperError;
 use hyper_tls::HttpsConnector;
 
 use tracing::debug;
+use tracing::field::debug;
+use tracing::field::DebugValue;
 use tracing::instrument;
 use tracing::span;
 use tracing::trace;
@@ -35,6 +41,60 @@ use crate::api_info::ApiInfo;
 use crate::error::RequestError;
 use crate::subscribable::Subscribable;
 use crate::Error;
+
+
+/// A type providing a debug representation of HTTP headers, with
+/// sensitive data being masked out.
+struct DebugHeaders<'h> {
+  headers: &'h HeaderMap<HeaderValue>,
+}
+
+impl<'h> Debug for DebugHeaders<'h> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    static MASKED: HeaderValue = HeaderValue::from_static("<masked>");
+
+    f.debug_map()
+      .entries(self.headers.iter().map(|(k, v)| {
+        if k == HDR_KEY_ID || k == HDR_SECRET {
+          (k, &MASKED)
+        } else {
+          (k, v)
+        }
+      }))
+      .finish()
+  }
+}
+
+
+/// A type providing a debug representation of an HTTP request, with
+/// sensitive data being masked out.
+struct DebugRequest<'r> {
+  request: &'r Request<Body>,
+}
+
+impl<'r> Debug for DebugRequest<'r> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    // Note that we do not print URL and version, because we assume they
+    // are already included as identifiers in the span of the usage
+    // site.
+    f.debug_struct("Request")
+      .field("version", &self.request.version())
+      .field(
+        "headers",
+        &DebugHeaders {
+          headers: self.request.headers(),
+        },
+      )
+      .field("body", self.request.body())
+      .finish()
+  }
+}
+
+
+/// Emit a debug representation of an HTTP request.
+fn debug_request(request: &Request<Body>) -> DebugValue<DebugRequest<'_>> {
+  debug(DebugRequest { request })
+}
 
 
 /// A builder for creating customized `Client` objects.
@@ -221,7 +281,7 @@ impl Client {
     R: Endpoint,
   {
     debug!("requesting");
-    trace!(body = debug(request.body()));
+    trace!(request = debug_request(&request));
 
     let result = self.client.request(request).await?;
     let status = result.status();
