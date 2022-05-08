@@ -7,6 +7,8 @@ use std::ffi::OsString;
 use url::Url;
 
 use crate::api::API_BASE_URL;
+use crate::data::DATA_BASE_URL;
+use crate::data::DATA_STREAM_BASE_URL;
 use crate::Error;
 
 /// The base URL of the Trading API to use.
@@ -40,6 +42,10 @@ pub struct ApiInfo {
   pub api_base_url: Url,
   /// The websocket stream URL for the Trading API.
   pub api_stream_url: Url,
+  /// The base URL for data retrieval.
+  pub data_base_url: Url,
+  /// The websocket base URL for streaming of data.
+  pub data_stream_base_url: Url,
   /// The key ID to use for authentication.
   pub key_id: String,
   /// The secret to use for authentication.
@@ -65,6 +71,11 @@ impl ApiInfo {
     Ok(Self {
       api_base_url,
       api_stream_url,
+      // We basically only work with statically defined URL parts here
+      // which we know can be parsed successfully, so unwrapping is
+      // fine.
+      data_base_url: Url::parse(DATA_BASE_URL).unwrap(),
+      data_stream_base_url: Url::parse(DATA_STREAM_BASE_URL).unwrap(),
       key_id: key_id.to_string(),
       secret: secret.to_string(),
     })
@@ -83,6 +94,10 @@ impl ApiInfo {
   ///   `APCA_API_KEY_ID` variable
   /// - the Alpaca account secret is retrieved from the
   ///   `APCA_API_SECRET_KEY` variable
+  ///
+  /// # Notes
+  /// - Neither of the two data APIs can be configured via the
+  ///   environment currently; defaults will be used
   #[allow(unused_qualifications)]
   pub fn from_env() -> Result<Self, Error> {
     let api_base_url = var_os(ENV_API_BASE_URL)
@@ -136,6 +151,11 @@ impl ApiInfo {
     Ok(Self {
       api_base_url,
       api_stream_url,
+      // We basically only work with statically defined URL parts here
+      // which we know can be parsed successfully, so unwrapping is
+      // fine.
+      data_base_url: Url::parse(DATA_BASE_URL).unwrap(),
+      data_stream_base_url: Url::parse(DATA_STREAM_BASE_URL).unwrap(),
       key_id,
       secret,
     })

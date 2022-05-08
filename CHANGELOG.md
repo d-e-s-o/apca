@@ -11,7 +11,8 @@ Unreleased
 - Introduced `api::v2::order::Status::is_terminal` method
 - Replaced infallible `From<Into<String>>` conversion for
   `asset::Symbol` with fallible `TryFrom`
-- Made members of `ApiInfo` publicly accessible
+- Made members of `ApiInfo` publicly accessible and added more URL
+  members
 - Renamed various 422 HTTP status error variants to `InvalidInput`
 - Changed various limit types to `usize`
 - Changed `api::v2::orders::OrdersReq::limit` to be an `Option`
