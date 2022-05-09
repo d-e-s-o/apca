@@ -103,7 +103,19 @@ pub(crate) mod test {
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
-    let api_info = ApiInfo::from_parts(format!("ws://{}", addr), KEY_ID, SECRET).unwrap();
+    let stream_url = Url::parse(&format!("ws://{}", addr)).unwrap();
+
+    // We just set both the API stream URL and the data stream URL to
+    // our websocket server. We don't know which one clients are trying
+    // to mock, but currently it's only one or the other.
+    let api_info = ApiInfo {
+      api_base_url: Url::parse("http://example.com").unwrap(),
+      api_stream_url: stream_url.clone(),
+      data_base_url: Url::parse("http://example.com").unwrap(),
+      data_stream_base_url: stream_url.clone(),
+      key_id: KEY_ID.to_string(),
+      secret: SECRET.to_string(),
+    };
 
     S::connect(&api_info).await
   }

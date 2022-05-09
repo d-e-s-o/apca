@@ -39,8 +39,6 @@ use tokio::net::TcpStream;
 use tungstenite::MaybeTlsStream;
 use tungstenite::WebSocketStream;
 
-use url::Url;
-
 use websocket_util::subscribe;
 use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
@@ -49,7 +47,6 @@ use websocket_util::wrap::Wrapper;
 
 use super::unfold::Unfold;
 
-use crate::data::DATA_STREAM_BASE_URL;
 use crate::subscribable::Subscribable;
 use crate::websocket::connect;
 use crate::websocket::MessageResult;
@@ -687,29 +684,14 @@ where
     }
 
     let ApiInfo {
-      api_base_url: url,
+      data_stream_base_url: url,
       key_id,
       secret,
       ..
     } = api_info;
 
     let mut url = url.clone();
-    // For (some) testing purposes we may want to connect to a local URL
-    // (from a mock server) and we identify these cases as those that
-    // already have a proper websocket scheme present. For all others,
-    // we just use the "live" data URL we have hard coded.
-    // TODO: We really shouldn't need this conditional logic. Find a
-    //       better way.
-    match url.scheme() {
-      "ws" | "wss" => (),
-      _ => {
-        // We basically only work with statically defined URL parts here
-        // which we know can be parsed successfully, so unwrapping is
-        // fine.
-        url = Url::parse(DATA_STREAM_BASE_URL).unwrap();
-        url.set_path(&format!("v2/{}", S::as_str()));
-      },
-    }
+    url.set_path(&format!("v2/{}", S::as_str()));
 
     let stream =
       Unfold::new(connect(&url).await?.map(parse as ParseFn)).map(MessageResult::from as MapFn);
