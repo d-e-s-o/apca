@@ -85,13 +85,6 @@ pub struct BarsReq {
 }
 
 
-/// A GET request to be issued to the /v2/stocks/<symbol>/bars endpoint.
-// TODO: Remove this alias with the next backwards compatibility
-//       breaking release.
-#[deprecated(note = "use BarReq instead")]
-pub type BarReq = BarsReq;
-
-
 /// A helper for initializing [`BarsReq`] objects.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BarsReqInit {
