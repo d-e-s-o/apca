@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.23.0
+------
 - Added support for subscribing to realtime quotes in addition to
   aggregate bar data
 - Adjusted data API request types to include optional data feed to use
