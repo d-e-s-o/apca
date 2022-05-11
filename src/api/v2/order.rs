@@ -517,7 +517,6 @@ pub struct ChangeReq {
 /// A single order as returned by the /v2/orders endpoint on a GET
 /// request.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-#[non_exhaustive]
 pub struct Order {
   /// The order's ID.
   #[serde(rename = "id")]

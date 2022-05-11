@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Removed `#[non_exhaustive]` attribute from various types
+
+
 0.23.0
 ------
 - Added support for subscribing to realtime quotes in addition to

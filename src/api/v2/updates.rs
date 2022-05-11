@@ -216,7 +216,6 @@ pub enum TradeMessage {
 /// A representation of a trade update that we receive through the
 /// "trade_updates" stream.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-#[non_exhaustive]
 pub struct TradeUpdate {
   /// The event that occurred.
   #[serde(rename = "event")]

@@ -64,7 +64,6 @@ pub enum Status {
 /// A response as returned by the /v2/account endpoint.
 // TODO: The `sma` field is not yet hooked up.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-#[non_exhaustive]
 pub struct Account {
   /// Account ID.
   #[serde(rename = "id")]
