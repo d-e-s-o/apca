@@ -238,7 +238,7 @@ impl Serialize for Symbol {
 
 
 /// An enumeration of the various supported exchanges.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[non_exhaustive]
 pub enum Exchange {
   /// American Stock Exchange.

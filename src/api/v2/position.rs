@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Not;
@@ -8,6 +8,7 @@ use http::Method;
 use num_decimal::Num;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use crate::api::v2::asset;
 use crate::api::v2::order;
@@ -16,7 +17,7 @@ use crate::Str;
 
 
 /// The side of a position.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Side {
   /// A long position of an asset.
   #[serde(rename = "long")]
@@ -41,7 +42,7 @@ impl Not for Side {
 
 /// A single position as returned by the /v2/positions endpoint on a GET
 /// request.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Position {
   /// The ID of the asset represented by the position.
@@ -145,6 +146,7 @@ mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
   use test_log::test;
 
@@ -153,15 +155,18 @@ mod tests {
   use crate::RequestError;
 
 
+  /// Check that we can negate a `Side` object.
   #[test]
   fn negate_side() {
     assert_eq!(!Side::Long, Side::Short);
     assert_eq!(!Side::Short, Side::Long);
   }
 
+  /// Make sure that we can deserialize and serialize a `Position`
+  /// object.
   #[test]
-  fn parse_reference_position() {
-    let response = r#"{
+  fn deserialize_serialize_reference_position() {
+    let json = r#"{
     "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
     "symbol": "AAPL",
     "exchange": "NASDAQ",
@@ -180,7 +185,8 @@ mod tests {
     "change_today": "0.0084"
 }"#;
 
-    let pos = from_json::<Position>(response).unwrap();
+    let pos =
+      from_json::<Position>(&to_json(&from_json::<Position>(json).unwrap()).unwrap()).unwrap();
     assert_eq!(pos.symbol, "AAPL");
     assert_eq!(pos.exchange, asset::Exchange::Nasdaq);
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
@@ -198,6 +204,7 @@ mod tests {
     assert_eq!(pos.change_today, Some(Num::new(84, 10000)));
   }
 
+  /// Check that we can parse a position with a fractional quantity.
   #[test]
   fn parse_fractional_position() {
     let response = r#"{
@@ -237,6 +244,7 @@ mod tests {
     assert_eq!(pos.change_today, Some(Num::new(84, 10000)));
   }
 
+  /// Check that we can parse a short position.
   #[test]
   fn parse_short_position() {
     let response = r#"{
@@ -263,6 +271,7 @@ mod tests {
     assert_eq!(pos.quantity, Num::from(24));
   }
 
+  /// Check that we can retrieve an open position, if one exists.
   #[test(tokio::test)]
   async fn retrieve_position() {
     let api_info = ApiInfo::from_env().unwrap();
