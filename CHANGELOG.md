@@ -1,6 +1,6 @@
 Unreleased
 ----------
-- Made `api::v2::position::Position` serializable
+- Made more types serializable
 - Removed `#[non_exhaustive]` attribute from various types
 
 

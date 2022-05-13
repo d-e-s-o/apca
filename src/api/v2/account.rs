@@ -9,6 +9,7 @@ use chrono::Utc;
 use num_decimal::Num;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use uuid::Uuid;
 
@@ -16,7 +17,7 @@ use crate::Str;
 
 
 /// A type representing an account ID.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {
@@ -30,7 +31,7 @@ impl Deref for Id {
 
 
 /// An enumeration of the various states an account can be in.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Status {
   /// The account is onboarding.
   #[serde(rename = "ONBOARDING")]
@@ -61,9 +62,9 @@ pub enum Status {
 }
 
 
-/// A response as returned by the /v2/account endpoint.
+/// An object as returned by the /v2/account endpoint.
 // TODO: The `sma` field is not yet hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Account {
   /// Account ID.
   #[serde(rename = "id")]
@@ -164,6 +165,7 @@ mod tests {
   use super::*;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
   use test_log::test;
 
@@ -175,10 +177,11 @@ mod tests {
   use crate::RequestError;
 
 
-  /// Make sure that we can parse the reference account response.
+  /// Make sure that we can deserialize and serialize the reference
+  /// account object.
   #[test]
-  fn parse_reference_account() {
-    let response = r#"{
+  fn deserialize_serialize_reference_account() {
+    let json = r#"{
   "id": "904837e3-3b76-47ec-b432-046db621571b",
   "status": "ACTIVE",
   "currency": "USD",
@@ -203,8 +206,10 @@ mod tests {
   "sma": "0.0"
 }"#;
 
+    let acc =
+      from_json::<Account>(&to_json(&from_json::<Account>(json).unwrap()).unwrap()).unwrap();
+
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
-    let acc = from_json::<Account>(response).unwrap();
     assert_eq!(acc.id, id);
     assert_eq!(acc.status, Status::Active);
     assert_eq!(acc.currency, "USD");
