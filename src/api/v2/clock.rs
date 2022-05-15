@@ -5,12 +5,13 @@ use chrono::DateTime;
 use chrono::Utc;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use crate::Str;
 
 
 /// A type encapsulating market open/close timing information.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Clock {
   /// An indication whether the market is currently open or not.
   #[serde(rename = "is_open")]
@@ -47,9 +48,12 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use std::str::FromStr as _;
+
   use chrono::Duration;
 
   use serde_json::from_str as from_json;
+  use serde_json::to_string as to_json;
 
   use test_log::test;
 
@@ -59,18 +63,23 @@ mod tests {
   use crate::RequestError;
 
 
-  /// Check that we can parse the reference clock response.
+  /// Check that we can deserialize and serialize the reference clock
+  /// object.
   #[test]
-  fn parse_reference_clock() {
-    let response = r#"{
+  fn deserialize_serialize_reference_clock() {
+    let json = r#"{
   "timestamp": "2018-04-01T12:00:00.000Z",
   "is_open": true,
   "next_open": "2018-04-01T12:00:00.000Z",
   "next_close": "2018-04-01T12:00:00.000Z"
 }"#;
 
-    let clock = from_json::<Clock>(response).unwrap();
+    let clock = from_json::<Clock>(&to_json(&from_json::<Clock>(json).unwrap()).unwrap()).unwrap();
     assert!(clock.open);
+    assert_eq!(
+      clock.next_open,
+      DateTime::<Utc>::from_str("2018-04-01T12:00:00.000Z").unwrap()
+    );
   }
 
   /// Verify that we can retrieve the current market clock.
