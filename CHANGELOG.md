@@ -1,6 +1,6 @@
 Unreleased
 ----------
-- Made more types serializable
+- Made more types serializable/deserializable
 - Removed `#[non_exhaustive]` attribute from various types
 
 

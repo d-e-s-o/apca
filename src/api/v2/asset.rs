@@ -144,8 +144,9 @@ impl Display for ParseSymbolError {
 }
 
 
-/// A symbol, and the various ways to represent it.
-#[derive(Clone, Debug, PartialEq)]
+/// A symbol and the various ways to represent it.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(try_from = "&str")]
 pub enum Symbol {
   /// The symbol. Note that this is not a unique way to identify an
   /// asset (the same symbol may be used in different exchanges or asset
@@ -424,25 +425,32 @@ mod tests {
     );
   }
 
+  /// Make sure that we can serialize and deserialize a symbol.
   #[test]
-  fn serialize_symbol() {
+  fn serialize_deserialize_symbol() {
     let symbol = Symbol::Sym("AAPL".to_string());
-    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL""#);
+    let json = to_json(&symbol).unwrap();
+    assert_eq!(json, r#""AAPL""#);
+    assert_eq!(from_json::<Symbol>(&json).unwrap(), symbol);
 
     let symbol = Symbol::SymExchg("AAPL".to_string(), Exchange::Nasdaq);
-    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL:NASDAQ""#);
+    let json = to_json(&symbol).unwrap();
+    assert_eq!(json, r#""AAPL:NASDAQ""#);
+    assert_eq!(from_json::<Symbol>(&json).unwrap(), symbol);
 
     let symbol = Symbol::SymExchgCls("AAPL".to_string(), Exchange::Nasdaq, Class::UsEquity);
-    assert_eq!(to_json(&symbol).unwrap(), r#""AAPL:NASDAQ:us_equity""#);
+    let json = to_json(&symbol).unwrap();
+    assert_eq!(json, r#""AAPL:NASDAQ:us_equity""#);
+    assert_eq!(from_json::<Symbol>(&json).unwrap(), symbol);
 
     let id = Id(Uuid::parse_str("b0b6dd9d-8b9b-48a9-ba46-b9d54906e415").unwrap());
     let symbol = Symbol::Id(id);
-    assert_eq!(
-      to_json(&symbol).unwrap(),
-      r#""b0b6dd9d-8b9b-48a9-ba46-b9d54906e415""#
-    );
+    let json = to_json(&symbol).unwrap();
+    assert_eq!(json, r#""b0b6dd9d-8b9b-48a9-ba46-b9d54906e415""#);
+    assert_eq!(from_json::<Symbol>(&json).unwrap(), symbol);
   }
 
+  /// Check that we can parse a reference asset object.
   #[test]
   fn parse_reference_asset() {
     let response = r#"{
@@ -471,6 +479,7 @@ mod tests {
     assert!(asset.easy_to_borrow);
   }
 
+  /// Verify that we can parse an asset object with an unknown exchange.
   #[test]
   fn parse_with_unknown_exchange() {
     let response = r#"{
@@ -490,6 +499,7 @@ mod tests {
     assert_eq!(asset.exchange, Exchange::Unknown);
   }
 
+  /// Check that we can retrieve information about an asset.
   #[test(tokio::test)]
   async fn retrieve_asset() {
     async fn test(symbol: Symbol) {
