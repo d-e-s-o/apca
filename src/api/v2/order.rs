@@ -776,7 +776,7 @@ mod tests {
 
   use futures::TryFutureExt;
 
-  use serde_json::from_str as from_json;
+  use serde_json::from_slice as from_json;
 
   use test_log::test;
 
@@ -828,7 +828,7 @@ mod tests {
   /// Check that we can parse the `Amount::quantity` variant properly.
   #[test]
   fn parse_quantity_amount() {
-    let serialized = r#"{
+    let serialized = br#"{
     "qty": "15"
 }"#;
     let amount = from_json::<Amount>(serialized).unwrap();
@@ -838,16 +838,17 @@ mod tests {
   /// Check that we can parse the `Amount::notional` variant properly.
   #[test]
   fn parse_notional_amount() {
-    let serialized = r#"{
+    let serialized = br#"{
     "notional": "15.12"
 }"#;
     let amount = from_json::<Amount>(serialized).unwrap();
     assert_eq!(amount, Amount::notional(Num::from_str("15.12").unwrap()));
   }
 
+  /// Verify that we can parse a reference order.
   #[test]
   fn parse_reference_order() {
-    let response = r#"{
+    let response = br#"{
     "id": "904837e3-3b76-47ec-b432-046db621571b",
     "client_order_id": "904837e3-3b76-47ec-b432-046db621571b",
     "created_at": "2018-10-05T05:48:59Z",
