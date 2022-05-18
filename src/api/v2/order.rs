@@ -250,25 +250,33 @@ impl Default for TimeInForce {
 }
 
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename = "take_profit")]
+struct TakeProfitSerde {
+  #[serde(rename = "limit_price")]
+  limit_price: Num,
+}
+
+
 /// The take profit part of a bracket, one-cancels-other, or
 /// one-triggers-other order.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(from = "TakeProfitSerde", into = "TakeProfitSerde")]
 pub enum TakeProfit {
   /// The limit price to use.
   Limit(Num),
 }
 
-impl Serialize for TakeProfit {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    match self {
-      TakeProfit::Limit(limit) => {
-        let mut state = serializer.serialize_struct("take_profit", 1)?;
-        state.serialize_field("limit_price", &limit)?;
-        state.end()
-      },
+impl From<TakeProfitSerde> for TakeProfit {
+  fn from(other: TakeProfitSerde) -> Self {
+    Self::Limit(other.limit_price)
+  }
+}
+
+impl From<TakeProfit> for TakeProfitSerde {
+  fn from(other: TakeProfit) -> Self {
+    match other {
+      TakeProfit::Limit(limit_price) => Self { limit_price },
     }
   }
 }
@@ -810,11 +818,13 @@ mod tests {
     assert_eq!(to_json(&Type::Stop).unwrap(), br#""stop""#);
   }
 
+  /// Make sure that we can serialize and deserialize order legs.
   #[test]
-  fn emit_legs() {
+  fn serialize_deserialize_legs() {
     let take_profit = TakeProfit::Limit(Num::new(3, 2));
-    let expected = br#"{"limit_price":"1.5"}"#;
-    assert_eq!(to_json(&take_profit).unwrap(), expected);
+    let json = to_json(&take_profit).unwrap();
+    assert_eq!(json, br#"{"limit_price":"1.5"}"#);
+    assert_eq!(from_json::<TakeProfit>(&json).unwrap(), take_profit);
 
     let stop_loss = StopLoss::Stop(Num::from(42));
     let expected = br#"{"stop_price":"42"}"#;
