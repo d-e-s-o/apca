@@ -12,10 +12,8 @@ use http_endpoint::Bytes;
 
 use num_decimal::Num;
 
-use serde::ser::SerializeStruct;
 use serde::Deserialize;
 use serde::Serialize;
-use serde::Serializer;
 use serde_json::from_slice as from_json;
 use serde_json::to_vec as to_json;
 use serde_urlencoded::to_string as to_query;
@@ -282,9 +280,20 @@ impl From<TakeProfit> for TakeProfitSerde {
 }
 
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename = "stop_loss")]
+struct StopLossSerde {
+  #[serde(rename = "stop_price")]
+  stop_price: Num,
+  #[serde(rename = "limit_price", skip_serializing_if = "Option::is_none")]
+  limit_price: Option<Num>,
+}
+
+
 /// The stop loss part of a bracket, one-cancels-other, or
 /// one-triggers-other order.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(from = "StopLossSerde", into = "StopLossSerde")]
 pub enum StopLoss {
   /// The stop loss price to use.
   Stop(Num),
@@ -292,22 +301,26 @@ pub enum StopLoss {
   StopLimit(Num, Num),
 }
 
-impl Serialize for StopLoss {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-  where
-    S: Serializer,
-  {
-    match self {
-      StopLoss::Stop(stop) => {
-        let mut state = serializer.serialize_struct("stop_loss", 1)?;
-        state.serialize_field("stop_price", stop)?;
-        state.end()
+impl From<StopLossSerde> for StopLoss {
+  fn from(other: StopLossSerde) -> Self {
+    if let Some(limit_price) = other.limit_price {
+      Self::StopLimit(other.stop_price, limit_price)
+    } else {
+      Self::Stop(other.stop_price)
+    }
+  }
+}
+
+impl From<StopLoss> for StopLossSerde {
+  fn from(other: StopLoss) -> Self {
+    match other {
+      StopLoss::Stop(stop_price) => Self {
+        stop_price,
+        limit_price: None,
       },
-      StopLoss::StopLimit(stop, limit) => {
-        let mut state = serializer.serialize_struct("stop_loss", 2)?;
-        state.serialize_field("stop_price", stop)?;
-        state.serialize_field("limit_price", limit)?;
-        state.end()
+      StopLoss::StopLimit(stop_price, limit_price) => Self {
+        stop_price,
+        limit_price: Some(limit_price),
       },
     }
   }
@@ -827,12 +840,15 @@ mod tests {
     assert_eq!(from_json::<TakeProfit>(&json).unwrap(), take_profit);
 
     let stop_loss = StopLoss::Stop(Num::from(42));
-    let expected = br#"{"stop_price":"42"}"#;
-    assert_eq!(to_json(&stop_loss).unwrap(), expected);
+    let json = to_json(&stop_loss).unwrap();
+    assert_eq!(json, br#"{"stop_price":"42"}"#);
+    assert_eq!(from_json::<StopLoss>(&json).unwrap(), stop_loss);
 
     let stop_loss = StopLoss::StopLimit(Num::from(13), Num::from(96));
+    let json = to_json(&stop_loss).unwrap();
     let expected = br#"{"stop_price":"13","limit_price":"96"}"#;
-    assert_eq!(to_json(&stop_loss).unwrap(), &expected[..]);
+    assert_eq!(json, &expected[..]);
+    assert_eq!(from_json::<StopLoss>(&json).unwrap(), stop_loss);
   }
 
   /// Check that we can parse the `Amount::quantity` variant properly.
