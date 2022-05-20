@@ -427,7 +427,7 @@ impl OrderReqInit {
 
 
 /// A POST request to be made to the /v2/orders endpoint.
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct OrderReq {
   /// Symbol or asset ID to identify the asset to trade.
   #[serde(rename = "symbol")]
@@ -914,6 +914,20 @@ mod tests {
     assert_eq!(order.limit_price, Some(Num::from(107)));
     assert_eq!(order.stop_price, Some(Num::from(106)));
     assert_eq!(order.average_fill_price, Some(Num::new(10625, 100)));
+  }
+
+  /// Check that we can serialize and deserialize an [`OrderReq`].
+  #[test]
+  fn serialize_deserialize_request() {
+    let request = OrderReqInit {
+      type_: Type::TrailingStop,
+      trail_price: Some(Num::from(50)),
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, Amount::quantity(1));
+
+    let json = to_json(&request).unwrap();
+    assert_eq!(from_json::<OrderReq>(&json).unwrap(), request);
   }
 
   /// Verify that we can submit a limit order.
