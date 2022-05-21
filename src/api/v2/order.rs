@@ -26,7 +26,7 @@ use crate::Str;
 
 
 /// An ID uniquely identifying an order.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
 
 impl Deref for Id {
@@ -40,7 +40,7 @@ impl Deref for Id {
 
 
 /// The status an order can have.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Status {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution. This is the usual initial state of an order.
@@ -537,7 +537,7 @@ pub struct ChangeReq {
 
 /// A single order as returned by the /v2/orders endpoint on a GET
 /// request.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Order {
   /// The order's ID.
   #[serde(rename = "id")]
@@ -812,18 +812,21 @@ mod tests {
   use crate::RequestError;
 
 
+  /// Check that we can serialize a [`Side`] object.
   #[test]
   fn emit_side() {
     assert_eq!(to_json(&Side::Buy).unwrap(), br#""buy""#);
     assert_eq!(to_json(&Side::Sell).unwrap(), br#""sell""#);
   }
 
+  /// Check that we can properly negate a [`Side`] object.
   #[test]
   fn negate_side() {
     assert_eq!(!Side::Buy, Side::Sell);
     assert_eq!(!Side::Sell, Side::Buy);
   }
 
+  /// Check that we can serialize a [`Type`] object.
   #[test]
   fn emit_type() {
     assert_eq!(to_json(&Type::Market).unwrap(), br#""market""#);
@@ -871,10 +874,10 @@ mod tests {
     assert_eq!(amount, Amount::notional(Num::from_str("15.12").unwrap()));
   }
 
-  /// Verify that we can parse a reference order.
+  /// Verify that we can deserialize and serialize a reference order.
   #[test]
-  fn parse_reference_order() {
-    let response = br#"{
+  fn deserialize_serialize_reference_order() {
+    let json = br#"{
     "id": "904837e3-3b76-47ec-b432-046db621571b",
     "client_order_id": "904837e3-3b76-47ec-b432-046db621571b",
     "created_at": "2018-10-05T05:48:59Z",
@@ -901,7 +904,7 @@ mod tests {
 }"#;
 
     let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
-    let order = from_json::<Order>(response).unwrap();
+    let order = from_json::<Order>(&to_json(&from_json::<Order>(json).unwrap()).unwrap()).unwrap();
     assert_eq!(order.id, id);
     assert_eq!(
       order.created_at,
