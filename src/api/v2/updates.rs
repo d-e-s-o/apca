@@ -40,7 +40,7 @@ use crate::Error;
 
 
 /// The status of a trade, as reported as part of a `TradeUpdate`.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum TradeStatus {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution.
@@ -215,7 +215,7 @@ pub enum TradeMessage {
 
 /// A representation of a trade update that we receive through the
 /// "trade_updates" stream.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct TradeUpdate {
   /// The event that occurred.
   #[serde(rename = "event")]
