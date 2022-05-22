@@ -961,7 +961,7 @@ mod tests {
   }
 
   /// Check that we can correctly handle a successful subscription
-  /// without trade update messages.
+  /// without pushing actual data.
   #[test(tokio::test)]
   async fn authenticate_and_subscribe() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {

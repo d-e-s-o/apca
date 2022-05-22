@@ -98,22 +98,22 @@ mod tests {
   /// Cancel an order and wait for the corresponding cancellation event
   /// to arrive.
   async fn cancel_order(client: &Client, id: order::Id) {
-    let (stream, _subscription) = client.subscribe::<updates::TradeUpdates>().await.unwrap();
+    let (stream, _subscription) = client.subscribe::<updates::OrderUpdates>().await.unwrap();
     pin_mut!(stream);
 
     client.issue::<order::Delete>(&id).await.unwrap();
 
     // Wait until we see the "canceled" event.
-    let _trade = stream
+    let _update = stream
       .try_filter_map(|res| {
-        let trade = res.unwrap();
-        ok(Some(trade))
+        let update = res.unwrap();
+        ok(Some(update))
       })
-      // There could be other trades happening concurrently but we
-      // are only interested in ones belonging to the order canceled
+      // There could be other orders happening concurrently but we are
+      // only interested in ones belonging to the order canceled
       // earlier.
-      .try_skip_while(|trade| {
-        ok(trade.order.id != id || !matches!(trade.event, updates::TradeStatus::Canceled))
+      .try_skip_while(|update| {
+        ok(update.order.id != id || !matches!(update.event, updates::OrderStatus::Canceled))
       })
       .next()
       .await

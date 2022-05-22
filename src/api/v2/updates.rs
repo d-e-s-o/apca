@@ -39,9 +39,9 @@ use crate::websocket::MessageResult;
 use crate::Error;
 
 
-/// The status of a trade, as reported as part of a `TradeUpdate`.
+/// The status of an order, as reported as part of a `OrderUpdate`.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum TradeStatus {
+pub enum OrderStatus {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution.
   #[serde(rename = "new")]
@@ -111,9 +111,9 @@ pub enum TradeStatus {
 /// An enumeration of the different event streams.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
 enum StreamType {
-  /// A stream for trade updates.
+  /// A stream for order updates.
   #[serde(rename = "trade_updates")]
-  TradeUpdates,
+  OrderUpdates,
 }
 
 
@@ -199,10 +199,10 @@ pub enum ControlMessage {
 #[doc(hidden)]
 #[serde(tag = "stream", content = "data")]
 #[allow(clippy::large_enum_variant)]
-pub enum TradeMessage {
-  /// A trade update.
+pub enum OrderMessage {
+  /// An order update.
   #[serde(rename = "trade_updates")]
-  TradeUpdate(TradeUpdate),
+  OrderUpdate(OrderUpdate),
   /// A control message indicating whether or not we were authenticated
   /// successfully.
   #[serde(rename = "authorization")]
@@ -213,36 +213,36 @@ pub enum TradeMessage {
 }
 
 
-/// A representation of a trade update that we receive through the
+/// A representation of an order update that we receive through the
 /// "trade_updates" stream.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct TradeUpdate {
+pub struct OrderUpdate {
   /// The event that occurred.
   #[serde(rename = "event")]
-  pub event: TradeStatus,
-  /// The order associated with the trade.
+  pub event: OrderStatus,
+  /// The order that received an update.
   #[serde(rename = "order")]
   pub order: order::Order,
 }
 
 
 /// A websocket message that we tried to parse.
-type ParsedMessage = MessageResult<Result<TradeMessage, JsonError>, WebSocketError>;
+type ParsedMessage = MessageResult<Result<OrderMessage, JsonError>, WebSocketError>;
 
 impl subscribe::Message for ParsedMessage {
-  type UserMessage = Result<Result<TradeUpdate, JsonError>, WebSocketError>;
+  type UserMessage = Result<Result<OrderUpdate, JsonError>, WebSocketError>;
   type ControlMessage = ControlMessage;
 
   fn classify(self) -> subscribe::Classification<Self::UserMessage, Self::ControlMessage> {
     match self {
       MessageResult::Ok(Ok(message)) => match message {
-        TradeMessage::TradeUpdate(update) => subscribe::Classification::UserMessage(Ok(Ok(update))),
-        TradeMessage::AuthenticationMessage(authentication) => {
+        OrderMessage::OrderUpdate(update) => subscribe::Classification::UserMessage(Ok(Ok(update))),
+        OrderMessage::AuthenticationMessage(authentication) => {
           subscribe::Classification::ControlMessage(ControlMessage::AuthenticationMessage(
             authentication,
           ))
         },
-        TradeMessage::ListeningMessage(streams) => {
+        OrderMessage::ListeningMessage(streams) => {
           subscribe::Classification::ControlMessage(ControlMessage::ListeningMessage(streams))
         },
       },
@@ -265,7 +265,7 @@ impl subscribe::Message for ParsedMessage {
 }
 
 
-/// A subscription allowing certain control operations pertaining trade
+/// A subscription allowing certain control operations pertaining order
 /// update retrieval.
 #[derive(Debug)]
 pub struct Subscription<S>(subscribe::Subscription<S, ParsedMessage, wrap::Message>);
@@ -307,9 +307,9 @@ where
     }
   }
 
-  /// Subscribe and listen to trade updates.
+  /// Subscribe and listen to order updates.
   async fn listen(&mut self) -> Result<Result<(), Error>, S::Error> {
-    let streams = Streams::from([StreamType::TradeUpdates].as_ref());
+    let streams = Streams::from([StreamType::OrderUpdates].as_ref());
     let request = Request::Listen(streams);
     let json = match to_json(&request) {
       Ok(json) => json,
@@ -321,9 +321,9 @@ where
     match response {
       Some(response) => match response {
         Ok(ControlMessage::ListeningMessage(streams)) => {
-          if !streams.streams.contains(&StreamType::TradeUpdates) {
+          if !streams.streams.contains(&StreamType::OrderUpdates) {
             return Ok(Err(Error::Str(
-              "server did not subscribe us to trade update stream".into(),
+              "server did not subscribe us to order update stream".into(),
             )))
           }
           Ok(Ok(()))
@@ -332,7 +332,7 @@ where
           "server responded with an unexpected message".into(),
         ))),
         Err(()) => Ok(Err(Error::Str(
-          "failed to listen to trade update stream".into(),
+          "failed to listen to order update stream".into(),
         ))),
       },
       None => Ok(Err(Error::Str(
@@ -350,10 +350,10 @@ type MapFn = fn(Result<wrap::Message, WebSocketError>) -> ParsedMessage;
 /// A type used for requesting a subscription to the "trade_updates"
 /// event stream.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TradeUpdates {}
+pub enum OrderUpdates {}
 
 #[async_trait]
-impl Subscribable for TradeUpdates {
+impl Subscribable for OrderUpdates {
   type Input = ApiInfo;
   type Subscription = Subscription<SplitSink<Stream, wrap::Message>>;
   type Stream = Fuse<MessageStream<SplitStream<Stream>, ParsedMessage>>;
@@ -361,8 +361,8 @@ impl Subscribable for TradeUpdates {
   async fn connect(api_info: &Self::Input) -> Result<(Self::Stream, Self::Subscription), Error> {
     fn map(result: Result<wrap::Message, WebSocketError>) -> ParsedMessage {
       MessageResult::from(result.map(|message| match message {
-        wrap::Message::Text(string) => json_from_str::<TradeMessage>(&string),
-        wrap::Message::Binary(data) => json_from_slice::<TradeMessage>(&data),
+        wrap::Message::Text(string) => json_from_str::<OrderMessage>(&string),
+        wrap::Message::Binary(data) => json_from_slice::<OrderMessage>(&data),
       }))
     }
 
@@ -460,15 +460,15 @@ mod tests {
   #[test]
   fn encode_listen_request() {
     let expected = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
-    let streams = Streams::from([StreamType::TradeUpdates].as_ref());
+    let streams = Streams::from([StreamType::OrderUpdates].as_ref());
     let request = Request::Listen(streams);
     let json = to_json(&request).unwrap();
     assert_eq!(json, expected)
   }
 
-  /// Verify that we can decode a trade update.
+  /// Verify that we can decode an order update.
   #[test]
-  fn decode_trade_update() {
+  fn decode_order_update() {
     let json = r#"{
   "stream":"trade_updates","data":{
     "event":"new","execution_id":"11111111-2222-3333-4444-555555555555","order":{
@@ -486,10 +486,10 @@ mod tests {
     },"timestamp":"2021-12-09T19:48:46.182987144Z"
   }
 }"#;
-    let message = json_from_str::<TradeMessage>(json).unwrap();
+    let message = json_from_str::<OrderMessage>(json).unwrap();
     match message {
-      TradeMessage::TradeUpdate(update) => {
-        assert_eq!(update.event, TradeStatus::New);
+      OrderMessage::OrderUpdate(update) => {
+        assert_eq!(update.event, OrderStatus::New);
         assert_eq!(update.order.side, order::Side::Buy);
       },
       _ => panic!("Decoded unexpected message variant: {:?}", message),
@@ -501,9 +501,9 @@ mod tests {
   fn decode_authentication() {
     let json =
       { r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"# };
-    let message = json_from_str::<TradeMessage>(json).unwrap();
+    let message = json_from_str::<OrderMessage>(json).unwrap();
     match message {
-      TradeMessage::AuthenticationMessage(authentication) => {
+      OrderMessage::AuthenticationMessage(authentication) => {
         assert_eq!(authentication.status, AuthenticationStatus::Authorized);
       },
       _ => panic!("Decoded unexpected message variant: {:?}", message),
@@ -516,9 +516,9 @@ mod tests {
   fn decode_unauthorized_authentication() {
     let json =
       { r#"{"stream":"authorization","data":{"status":"unauthorized","action":"listen"}}"# };
-    let message = json_from_str::<TradeMessage>(json).unwrap();
+    let message = json_from_str::<OrderMessage>(json).unwrap();
     match message {
-      TradeMessage::AuthenticationMessage(authentication) => {
+      OrderMessage::AuthenticationMessage(authentication) => {
         assert_eq!(authentication.status, AuthenticationStatus::Unauthorized);
       },
       _ => panic!("Decoded unexpected message variant: {:?}", message),
@@ -530,10 +530,10 @@ mod tests {
   fn decode_listening() {
     let json = r#"{"stream":"listening","data":{"streams":["trade_updates"]}}"#;
 
-    let message = json_from_str::<TradeMessage>(json).unwrap();
+    let message = json_from_str::<OrderMessage>(json).unwrap();
     match message {
-      TradeMessage::ListeningMessage(streams) => {
-        assert_eq!(streams.streams, vec![StreamType::TradeUpdates]);
+      OrderMessage::ListeningMessage(streams) => {
+        assert_eq!(streams.streams, vec![StreamType::OrderUpdates]);
       },
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     }
@@ -550,7 +550,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream::<TradeUpdates, _, _>(test).await;
+    let result = mock_stream::<OrderUpdates, _, _>(test).await;
     match result {
       Ok(..) => panic!("authentication succeeded unexpectedly"),
       Err(Error::WebSocket(WebSocketError::Protocol(e)))
@@ -581,7 +581,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream::<TradeUpdates, _, _>(test).await;
+    let result = mock_stream::<OrderUpdates, _, _>(test).await;
     match result {
       Ok(..) => panic!("operation succeeded unexpectedly"),
       Err(Error::Str(ref e)) if e.starts_with("stream was closed before listen") => (),
@@ -590,7 +590,7 @@ mod tests {
   }
 
   /// Check that we can correctly handle a successful subscription
-  /// without trade update messages.
+  /// without order update messages.
   #[test(tokio::test)]
   async fn no_messages() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
@@ -610,7 +610,7 @@ mod tests {
       Ok(())
     }
 
-    let err = mock_stream::<TradeUpdates, _, _>(test).await.unwrap_err();
+    let err = mock_stream::<OrderUpdates, _, _>(test).await.unwrap_err();
     match err {
       Error::WebSocket(WebSocketError::Protocol(e))
         if e == ProtocolError::ResetWithoutClosingHandshake => {},
@@ -636,7 +636,7 @@ mod tests {
       Ok(())
     }
 
-    let result = mock_stream::<TradeUpdates, _, _>(test).await.unwrap_err();
+    let result = mock_stream::<OrderUpdates, _, _>(test).await.unwrap_err();
     match result {
       Error::Json(_) => (),
       e => panic!("received unexpected error: {}", e),
@@ -676,7 +676,7 @@ mod tests {
       }
     };
 
-    let (stream, _subscription) = mock_stream::<TradeUpdates, _, _>(test).await.unwrap();
+    let (stream, _subscription) = mock_stream::<OrderUpdates, _, _>(test).await.unwrap();
     let () = sender.send(()).unwrap();
 
     stream
@@ -713,7 +713,7 @@ mod tests {
       Ok(())
     }
 
-    let (stream, _subscription) = mock_stream::<TradeUpdates, _, _>(test).await.unwrap();
+    let (stream, _subscription) = mock_stream::<OrderUpdates, _, _>(test).await.unwrap();
     stream
       .map_err(Error::from)
       .try_for_each(|_| ready(Ok(())))
@@ -721,52 +721,52 @@ mod tests {
       .unwrap();
   }
 
-  /// Test the end-to-end workflow of streaming a trade update for a
+  /// Test the end-to-end workflow of streaming an order update for a
   /// newly created order.
   #[test(tokio::test)]
-  async fn stream_trade_events() {
+  async fn stream_order_events() {
     // TODO: There may be something amiss here. If we don't cancel the
-    //       order we never get an event about a new trade. That does
+    //       order we never get an event about a new order. That does
     //       not seem to be in our code, though, as the behavior is the
     //       same when streaming events using Alpaca's Python client.
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let (stream, _subscription) = client.subscribe::<TradeUpdates>().await.unwrap();
+    let (stream, _subscription) = client.subscribe::<OrderUpdates>().await.unwrap();
 
     let order = order_aapl(&client).await.unwrap();
     client.issue::<order::Delete>(&order.id).await.unwrap();
 
-    let trade = stream
-      .try_filter_map(|res| {
-        let trade = res.unwrap();
-        ok(Some(trade))
+    let update = stream
+      .try_filter_map(|result| {
+        let update = result.unwrap();
+        ok(Some(update))
       })
-      // There could be other trades happening concurrently but we
+      // There could be other orders happening concurrently but we
       // are only interested in ones belonging to the order we
       // submitted as part of this test.
-      .try_skip_while(|trade| ok(trade.order.id != order.id))
+      .try_skip_while(|update| ok(update.order.id != order.id))
       .next()
       .await
       .unwrap()
       .unwrap();
 
-    assert_eq!(order.id, trade.order.id);
-    assert_eq!(order.asset_id, trade.order.asset_id);
-    assert_eq!(order.symbol, trade.order.symbol);
-    assert_eq!(order.asset_class, trade.order.asset_class);
-    assert_eq!(order.type_, trade.order.type_);
-    assert_eq!(order.side, trade.order.side);
-    assert_eq!(order.time_in_force, trade.order.time_in_force);
+    assert_eq!(order.id, update.order.id);
+    assert_eq!(order.asset_id, update.order.asset_id);
+    assert_eq!(order.symbol, update.order.symbol);
+    assert_eq!(order.asset_class, update.order.asset_class);
+    assert_eq!(order.type_, update.order.type_);
+    assert_eq!(order.side, update.order.side);
+    assert_eq!(order.time_in_force, update.order.time_in_force);
   }
 
   /// Test that we fail as expected when attempting to authenticate for
-  /// trade updates using invalid credentials.
+  /// order updates using invalid credentials.
   #[test(tokio::test)]
   async fn stream_with_invalid_credentials() {
     let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
 
     let client = Client::new(api_info);
-    let err = client.subscribe::<TradeUpdates>().await.unwrap_err();
+    let err = client.subscribe::<OrderUpdates>().await.unwrap_err();
 
     match err {
       Error::Str(ref e) if e == "authentication not successful" => (),

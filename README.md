@@ -23,7 +23,7 @@ Alpaca, including, but not limited to:
 - submitting, changing, listing, and canceling orders
 - listing and closing open positions
 - listing and retrieving general asset information
-- streaming of trade updates over WebSocket
+- streaming of order updates over WebSocket
 - historic market data retrieval through Alpaca's Data API
 - real time market data streaming via Alpaca's websocket API
 
