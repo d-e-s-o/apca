@@ -136,7 +136,7 @@ impl<'d> From<&'d [StreamType]> for Streams<'d> {
 
 
 /// The status reported in authentication control messages.
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 enum AuthenticationStatus {
   /// The client has been authorized.
   #[serde(rename = "authorized")]
@@ -149,7 +149,7 @@ enum AuthenticationStatus {
 
 /// The authentication related data provided in authentication control
 /// messages.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[doc(hidden)]
 pub struct Authentication {
   /// The status of an operation.
@@ -195,7 +195,7 @@ pub enum ControlMessage {
 
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[doc(hidden)]
 #[serde(tag = "stream", content = "data")]
 #[allow(clippy::large_enum_variant)]
