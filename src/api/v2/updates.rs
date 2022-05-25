@@ -166,7 +166,7 @@ pub struct Authentication {
 
 
 /// A control message "request" sent over a websocket channel.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[doc(hidden)]
 #[serde(tag = "action", content = "data")]
 pub enum Request<'d> {
@@ -175,9 +175,9 @@ pub enum Request<'d> {
   #[serde(rename = "authenticate")]
   Authenticate {
     #[serde(rename = "key_id")]
-    key_id: &'d str,
+    key_id: Cow<'d, str>,
     #[serde(rename = "secret_key")]
-    secret: &'d str,
+    secret: Cow<'d, str>,
   },
   /// A request to subscribe to a particular stream.
   #[serde(rename = "listen")]
@@ -284,7 +284,10 @@ where
     key_id: &str,
     secret: &str,
   ) -> Result<Result<(), Error>, S::Error> {
-    let request = Request::Authenticate { key_id, secret };
+    let request = Request::Authenticate {
+      key_id: key_id.into(),
+      secret: secret.into(),
+    };
     let json = match to_json(&request) {
       Ok(json) => json,
       Err(err) => return Ok(Err(Error::Json(err))),
@@ -449,8 +452,8 @@ mod tests {
   /// Check that we can encode an authentication request correctly.
   #[test]
   fn encode_authentication_request() {
-    let key_id = "some-key";
-    let secret = "super-secret-secret";
+    let key_id = "some-key".into();
+    let secret = "super-secret-secret".into();
     let expected = {
       r#"{"action":"authenticate","data":{"key_id":"some-key","secret_key":"super-secret-secret"}}"#
     };
