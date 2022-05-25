@@ -110,7 +110,8 @@ pub enum OrderStatus {
 
 /// An enumeration of the different event streams.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
-enum StreamType {
+#[doc(hidden)]
+pub enum StreamType {
   /// A stream for order updates.
   #[serde(rename = "trade_updates")]
   OrderUpdates,
@@ -122,7 +123,7 @@ enum StreamType {
 #[doc(hidden)]
 pub struct Streams<'d> {
   /// A list of stream types.
-  streams: Cow<'d, [StreamType]>,
+  pub streams: Cow<'d, [StreamType]>,
 }
 
 impl<'d> From<&'d [StreamType]> for Streams<'d> {
@@ -137,7 +138,9 @@ impl<'d> From<&'d [StreamType]> for Streams<'d> {
 
 /// The status reported in authentication control messages.
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-enum AuthenticationStatus {
+#[doc(hidden)]
+#[allow(missing_copy_implementations)]
+pub enum AuthenticationStatus {
   /// The client has been authorized.
   #[serde(rename = "authorized")]
   Authorized,
@@ -154,7 +157,7 @@ enum AuthenticationStatus {
 pub struct Authentication {
   /// The status of an operation.
   #[serde(rename = "status")]
-  status: AuthenticationStatus,
+  pub status: AuthenticationStatus,
   /*
    * TODO: Right now we just ignore the `action` field, as we would
    *       not react on it anyway.
@@ -164,10 +167,11 @@ pub struct Authentication {
 
 /// A control message "request" sent over a websocket channel.
 #[derive(Debug, Serialize)]
+#[doc(hidden)]
 #[serde(tag = "action", content = "data")]
-enum Request<'d> {
-  /// A control message indicating whether or not we were authenticated
-  /// successfully.
+pub enum Request<'d> {
+  /// A request to authenticate with the server after a websocket
+  /// connection was established.
   #[serde(rename = "authenticate")]
   Authenticate {
     #[serde(rename = "key_id")]
@@ -175,7 +179,7 @@ enum Request<'d> {
     #[serde(rename = "secret_key")]
     secret: &'d str,
   },
-  /// A control message detailing the streams we are subscribed to.
+  /// A request to subscribe to a particular stream.
   #[serde(rename = "listen")]
   Listen(Streams<'d>),
 }
