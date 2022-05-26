@@ -20,9 +20,13 @@ pub enum ConversionError {
 use thiserror::Error;
 
 
+/// An error as reported by API endpoints.
+// Note that actually this type should probably be specific to the API
+// version in question. However, at this point we only support v2, so we
+// luck out here.
 #[derive(Clone, Debug, Deserialize, Error, PartialEq)]
 #[error("{message} ({code})")]
-pub struct ErrorMessage {
+pub struct ApiError {
   /// An error code as provided by Alpaca.
   #[serde(rename = "code")]
   pub code: u64,
@@ -58,7 +62,7 @@ macro_rules! EndpointNoParse {
         $($(#[$err_docs])* $err_status => $variant,)*
       ],
       ConversionErr => crate::endpoint::ConversionError,
-      ApiErr => crate::endpoint::ErrorMessage,
+      ApiErr => crate::endpoint::ApiError,
 
       $($defs)*
     }

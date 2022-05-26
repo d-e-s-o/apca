@@ -73,6 +73,7 @@ use std::borrow::Cow;
 
 pub use crate::api_info::ApiInfo;
 pub use crate::client::Client;
+pub use crate::endpoint::ApiError;
 pub use crate::error::Error;
 pub use crate::error::RequestError;
 pub use crate::subscribable::Subscribable;

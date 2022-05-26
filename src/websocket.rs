@@ -63,7 +63,7 @@ async fn connect_internal(url: &Url) -> Result<WebSocketStream<MaybeTlsStream<Tc
 }
 
 
-/// Connect to websocket server.
+/// Connect to a websocket server.
 pub(crate) async fn connect(
   url: &Url,
 ) -> Result<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, Error> {

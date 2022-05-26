@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -217,7 +217,7 @@ mod tests {
 
   use test_log::test;
 
-  use crate::endpoint::ErrorMessage;
+  use crate::endpoint::ApiError;
   use crate::Str;
 
 
@@ -240,7 +240,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(GetNotFoundError::UnexpectedStatus(status, message)) => {
-        let expected = ErrorMessage {
+        let expected = ApiError {
           code: 40410000,
           message: "endpoint not found".to_string(),
         };
