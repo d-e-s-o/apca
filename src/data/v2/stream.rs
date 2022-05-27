@@ -291,10 +291,10 @@ pub struct Quote {
 }
 
 
-/// An error as reported by the Alpaca Data API.
+/// An error as reported by the Alpaca Stream API.
 #[derive(Clone, Debug, Deserialize, PartialEq, ThisError)]
-#[error("{message} (error code: {code})")]
-pub struct ApiError {
+#[error("{message} ({code})")]
+pub struct StreamApiError {
   /// The error code being reported.
   #[serde(rename = "code")]
   pub code: u64,
@@ -324,9 +324,9 @@ pub enum DataMessage {
   /// successful.
   #[serde(rename = "success")]
   Success,
-  /// An error reported by the Alpaca Data API.
+  /// An error reported by the Alpaca Stream API.
   #[serde(rename = "error")]
-  Error(ApiError),
+  Error(StreamApiError),
 }
 
 
@@ -364,8 +364,8 @@ pub enum ControlMessage {
   /// A control message indicating that the last operation was
   /// successful.
   Success,
-  /// An error reported by the Alpaca Data API.
-  Error(ApiError),
+  /// An error reported by the Alpaca Stream API.
+  Error(StreamApiError),
 }
 
 
@@ -1039,7 +1039,7 @@ mod tests {
       .unwrap_err();
 
     match error {
-      Error::Str(ref e) if e == "failed to subscribe: invalid syntax (error code: 400)" => {},
+      Error::Str(ref e) if e == "failed to subscribe: invalid syntax (400)" => {},
       e => panic!("received unexpected error: {}", e),
     }
   }
