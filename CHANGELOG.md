@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.24.0
+------
 - Made more types serializable/deserializable
 - Renamed various `Trade*` types to `Order*`
 - Removed `#[non_exhaustive]` attribute from various types
