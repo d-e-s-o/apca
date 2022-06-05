@@ -5,7 +5,7 @@ Unreleased
 - Added support for subscribing to realtime trades
 - Added `class` member to `api::v2::order::Order` type
 - Added `symbols` member to `api::v2::orders::OrdersReq` type
-- Added `Deserialize` implementation for `api::v2::order::ChangeReq`
+- Added `Deserialize` implementation for more types
 - Made `api::v2::position::Position` exhaustive
 - Bumped `uuid` dependency to `1.0`
 

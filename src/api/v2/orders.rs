@@ -1,15 +1,17 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use serde::Deserialize;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
 use crate::api::v2::order::Order;
 use crate::util::string_slice_to_str;
+use crate::util::vec_from_comma_separated_str;
 use crate::Str;
 
 /// The status of orders to list.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum Status {
   /// List open orders only.
   #[serde(rename = "open")]
@@ -26,10 +28,15 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct OrdersReq {
   /// A list of simple symbols used as filters for the returned orders.
-  #[serde(rename = "symbols", serialize_with = "string_slice_to_str")]
+  #[serde(
+    rename = "symbols",
+    default,
+    deserialize_with = "vec_from_comma_separated_str",
+    serialize_with = "string_slice_to_str"
+  )]
   pub symbols: Vec<String>,
   /// The status of orders to list.
   #[serde(rename = "status")]
@@ -90,6 +97,11 @@ mod tests {
 
   use num_decimal::Num;
 
+  use serde_json::from_slice as from_json;
+  use serde_json::to_vec as to_json;
+  use serde_urlencoded::from_str as from_query;
+  use serde_urlencoded::to_string as to_query;
+
   use test_log::test;
 
   use crate::api::v2::order;
@@ -99,6 +111,43 @@ mod tests {
   use crate::api_info::ApiInfo;
   use crate::Client;
 
+
+  /// Make sure that we can serialize and deserialize an `OrdersReq`.
+  #[test]
+  fn serialize_deserialize_request() {
+    let mut request = OrdersReq {
+      symbols: vec!["ABC".into()],
+      status: Status::Closed,
+      limit: Some(42),
+      nested: true,
+    };
+
+    let json = to_json(&request).unwrap();
+    assert_eq!(from_json::<OrdersReq>(&json).unwrap(), request);
+
+    request.symbols.clear();
+    let json = to_json(&request).unwrap();
+    assert_eq!(from_json::<OrdersReq>(&json).unwrap(), request);
+  }
+
+  /// Make sure that we can serialize and deserialize an `OrdersReq`
+  /// from a query string.
+  #[test]
+  fn serialize_deserialize_query_request() {
+    let mut request = OrdersReq {
+      symbols: vec!["ABC".into()],
+      status: Status::Closed,
+      limit: Some(42),
+      nested: true,
+    };
+
+    let query = to_query(&request).unwrap();
+    assert_eq!(from_query::<OrdersReq>(&query).unwrap(), request);
+
+    request.symbols.clear();
+    let query = to_query(&request).unwrap();
+    assert_eq!(from_query::<OrdersReq>(&query).unwrap(), request);
+  }
 
   /// Cancel an order and wait for the corresponding cancellation event
   /// to arrive.
@@ -126,6 +175,7 @@ mod tests {
       .unwrap();
   }
 
+  /// Check that we can list existing orders.
   #[test(tokio::test)]
   async fn list_orders() {
     async fn test(status: Status) {
@@ -167,6 +217,7 @@ mod tests {
     test(Status::All).await;
   }
 
+  /// Verify that we can list nested orders.
   #[test(tokio::test)]
   async fn list_nested_order() {
     let request = order::OrderReqInit {

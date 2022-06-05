@@ -33,6 +33,20 @@ where
 }
 
 
+/// Deserialize a `Vec<String>` from a string (that could be `null`)
+/// with comma separated elements.
+pub(crate) fn vec_from_comma_separated_str<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let vec = Option::<String>::deserialize(deserializer)?
+    .map(|string| string.split(',').map(str::to_owned).collect())
+    .unwrap_or_default();
+
+  Ok(vec)
+}
+
+
 /// Serialize a slice into a string of textual representations of the
 /// elements, retrieved by applying a function to each, and then
 /// separated by comma.
