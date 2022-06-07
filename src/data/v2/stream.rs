@@ -5,6 +5,7 @@ use std::borrow::Borrow as _;
 use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
+use std::ops::Deref;
 
 use async_trait::async_trait;
 
@@ -461,6 +462,14 @@ where
 /// normalized.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct Normalized(#[serde(deserialize_with = "normalized_from_str")] Symbols);
+
+impl Deref for Normalized {
+  type Target = [Symbol];
+
+  fn deref(&self) -> &Self::Target {
+    self.0.borrow()
+  }
+}
 
 impl From<Symbols> for Normalized {
   #[inline]
@@ -1285,9 +1294,7 @@ mod tests {
       .unwrap()
       .unwrap();
 
-    let mut expected = MarketData::default();
-    expected.set_bars([]);
-    assert_eq!(subscription.subscriptions(), &expected);
+    assert_eq!(subscription.subscriptions(), &MarketData::default());
   }
 
   /// Test that we fail as expected when attempting to authenticate for
