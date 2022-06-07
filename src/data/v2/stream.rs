@@ -25,6 +25,7 @@ use futures::StreamExt as _;
 use num_decimal::Num;
 
 use serde::de::Deserializer;
+use serde::ser::SerializeSeq as _;
 use serde::ser::Serializer;
 use serde::Deserialize;
 use serde::Serialize;
@@ -122,70 +123,14 @@ impl Source for SIP {
 impl private::Sealed for SIP {}
 
 
-/// Serialize a `Symbol::Symbol` variant.
-fn symbol_to_str<S>(symbol: &Str, serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-{
-  serializer.serialize_str(symbol)
-}
+/// A symbol.
+pub type Symbol = Str;
 
 
-/// Serialize a `Symbol::All` variant.
-fn symbol_all<S>(serializer: S) -> Result<S::Ok, S::Error>
-where
-  S: Serializer,
-{
-  serializer.serialize_str("*")
-}
-
-
-/// A symbol for which market data can be received.
-#[derive(Clone, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
-#[serde(untagged)]
-pub enum Symbol {
-  /// A symbol for a specific equity.
-  #[serde(serialize_with = "symbol_to_str")]
-  Symbol(Str),
-  /// A "wildcard" symbol, representing all available equities.
-  #[serde(serialize_with = "symbol_all")]
-  All,
-}
-
-impl From<&'static str> for Symbol {
-  #[inline]
-  fn from(symbol: &'static str) -> Self {
-    if symbol == "*" {
-      Symbol::All
-    } else {
-      Symbol::Symbol(Cow::from(symbol))
-    }
-  }
-}
-
-impl From<String> for Symbol {
-  #[inline]
-  fn from(symbol: String) -> Self {
-    if symbol == "*" {
-      Symbol::All
-    } else {
-      Symbol::Symbol(Cow::from(symbol))
-    }
-  }
-}
-
-
-/// A slice/vector of [`Symbol`] objects.
-pub type Symbols = Cow<'static, [Symbol]>;
-
-
-/// Check whether a slice of `Symbol` objects is normalized.
+/// Check whether a slice of symbols is normalized.
 ///
-/// Such a slice is normalized if:
-/// - it is empty or
-/// - it contains a single element `Symbol::All` or
-/// - it does not contain `Symbol::All` and all symbols are lexically
-///   ordered
+/// Such a slice is normalized if it is sorted lexically and all
+/// duplicates are removed.
 fn is_normalized(symbols: &[Symbol]) -> bool {
   // The body here is effectively a copy of `Iterator::is_sorted_by`. We
   // should use that once it's stable.
@@ -201,10 +146,6 @@ fn is_normalized(symbols: &[Symbol]) -> bool {
     }
   }
 
-  if symbols.len() > 1 && symbols.contains(&Symbol::All) {
-    return false
-  }
-
   let mut it = symbols.iter();
   let mut last = match it.next() {
     Some(e) => e,
@@ -216,19 +157,15 @@ fn is_normalized(symbols: &[Symbol]) -> bool {
 
 
 /// Normalize a list of symbols.
-fn normalize(symbols: Symbols) -> Symbols {
-  fn normalize_now(symbols: Symbols) -> Symbols {
-    if symbols.contains(&Symbol::All) {
-      Cow::from([Symbol::All].as_ref())
-    } else {
-      let mut symbols = symbols.into_owned();
-      // Unwrapping here is fine, as we know that there is no
-      // `Symbol::All` variant in the list and so we cannot encounter
-      // variants that are not comparable.
-      symbols.sort_by(|x, y| x.partial_cmp(y).unwrap());
-      symbols.dedup();
-      Cow::from(symbols)
-    }
+fn normalize(symbols: Cow<'static, [Symbol]>) -> Cow<'static, [Symbol]> {
+  fn normalize_now(symbols: Cow<'static, [Symbol]>) -> Cow<'static, [Symbol]> {
+    let mut symbols = symbols.into_owned();
+    // Unwrapping here is fine, as we know that there is no
+    // `Symbol::All` variant in the list and so we cannot encounter
+    // variants that are not comparable.
+    symbols.sort_by(|x, y| x.partial_cmp(y).unwrap());
+    symbols.dedup();
+    Cow::from(symbols)
   }
 
   if !is_normalized((*symbols).borrow()) {
@@ -448,20 +385,19 @@ impl subscribe::Message for ParsedMessage {
 }
 
 
-/// Deserialize a normalized [`Symbols`] object from a string.
+/// Deserialize a normalized list of symbols from a string.
 #[inline]
-fn normalized_from_str<'de, D>(deserializer: D) -> Result<Symbols, D::Error>
+fn normalized_from_str<'de, D>(deserializer: D) -> Result<Cow<'static, [Symbol]>, D::Error>
 where
   D: Deserializer<'de>,
 {
-  Symbols::deserialize(deserializer).map(normalize)
+  Cow::<'static, [Symbol]>::deserialize(deserializer).map(normalize)
 }
 
 
-/// A type wrapping an instance of [`Symbols`] that is guaranteed to be
-/// normalized.
+/// A type representing a normalized list of symbols.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct SymbolList(#[serde(deserialize_with = "normalized_from_str")] Symbols);
+pub struct SymbolList(#[serde(deserialize_with = "normalized_from_str")] Cow<'static, [Symbol]>);
 
 impl Deref for SymbolList {
   type Target = [Symbol];
@@ -471,9 +407,9 @@ impl Deref for SymbolList {
   }
 }
 
-impl From<Symbols> for SymbolList {
+impl From<Cow<'static, [Symbol]>> for SymbolList {
   #[inline]
-  fn from(symbols: Symbols) -> Self {
+  fn from(symbols: Cow<'static, [Symbol]>) -> Self {
     Self(normalize(symbols))
   }
 }
@@ -501,18 +437,73 @@ impl<const N: usize> From<[&'static str; N]> for SymbolList {
 }
 
 
+mod symbols_all {
+  use super::*;
+
+  use serde::de::Error;
+  use serde::de::Unexpected;
+
+  /// Deserialize the [`Symbols::All`] variant.
+  pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<(), D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    let string = <[&str; 1]>::deserialize(deserializer)?;
+    if string == ["*"] {
+      Ok(())
+    } else {
+      Err(Error::invalid_value(
+        Unexpected::Str(string[0]),
+        &"the string \"*\"",
+      ))
+    }
+  }
+
+  /// Serialize the [`Symbols::All`] variant.
+  pub(crate) fn serialize<S>(serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: Serializer,
+  {
+    let mut seq = serializer.serialize_seq(Some(1))?;
+    seq.serialize_element("*")?;
+    seq.end()
+  }
+}
+
+
+/// An enumeration of symbols to subscribe to.
+// Please note that the order of variants is important for
+// deserialization purposes: we first need to check whether we are
+// dealing with the `All` variant.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum Symbols {
+  /// A variant representing all symbols.
+  #[serde(with = "symbols_all")]
+  All,
+  /// A list of symbols to work with.
+  List(SymbolList),
+}
+
+impl Default for Symbols {
+  fn default() -> Self {
+    Self::List(SymbolList::from([]))
+  }
+}
+
+
 /// A type defining the market data a client intends to subscribe to.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
   #[serde(default)]
-  pub bars: SymbolList,
+  pub bars: Symbols,
   /// The quotes to subscribe to.
   #[serde(default)]
-  pub quotes: SymbolList,
+  pub quotes: Symbols,
   /// The trades to subscribe to.
   #[serde(default)]
-  pub trades: SymbolList,
+  pub trades: Symbols,
 }
 
 impl MarketData {
@@ -523,7 +514,7 @@ impl MarketData {
   where
     S: Into<SymbolList>,
   {
-    self.bars = symbols.into();
+    self.bars = Symbols::List(symbols.into());
   }
 
   /// A convenience function for setting the [`quotes`][MarketData::quotes]
@@ -533,7 +524,7 @@ impl MarketData {
   where
     S: Into<SymbolList>,
   {
-    self.quotes = symbols.into();
+    self.quotes = Symbols::List(symbols.into());
   }
 
   /// A convenience function for setting the [`trades`][MarketData::trades]
@@ -543,7 +534,7 @@ impl MarketData {
   where
     S: Into<SymbolList>,
   {
-    self.trades = symbols.into();
+    self.trades = Symbols::List(symbols.into());
   }
 }
 
@@ -1019,34 +1010,26 @@ mod tests {
   /// Check that we can normalize `Symbol` slices.
   #[test]
   fn normalize_subscriptions() {
-    let subscriptions = [Symbol::All];
+    let subscriptions = [];
     assert!(is_normalized(&subscriptions));
 
-    let subscriptions = [Symbol::Symbol("MSFT".into()), Symbol::Symbol("SPY".into())];
+    let subscriptions = ["MSFT".into(), "SPY".into()];
     assert!(is_normalized(&subscriptions));
 
-    let mut subscriptions = Cow::from(vec![
-      Symbol::Symbol("SPY".into()),
-      Symbol::Symbol("MSFT".into()),
-    ]);
+    let mut subscriptions = Cow::from(vec!["SPY".into(), "MSFT".into()]);
     assert!(!is_normalized(&subscriptions));
     subscriptions = normalize(subscriptions);
     assert!(is_normalized(&subscriptions));
 
-    let expected = [Symbol::Symbol("MSFT".into()), Symbol::Symbol("SPY".into())];
-    assert_eq!(subscriptions.as_ref(), expected.as_ref());
+    let expected = [Cow::from("MSFT"), "SPY".into()];
+    assert_eq!(subscriptions.borrow(), expected);
 
-    let mut subscriptions = Cow::from(vec![
-      Symbol::Symbol("SPY".into()),
-      Symbol::All,
-      Symbol::Symbol("MSFT".into()),
-    ]);
+    let mut subscriptions = Cow::from(vec!["SPY".into(), "MSFT".into(), "MSFT".into()]);
     assert!(!is_normalized(&subscriptions));
     subscriptions = normalize(subscriptions);
     assert!(is_normalized(&subscriptions));
 
-    let expected = [Symbol::All];
-    assert_eq!(subscriptions.as_ref(), expected.as_ref());
+    assert_eq!(subscriptions.borrow(), expected);
   }
 
   /// Check that we can correctly handle a successful subscription
@@ -1180,8 +1163,10 @@ mod tests {
     let client = Client::new(api_info);
     let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
 
-    let mut data = MarketData::default();
-    data.set_bars(["*"]);
+    let data = MarketData {
+      bars: Symbols::All,
+      ..Default::default()
+    };
 
     let subscribe = subscription.subscribe(&data).boxed_local().fuse();
     let () = drive(subscribe, &mut stream)
@@ -1189,6 +1174,8 @@ mod tests {
       .unwrap()
       .unwrap()
       .unwrap();
+
+    assert_eq!(subscription.subscriptions(), &data);
 
     let read = stream
       .map_err(Error::WebSocket)

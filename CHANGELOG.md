@@ -3,6 +3,7 @@ Unreleased
 - Added `gzip` compression support for transparent API response
   compression controlled by default enabled `gzip` feature
 - Added support for subscribing to realtime trades
+- Reworked symbols related types in `data::v2::stream` module
 - Added `class` member to `api::v2::order::Order` type
 - Added `symbols` member to `api::v2::orders::OrdersReq` type
 - Added `Deserialize` implementation for more types
