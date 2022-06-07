@@ -461,9 +461,9 @@ where
 /// A type wrapping an instance of [`Symbols`] that is guaranteed to be
 /// normalized.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-pub struct Normalized(#[serde(deserialize_with = "normalized_from_str")] Symbols);
+pub struct SymbolList(#[serde(deserialize_with = "normalized_from_str")] Symbols);
 
-impl Deref for Normalized {
+impl Deref for SymbolList {
   type Target = [Symbol];
 
   fn deref(&self) -> &Self::Target {
@@ -471,14 +471,14 @@ impl Deref for Normalized {
   }
 }
 
-impl From<Symbols> for Normalized {
+impl From<Symbols> for SymbolList {
   #[inline]
   fn from(symbols: Symbols) -> Self {
     Self(normalize(symbols))
   }
 }
 
-impl From<Vec<String>> for Normalized {
+impl From<Vec<String>> for SymbolList {
   #[inline]
   fn from(symbols: Vec<String>) -> Self {
     Self(normalize(Cow::from(
@@ -489,7 +489,7 @@ impl From<Vec<String>> for Normalized {
   }
 }
 
-impl<const N: usize> From<[&'static str; N]> for Normalized {
+impl<const N: usize> From<[&'static str; N]> for SymbolList {
   #[inline]
   fn from(symbols: [&'static str; N]) -> Self {
     Self(normalize(Cow::from(
@@ -506,22 +506,22 @@ impl<const N: usize> From<[&'static str; N]> for Normalized {
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
   #[serde(default)]
-  pub bars: Normalized,
+  pub bars: SymbolList,
   /// The quotes to subscribe to.
   #[serde(default)]
-  pub quotes: Normalized,
+  pub quotes: SymbolList,
   /// The trades to subscribe to.
   #[serde(default)]
-  pub trades: Normalized,
+  pub trades: SymbolList,
 }
 
 impl MarketData {
   /// A convenience function for setting the [`bars`][MarketData::bars]
   /// member.
   #[inline]
-  pub fn set_bars<N>(&mut self, symbols: N)
+  pub fn set_bars<S>(&mut self, symbols: S)
   where
-    N: Into<Normalized>,
+    S: Into<SymbolList>,
   {
     self.bars = symbols.into();
   }
@@ -529,9 +529,9 @@ impl MarketData {
   /// A convenience function for setting the [`quotes`][MarketData::quotes]
   /// member.
   #[inline]
-  pub fn set_quotes<N>(&mut self, symbols: N)
+  pub fn set_quotes<S>(&mut self, symbols: S)
   where
-    N: Into<Normalized>,
+    S: Into<SymbolList>,
   {
     self.quotes = symbols.into();
   }
@@ -539,9 +539,9 @@ impl MarketData {
   /// A convenience function for setting the [`trades`][MarketData::trades]
   /// member.
   #[inline]
-  pub fn set_trades<N>(&mut self, symbols: N)
+  pub fn set_trades<S>(&mut self, symbols: S)
   where
-    N: Into<Normalized>,
+    S: Into<SymbolList>,
   {
     self.trades = symbols.into();
   }
@@ -685,7 +685,7 @@ where
   /// Unsubscribe from receiving market data for the provided symbols.
   ///
   /// Subscriptions of market data for symbols other than the ones
-  /// provide to this function are left untouched.
+  /// provided to this function are left untouched.
   #[inline]
   pub async fn unsubscribe(
     &mut self,
@@ -1007,13 +1007,13 @@ mod tests {
     assert_eq!(json, expected);
   }
 
-  /// Check that we can correctly deserialize a `Normalized` object.
+  /// Check that we can correctly deserialize a `SymbolList` object.
   #[test]
-  fn deserialize_normalized() {
+  fn deserialize_symbol_list() {
     let json = r#"["AAPL","XLK","SPY"]"#;
-    let normalized = json_from_str::<Normalized>(json).unwrap();
-    let expected = Normalized::from(["AAPL", "SPY", "XLK"]);
-    assert_eq!(normalized, expected);
+    let list = json_from_str::<SymbolList>(json).unwrap();
+    let expected = SymbolList::from(["AAPL", "SPY", "XLK"]);
+    assert_eq!(list, expected);
   }
 
   /// Check that we can normalize `Symbol` slices.
