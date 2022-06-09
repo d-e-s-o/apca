@@ -559,18 +559,18 @@ enum Request<'d> {
   #[serde(rename = "auth")]
   Authenticate {
     #[serde(rename = "key")]
-    key_id: &'d str,
+    key_id: Cow<'d, str>,
     #[serde(rename = "secret")]
-    secret: &'d str,
+    secret: Cow<'d, str>,
   },
   /// A control message subscribing the client to receive updates for
   /// the provided symbols.
   #[serde(rename = "subscribe")]
-  Subscribe(&'d MarketData),
+  Subscribe(Cow<'d, MarketData>),
   /// A control message unsubscribing the client from receiving updates
   /// for the provided symbols.
   #[serde(rename = "unsubscribe")]
-  Unsubscribe(&'d MarketData),
+  Unsubscribe(Cow<'d, MarketData>),
 }
 
 
@@ -612,7 +612,10 @@ where
     key_id: &str,
     secret: &str,
   ) -> Result<Result<(), Error>, S::Error> {
-    let request = Request::Authenticate { key_id, secret };
+    let request = Request::Authenticate {
+      key_id: key_id.into(),
+      secret: secret.into(),
+    };
     let json = match to_json(&request) {
       Ok(json) => json,
       Err(err) => return Ok(Err(Error::Json(err))),
@@ -680,7 +683,7 @@ where
   /// unsubscribe from receiving data for certain symbols.
   #[inline]
   pub async fn subscribe(&mut self, subscribe: &MarketData) -> Result<Result<(), Error>, S::Error> {
-    let request = Request::Subscribe(subscribe);
+    let request = Request::Subscribe(Cow::Borrowed(subscribe));
     self.subscribe_unsubscribe(&request).await
   }
 
@@ -693,7 +696,7 @@ where
     &mut self,
     unsubscribe: &MarketData,
   ) -> Result<Result<(), Error>, S::Error> {
-    let request = Request::Unsubscribe(unsubscribe);
+    let request = Request::Unsubscribe(Cow::Borrowed(unsubscribe));
     self.subscribe_unsubscribe(&request).await
   }
 
@@ -982,10 +985,9 @@ mod tests {
   #[test]
   fn serialize_authentication_request() {
     let request = Request::Authenticate {
-      key_id: "KEY-ID",
-      secret: "SECRET-KEY",
+      key_id: "KEY-ID".into(),
+      secret: "SECRET-KEY".into(),
     };
-
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"auth","key":"KEY-ID","secret":"SECRET-KEY"}"#;
     assert_eq!(json, expected);
@@ -997,7 +999,7 @@ mod tests {
   fn serialize_subscribe_request() {
     let mut data = MarketData::default();
     data.set_bars(["AAPL", "VOO"]);
-    let request = Request::Subscribe(&data);
+    let request = Request::Subscribe(Cow::Borrowed(&data));
 
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[],"trades":[]}"#;
@@ -1010,7 +1012,7 @@ mod tests {
   fn serialize_unsubscribe_request() {
     let mut data = MarketData::default();
     data.set_bars(["VOO"]);
-    let request = Request::Unsubscribe(&data);
+    let request = Request::Unsubscribe(Cow::Borrowed(&data));
 
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"unsubscribe","bars":["VOO"],"quotes":[],"trades":[]}"#;
