@@ -485,6 +485,17 @@ pub enum Symbols {
   List(SymbolList),
 }
 
+impl Symbols {
+  /// Check whether the object represents no symbols.
+  #[inline]
+  pub fn is_empty(&self) -> bool {
+    match self {
+      Self::List(list) => list.is_empty(),
+      Self::All => false,
+    }
+  }
+}
+
 impl Default for Symbols {
   fn default() -> Self {
     Self::List(SymbolList::from([]))
@@ -824,6 +835,14 @@ mod tests {
   const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[],"trades":[]}"#;
   const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
+
+  /// Test that the [`Symbols::is_empty`] method works as expected.
+  #[test]
+  fn symbols_is_empty() {
+    assert!(!Symbols::All.is_empty());
+    assert!(!Symbols::List(SymbolList::from(["SPY"])).is_empty());
+    assert!(Symbols::List(SymbolList::from([])).is_empty());
+  }
 
   /// Check that we can deserialize the [`DataMessage::Bar`] variant.
   #[test]
