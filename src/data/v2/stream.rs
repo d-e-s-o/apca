@@ -551,9 +551,10 @@ impl MarketData {
 
 
 /// A control message "request" sent over a websocket channel.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[doc(hidden)]
 #[serde(tag = "action")]
-enum Request<'d> {
+pub enum Request<'d> {
   /// A control message indicating whether or not we were authenticated
   /// successfully.
   #[serde(rename = "auth")]
@@ -980,10 +981,10 @@ mod tests {
     assert_eq!(error.message, "internal error");
   }
 
-  /// Check that we can serialize the [`Request::Authenticate`] variant
-  /// properly.
+  /// Check that we can serialize and deserialize the
+  /// [`Request::Authenticate`] variant properly.
   #[test]
-  fn serialize_authentication_request() {
+  fn serialize_deserialize_authentication_request() {
     let request = Request::Authenticate {
       key_id: "KEY-ID".into(),
       secret: "SECRET-KEY".into(),
@@ -991,12 +992,13 @@ mod tests {
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"auth","key":"KEY-ID","secret":"SECRET-KEY"}"#;
     assert_eq!(json, expected);
+    assert_eq!(json_from_str::<Request<'_>>(&json).unwrap(), request);
   }
 
-  /// Check that we can serialize the [`Request::Subscribe`] variant
-  /// properly.
+  /// Check that we can serialize and deserialize the
+  /// [`Request::Subscribe`] variant properly.
   #[test]
-  fn serialize_subscribe_request() {
+  fn serialize_deserialize_subscribe_request() {
     let mut data = MarketData::default();
     data.set_bars(["AAPL", "VOO"]);
     let request = Request::Subscribe(Cow::Borrowed(&data));
@@ -1004,12 +1006,13 @@ mod tests {
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"subscribe","bars":["AAPL","VOO"],"quotes":[],"trades":[]}"#;
     assert_eq!(json, expected);
+    assert_eq!(json_from_str::<Request<'_>>(&json).unwrap(), request);
   }
 
-  /// Check that we can serialize the [`Request::Subscribe`] variant
-  /// properly.
+  /// Check that we can serialize and deserialize the
+  /// [`Request::Subscribe`] variant properly.
   #[test]
-  fn serialize_unsubscribe_request() {
+  fn serialize_deserialize_unsubscribe_request() {
     let mut data = MarketData::default();
     data.set_bars(["VOO"]);
     let request = Request::Unsubscribe(Cow::Borrowed(&data));
@@ -1017,6 +1020,7 @@ mod tests {
     let json = to_json(&request).unwrap();
     let expected = r#"{"action":"unsubscribe","bars":["VOO"],"quotes":[],"trades":[]}"#;
     assert_eq!(json, expected);
+    assert_eq!(json_from_str::<Request<'_>>(&json).unwrap(), request);
   }
 
   /// Check that we can correctly deserialize a `SymbolList` object.
