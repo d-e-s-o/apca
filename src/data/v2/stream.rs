@@ -179,7 +179,7 @@ fn normalize(symbols: Cow<'static, [Symbol]>) -> Cow<'static, [Symbol]> {
 
 
 /// Aggregate data for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Bar {
   /// The bar's symbol.
   #[serde(rename = "S")]
@@ -206,7 +206,7 @@ pub struct Bar {
 
 
 /// A quote for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Quote {
   /// The quote's symbol.
   #[serde(rename = "S")]
@@ -230,7 +230,7 @@ pub struct Quote {
 
 
 /// A trade for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Trade {
   /// The trade's symbol.
   #[serde(rename = "S")]
@@ -251,7 +251,7 @@ pub struct Trade {
 
 
 /// An error as reported by the Alpaca Stream API.
-#[derive(Clone, Debug, Deserialize, PartialEq, ThisError)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ThisError)]
 #[error("{message} ({code})")]
 pub struct StreamApiError {
   /// The error code being reported.
@@ -265,7 +265,7 @@ pub struct StreamApiError {
 
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
-#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[doc(hidden)]
 #[serde(tag = "T")]
 #[allow(clippy::large_enum_variant)]
@@ -848,9 +848,10 @@ mod tests {
     assert!(Symbols::List(SymbolList::from([])).is_empty());
   }
 
-  /// Check that we can deserialize the [`DataMessage::Bar`] variant.
+  /// Check that we can deserialize and serialize the
+  /// [`DataMessage::Bar`] variant.
   #[test]
-  fn parse_bar() {
+  fn serialize_deserialize_bar() {
     let json = r#"{
   "T": "b",
   "S": "SPY",
@@ -863,7 +864,7 @@ mod tests {
 }"#;
 
     let message = json_from_str::<DataMessage>(json).unwrap();
-    let bar = match message {
+    let bar = match &message {
       DataMessage::Bar(bar) => bar,
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
@@ -877,11 +878,17 @@ mod tests {
       bar.timestamp,
       DateTime::<Utc>::from_str("2021-02-22T19:15:00Z").unwrap()
     );
+
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
   }
 
-  /// Check that we can deserialize the [`DataMessage::Quote`] variant.
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Quote`] variant.
   #[test]
-  fn parse_quote() {
+  fn serialize_deserialize_quote() {
     let json: &str = r#"{
   "T": "q",
   "S": "NVDA",
@@ -899,7 +906,7 @@ mod tests {
 }"#;
 
     let message = json_from_str::<DataMessage>(json).unwrap();
-    let quote = match message {
+    let quote = match &message {
       DataMessage::Quote(qoute) => qoute,
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
@@ -913,11 +920,17 @@ mod tests {
       quote.timestamp,
       DateTime::<Utc>::from_str("2022-01-18T23:09:42.151875584Z").unwrap()
     );
+
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
   }
 
-  /// Check that we can deserialize the [`DataMessage::Trade`] variant.
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Trade`] variant.
   #[test]
-  fn parse_trade() {
+  fn serialize_deserialize_trade() {
     let json: &str = r#"{
   "T": "t",
   "i": 96921,
@@ -931,7 +944,7 @@ mod tests {
 }"#;
 
     let message = json_from_str::<DataMessage>(json).unwrap();
-    let trade = match message {
+    let trade = match &message {
       DataMessage::Trade(trade) => trade,
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
@@ -944,25 +957,37 @@ mod tests {
       trade.timestamp,
       DateTime::<Utc>::from_str("2021-02-22T15:51:44.208Z").unwrap()
     );
+
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
   }
 
-  /// Check that we can deserialize the [`DataMessage::Success`] variant.
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Success`] variant.
   #[test]
-  fn parse_success() {
+  fn serialize_deserialize_success() {
     let json = r#"{"T":"success","msg":"authenticated"}"#;
     let message = json_from_str::<DataMessage>(json).unwrap();
     let () = match message {
       DataMessage::Success => (),
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
+
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
   }
 
-  /// Check that we can deserialize the [`DataMessage::Error`] variant.
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Error`] variant.
   #[test]
-  fn parse_error() {
+  fn serialize_deserialize_error() {
     let json = r#"{"T":"error","code":400,"msg":"invalid syntax"}"#;
     let message = json_from_str::<DataMessage>(json).unwrap();
-    let error = match message {
+    let error = match &message {
       DataMessage::Error(error) => error,
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
@@ -970,15 +995,25 @@ mod tests {
     assert_eq!(error.code, 400);
     assert_eq!(error.message, "invalid syntax");
 
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
+
     let json = r#"{"T":"error","code":500,"msg":"internal error"}"#;
     let message = json_from_str::<DataMessage>(json).unwrap();
-    let error = match message {
+    let error = match &message {
       DataMessage::Error(error) => error,
       _ => panic!("Decoded unexpected message variant: {:?}", message),
     };
 
     assert_eq!(error.code, 500);
     assert_eq!(error.message, "internal error");
+
+    assert_eq!(
+      json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
   }
 
   /// Check that we can serialize and deserialize the
