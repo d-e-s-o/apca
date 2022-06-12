@@ -132,10 +132,10 @@ pub enum ActivityType {
   #[serde(rename = "SC")]
   SymbolChange,
   /// Stock spinoff.
-  #[serde(rename = "SSO")]
+  #[serde(rename = "SPIN")]
   StockSpinoff,
   /// Stock split.
-  #[serde(rename = "SSP")]
+  #[serde(rename = "SPLIT")]
   StockSplit,
   /// Any other activity type that we have not accounted for.
   ///

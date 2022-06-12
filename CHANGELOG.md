@@ -7,6 +7,7 @@ Unreleased
 - Added `class` member to `api::v2::order::Order` type
 - Added `symbols` member to `api::v2::orders::OrdersReq` type
 - Added `Deserialize` implementation for more types
+- Updated `ActivityType` enum to be in sync with upstream variants
 - Made `api::v2::position::Position` exhaustive
 - Bumped `uuid` dependency to `1.0`
 
