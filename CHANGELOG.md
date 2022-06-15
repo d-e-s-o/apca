@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.25.0
+------
 - Added `gzip` compression support for transparent API response
   compression controlled by default enabled `gzip` feature
 - Added support for subscribing to realtime trades
