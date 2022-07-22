@@ -104,7 +104,7 @@ mod tests {
 
     let assets = client.issue::<Get>(&request).await.unwrap();
 
-    let asset = assets.iter().find(|x| x.symbol == "BTCUSD").unwrap();
+    let asset = assets.iter().find(|x| x.symbol == "BTC/USD").unwrap();
     assert_eq!(asset.class, Class::Crypto);
   }
 }
