@@ -1,5 +1,5 @@
-[![pipeline](https://gitlab.com/d-e-s-o/apca/badges/main/pipeline.svg)](https://gitlab.com/d-e-s-o/apca/commits/main)
-[![coverage](https://gitlab.com/d-e-s-o/apca/badges/main/coverage.svg)](https://gitlab.com/d-e-s-o/apca/-/jobs/artifacts/main/file/tarpaulin-report/tarpaulin-report.html?job=test-coverage:tarpaulin)
+[![pipeline](https://github.com/d-e-s-o/apca/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/d-e-s-o/apca/actions/workflows/ci.yml)
+[![coverage](https://codecov.io/gh/d-e-s-o/apca/branch/main/graph/badge.svg)](https://codecov.io/gh/d-e-s-o/apca)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
 [![Docs](https://docs.rs/apca/badge.svg)](https://docs.rs/apca)
 [![rustc](https://img.shields.io/badge/rustc-1.57+-blue.svg)](https://blog.rust-lang.org/2021/12/02/Rust-1.57.0.html)

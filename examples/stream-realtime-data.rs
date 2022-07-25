@@ -1,6 +1,8 @@
 // Copyright (C) 2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![allow(clippy::let_unit_value)]
+
 use apca::data::v2::stream::drive;
 use apca::data::v2::stream::MarketData;
 use apca::data::v2::stream::RealtimeData;
