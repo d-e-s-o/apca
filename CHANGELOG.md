@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped minimum supported Rust version to `1.57`
+
+
 0.25.0
 ------
 - Added `gzip` compression support for transparent API response
