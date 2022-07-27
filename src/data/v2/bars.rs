@@ -354,8 +354,8 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open.to_u64(), Some(175));
-    assert_eq!(bars[0].close.to_u64(), Some(171));
+    assert_eq!(bars[0].open.to_u64(), Some(174));
+    assert_eq!(bars[0].close.to_u64(), Some(170));
     assert_eq!(bars[0].high.to_u64(), Some(176));
     assert_eq!(bars[0].low.to_u64(), Some(170));
     assert_eq!(bars[0].volume, 41344313);
