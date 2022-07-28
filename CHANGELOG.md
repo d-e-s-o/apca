@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Added optional `price` member to
+  `api::v2::account_activities::NonTradeActivity` type
 - Switched to using GitHub Actions as CI provider
 - Bumped minimum supported Rust version to `1.57`
 

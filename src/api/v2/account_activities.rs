@@ -232,6 +232,9 @@ pub struct NonTradeActivityImpl<T> {
   /// the payment. Not present for other activity types.
   #[serde(rename = "qty")]
   pub quantity: Option<Num>,
+  /// The per-share price. Not present on all activities.
+  #[serde(rename = "price")]
+  pub price: Option<Num>,
   /// For dividend activities, the average amount paid per share. Not
   /// present for other activity types.
   #[serde(rename = "per_share_amount")]
@@ -249,6 +252,7 @@ impl<T> NonTradeActivityImpl<T> {
       net_amount,
       symbol,
       quantity,
+      price,
       per_share_amount,
       description,
       ..
@@ -261,6 +265,7 @@ impl<T> NonTradeActivityImpl<T> {
       net_amount,
       symbol,
       quantity,
+      price,
       per_share_amount,
       description,
     }
