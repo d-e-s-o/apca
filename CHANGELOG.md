@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.25.1
+------
 - Added optional `price` member to
   `api::v2::account_activities::NonTradeActivity` type
 - Switched to using GitHub Actions as CI provider
