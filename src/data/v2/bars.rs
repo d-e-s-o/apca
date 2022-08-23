@@ -283,19 +283,19 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open, Num::new(181, 1));
-    assert_eq!(bars[0].close, Num::new(17669, 100));
-    assert_eq!(bars[0].high, Num::new(1823899, 10000));
-    assert_eq!(bars[0].low, Num::new(17627, 100));
+    assert_eq!(bars[0].open.to_u64(), Some(180));
+    assert_eq!(bars[0].close.to_u64(), Some(176));
+    assert_eq!(bars[0].high.to_u64(), Some(182));
+    assert_eq!(bars[0].low.to_u64(), Some(176));
     assert_eq!(bars[0].volume, 41344313);
     assert_eq!(
       bars[1].time,
       DateTime::<Utc>::from_str("2018-12-06T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[1].open, Num::new(8587, 50));
-    assert_eq!(bars[1].close, Num::new(4368, 25));
-    assert_eq!(bars[1].high, Num::new(8739, 50));
-    assert_eq!(bars[1].low, Num::new(8521, 50));
+    assert_eq!(bars[1].open.to_u64(), Some(171));
+    assert_eq!(bars[1].close.to_u64(), Some(174));
+    assert_eq!(bars[1].high.to_u64(), Some(174));
+    assert_eq!(bars[1].low.to_u64(), Some(170));
     assert_eq!(bars[1].volume, 43099506);
   }
 
