@@ -177,6 +177,7 @@ mod tests {
 
   /// Check that we can list existing orders.
   #[test(tokio::test)]
+  #[ignore]
   async fn list_orders() {
     async fn test(status: Status) {
       let api_info = ApiInfo::from_env().unwrap();
@@ -219,6 +220,7 @@ mod tests {
 
   /// Verify that we can list nested orders.
   #[test(tokio::test)]
+  #[ignore]
   async fn list_nested_order() {
     let request = order::OrderReqInit {
       class: order::Class::OneTriggersOther,
@@ -251,6 +253,7 @@ mod tests {
 
   /// Test that orders can be correctly filtered by a list of symbols.
   #[test(tokio::test)]
+  #[ignore]
   async fn symbol_filter_orders() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
