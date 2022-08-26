@@ -35,7 +35,7 @@ fn make_api_stream_url(base_url: Url) -> Result<Url, Error> {
 
 /// An object encapsulating the information used for working with the
 /// Alpaca API.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct ApiInfo {
   /// The base URL for the Trading API.

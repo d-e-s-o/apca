@@ -17,7 +17,7 @@ use crate::Str;
 
 
 /// A GET request to be made to the /v2/stocks/{symbol}/quotes/latest endpoint.
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct LastQuoteReq {
   /// The symbol to retrieve the last quote for.
   #[serde(skip)]
@@ -29,7 +29,7 @@ pub struct LastQuoteReq {
 
 
 /// A helper for initializing [`LastQuoteReq`] objects.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_copy_implementations)]
 pub struct LastQuoteReqInit {
   /// See `LastQuoteReq::feed`.
@@ -55,7 +55,7 @@ impl LastQuoteReqInit {
 
 /// A quote bar as returned by the /v2/stocks/<symbol>/quotes/latest endpoint.
 // TODO: Not all fields are hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Quote {
   /// The time stamp of this quote.

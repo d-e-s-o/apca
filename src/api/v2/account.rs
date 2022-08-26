@@ -31,7 +31,7 @@ impl Deref for Id {
 
 
 /// An enumeration of the various states an account can be in.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Status {
   /// The account is onboarding.
   #[serde(rename = "ONBOARDING")]
@@ -64,7 +64,7 @@ pub enum Status {
 
 /// An object as returned by the /v2/account endpoint.
 // TODO: The `sma` field is not yet hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Account {
   /// Account ID.
   #[serde(rename = "id")]

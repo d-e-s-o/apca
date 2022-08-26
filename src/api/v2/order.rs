@@ -42,7 +42,7 @@ impl Deref for Id {
 
 
 /// The status an order can have.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Status {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution. This is the usual initial state of an order.
@@ -137,7 +137,7 @@ impl Status {
 
 
 /// The side an order is on.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Side {
   /// Buy an asset.
   #[serde(rename = "buy")]
@@ -161,7 +161,7 @@ impl Not for Side {
 
 
 /// The class an order belongs to.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Class {
   /// Any non-bracket order (i.e., regular market, limit, or stop loss
   /// orders).
@@ -195,7 +195,7 @@ impl Default for Class {
 
 /// The type of an order.
 // Note that we currently do not support `stop_limit` orders.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Type {
   /// A market order.
   #[serde(rename = "market")]
@@ -223,7 +223,7 @@ impl Default for Type {
 
 
 /// A description of the time for which an order is valid.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TimeInForce {
   /// The order is good for the day, and it will be canceled
   /// automatically at the end of Regular Trading Hours if unfilled.
@@ -260,7 +260,7 @@ struct TakeProfitSerde {
 
 /// The take profit part of a bracket, one-cancels-other, or
 /// one-triggers-other order.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(from = "TakeProfitSerde", into = "TakeProfitSerde")]
 pub enum TakeProfit {
   /// The limit price to use.
@@ -294,7 +294,7 @@ struct StopLossSerde {
 
 /// The stop loss part of a bracket, one-cancels-other, or
 /// one-triggers-other order.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(from = "StopLossSerde", into = "StopLossSerde")]
 pub enum StopLoss {
   /// The stop loss price to use.
@@ -330,7 +330,7 @@ impl From<StopLoss> for StopLossSerde {
 
 
 /// An abstraction to be able to handle orders in both notional and quantity units.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Amount {
   /// Wrapper for the quantity field.
@@ -369,7 +369,7 @@ impl Amount {
 
 
 /// A helper for initializing `OrderReq` objects.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct OrderReqInit {
   /// See `OrderReq::class`.
   pub class: Class,
@@ -429,7 +429,7 @@ impl OrderReqInit {
 
 
 /// A POST request to be made to the /v2/orders endpoint.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OrderReq {
   /// Symbol or asset ID to identify the asset to trade.
   #[serde(rename = "symbol")]
@@ -486,7 +486,7 @@ pub struct OrderReq {
 
 
 /// A helper for initializing `ChangeReq` objects.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ChangeReqInit {
   /// See `ChangeReq::quantity`.
   pub quantity: Num,
@@ -517,7 +517,7 @@ impl ChangeReqInit {
 
 
 /// A PATCH request to be made to the /v2/orders/<order-id> endpoint.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ChangeReq {
   /// Number of shares to trade.
   #[serde(rename = "qty")]

@@ -11,7 +11,7 @@ use crate::Str;
 
 
 /// A helper for initializing `AssetsReq` objects.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct AssetsReqInit {
   /// See `AssetsReq::status`.
   pub status: Status,
@@ -34,7 +34,7 @@ impl AssetsReqInit {
 
 
 /// A GET request to be made to the /v2/assets endpoint.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct AssetsReq {
   /// The status of assets to include in the response.
   #[serde(rename = "status")]

@@ -1,4 +1,4 @@
-// Copyright (C) 2021 The apca Developers
+// Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -12,7 +12,7 @@ use crate::Str;
 
 
 /// A watchlist item.
-#[derive(Deserialize, PartialEq, Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 pub struct WatchlistItem {
   /// The watchlist's ID.
   #[serde(rename = "id")]

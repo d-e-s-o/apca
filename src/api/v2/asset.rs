@@ -33,7 +33,7 @@ impl Deref for Id {
 
 
 /// An enumeration of the various asset classes available.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[non_exhaustive]
 pub enum Class {
   /// US equities.
@@ -88,7 +88,7 @@ impl FromStr for Class {
 
 
 /// The status an asset can have.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Status {
   /// The asset is active.
   #[serde(rename = "active")]
@@ -117,7 +117,7 @@ impl Default for Status {
 
 
 /// An enumeration of all possible symbol parsing errors.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseSymbolError {
   /// The symbol contains an invalid character.
   InvalidSymbol(char),
@@ -145,7 +145,7 @@ impl Display for ParseSymbolError {
 
 
 /// A symbol and the various ways to represent it.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(try_from = "&str")]
 pub enum Symbol {
   /// The symbol. Note that this is not a unique way to identify an
@@ -239,7 +239,7 @@ impl Serialize for Symbol {
 
 
 /// An enumeration of the various supported exchanges.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[non_exhaustive]
 pub enum Exchange {
   /// American Stock Exchange.
@@ -314,7 +314,7 @@ impl FromStr for Exchange {
 
 
 /// The representation of an asset as used by Alpaca.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Asset {
   /// The asset's ID.

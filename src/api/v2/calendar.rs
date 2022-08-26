@@ -32,7 +32,7 @@ where
 
 
 /// The market open and close times for a specific date.
-#[derive(Clone, Copy, Deserialize, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 pub struct OpenClose {
   /// The date to which the below open a close times apply.
   #[serde(rename = "date")]
@@ -47,7 +47,7 @@ pub struct OpenClose {
 
 
 /// A GET request to be made to the /v2/calendar endpoint.
-#[derive(Clone, Copy, Serialize, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub struct CalendarReq {
   /// The (inclusive) start date of the range for which to retrieve
   /// calendar data.

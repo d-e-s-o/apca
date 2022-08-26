@@ -17,7 +17,7 @@ use crate::Str;
 
 
 /// The side of a position.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Side {
   /// A long position of an asset.
   #[serde(rename = "long")]
@@ -42,7 +42,7 @@ impl Not for Side {
 
 /// A single position as returned by the /v2/positions endpoint on a GET
 /// request.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Position {
   /// The ID of the asset represented by the position.
   #[serde(rename = "asset_id")]

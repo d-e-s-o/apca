@@ -24,7 +24,7 @@ use thiserror::Error;
 // Note that actually this type should probably be specific to the API
 // version in question. However, at this point we only support v2, so we
 // luck out here.
-#[derive(Clone, Debug, Deserialize, Error, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Error, Eq, PartialEq)]
 #[error("{message} ({code})")]
 pub struct ApiError {
   /// An error code as provided by Alpaca.

@@ -11,7 +11,7 @@ use crate::Str;
 
 
 /// A type encapsulating market open/close timing information.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Clock {
   /// An indication whether the market is currently open or not.
   #[serde(rename = "is_open")]

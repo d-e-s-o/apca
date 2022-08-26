@@ -17,7 +17,7 @@ use crate::Str;
 
 
 /// An enumeration of the various supported time frames.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum TimeFrame {
   /// A time frame of one minute.
   #[serde(rename = "1Min")]
@@ -32,7 +32,7 @@ pub enum TimeFrame {
 
 
 /// An enumeration of the adjustment
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum Adjustment {
   /// No adjustment, i.e., raw data.
   #[serde(rename = "raw")]
@@ -50,7 +50,7 @@ pub enum Adjustment {
 
 
 /// A GET request to be issued to the /v2/stocks/<symbol>/bars endpoint.
-#[derive(Clone, Debug, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct BarsReq {
   /// The symbol for which to retrieve market data.
   #[serde(skip)]
@@ -86,7 +86,7 @@ pub struct BarsReq {
 
 
 /// A helper for initializing [`BarsReq`] objects.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct BarsReqInit {
   /// See `BarsReq::limit`.
   pub limit: Option<usize>,
@@ -128,7 +128,7 @@ impl BarsReqInit {
 
 
 /// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Bar {
   /// The beginning time of this bar.
@@ -153,7 +153,7 @@ pub struct Bar {
 
 
 /// A collection of bars as returned by the API. This is one page of bars.
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Bars {
   /// The list of returned bars.

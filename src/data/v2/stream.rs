@@ -179,7 +179,7 @@ fn normalize(symbols: Cow<'static, [Symbol]>) -> Cow<'static, [Symbol]> {
 
 
 /// Aggregate data for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Bar {
   /// The bar's symbol.
   #[serde(rename = "S")]
@@ -206,7 +206,7 @@ pub struct Bar {
 
 
 /// A quote for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Quote {
   /// The quote's symbol.
   #[serde(rename = "S")]
@@ -230,7 +230,7 @@ pub struct Quote {
 
 
 /// A trade for an equity.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Trade {
   /// The trade's symbol.
   #[serde(rename = "S")]
@@ -251,7 +251,7 @@ pub struct Trade {
 
 
 /// An error as reported by the Alpaca Stream API.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize, ThisError)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, ThisError)]
 #[error("{message} ({code})")]
 pub struct StreamApiError {
   /// The error code being reported.
@@ -265,7 +265,7 @@ pub struct StreamApiError {
 
 /// An enum representing the different messages we may receive over our
 /// websocket channel.
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[doc(hidden)]
 #[serde(tag = "T")]
 #[allow(clippy::large_enum_variant)]
@@ -396,7 +396,7 @@ where
 
 
 /// A type representing a normalized list of symbols.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SymbolList(#[serde(deserialize_with = "normalized_from_str")] Cow<'static, [Symbol]>);
 
 impl Deref for SymbolList {
@@ -475,7 +475,7 @@ mod symbols_all {
 // Please note that the order of variants is important for
 // deserialization purposes: we first need to check whether we are
 // dealing with the `All` variant.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Symbols {
   /// A variant representing all symbols.
@@ -504,7 +504,7 @@ impl Default for Symbols {
 
 
 /// A type defining the market data a client intends to subscribe to.
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct MarketData {
   /// The aggregate bars to subscribe to.
   #[serde(default)]
@@ -551,7 +551,7 @@ impl MarketData {
 
 
 /// A control message "request" sent over a websocket channel.
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[doc(hidden)]
 #[serde(tag = "action")]
 pub enum Request<'d> {

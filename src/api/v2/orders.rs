@@ -11,7 +11,7 @@ use crate::util::vec_from_comma_separated_str;
 use crate::Str;
 
 /// The status of orders to list.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Status {
   /// List open orders only.
   #[serde(rename = "open")]
@@ -28,7 +28,7 @@ pub enum Status {
 /// A GET request to be made to the /v2/orders endpoint.
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OrdersReq {
   /// A list of simple symbols used as filters for the returned orders.
   #[serde(

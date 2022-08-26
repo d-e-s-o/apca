@@ -37,7 +37,7 @@ impl Deref for Id {
 
 
 /// A watchlist.
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Debug, Deserialize, Eq, PartialEq)]
 pub struct Watchlist {
   /// The watchlist's ID.
   #[serde(rename = "id")]
@@ -58,7 +58,7 @@ pub struct Watchlist {
 
 
 /// A create watchlist request item
-#[derive(Serialize, PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CreateReq {
   /// The watchlist's name.
   #[serde(rename = "name")]

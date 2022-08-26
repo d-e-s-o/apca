@@ -31,7 +31,7 @@ where
 
 
 /// An enum representing the various non-trade activities.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ActivityType {
   /// Order fills (both partial and full fills).
   ///
@@ -146,7 +146,7 @@ pub enum ActivityType {
 
 
 /// An enumeration describing the side of a trade activity.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 pub enum Side {
   /// A buy of an asset.
   #[serde(rename = "buy")]
@@ -162,7 +162,7 @@ pub enum Side {
 
 /// A trade related activity.
 // TODO: Not all fields are hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct TradeActivity {
   /// An ID for the activity. Can be sent as `page_token` in requests to
@@ -204,7 +204,7 @@ pub struct TradeActivity {
 /// meant to be used directly by users. They should use
 /// `NonTradeActivity` instead.
 // TODO: Not all fields are hooked up.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct NonTradeActivityImpl<T> {
   /// An ID for the activity. Can be sent as `page_token` in requests to
@@ -280,7 +280,7 @@ pub type NonTradeActivity = NonTradeActivityImpl<ActivityType>;
 
 
 /// An activity.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Activity {
   /// A trade activity.
   Trade(TradeActivity),
@@ -351,7 +351,7 @@ impl<'de> Deserialize<'de> for Activity {
 
 
 /// The direction in which account activities are reported.
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum Direction {
   /// Report account activity in descending order, i.e., from more
   /// recent activities to older ones.
@@ -372,7 +372,7 @@ impl Default for Direction {
 
 
 /// A GET request to be made to the /v2/account/activities endpoint.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize)]
 pub struct ActivityReq {
   /// The types of activities to retrieve.
   ///

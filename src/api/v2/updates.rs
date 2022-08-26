@@ -40,7 +40,7 @@ use crate::Error;
 
 
 /// The status of an order, as reported as part of a `OrderUpdate`.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum OrderStatus {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution.
@@ -109,7 +109,7 @@ pub enum OrderStatus {
 
 
 /// An enumeration of the different event streams.
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[doc(hidden)]
 pub enum StreamType {
   /// A stream for order updates.
@@ -137,7 +137,7 @@ impl<'d> From<&'d [StreamType]> for Streams<'d> {
 
 
 /// The status reported in authentication control messages.
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[doc(hidden)]
 #[allow(missing_copy_implementations)]
 pub enum AuthenticationStatus {
@@ -356,7 +356,7 @@ type MapFn = fn(Result<wrap::Message, WebSocketError>) -> ParsedMessage;
 
 /// A type used for requesting a subscription to the "trade_updates"
 /// event stream.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OrderUpdates {}
 
 #[async_trait]

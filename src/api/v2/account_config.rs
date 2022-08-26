@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2021 The apca Developers
+// Copyright (C) 2020-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use http::Method;
@@ -12,7 +12,7 @@ use crate::Str;
 
 
 /// An enum representing the possible trade confirmation settings.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum TradeConfirmation {
   /// Send an e-mail to confirm trades.
   #[serde(rename = "all")]
@@ -25,7 +25,7 @@ pub enum TradeConfirmation {
 
 /// A response as returned by the /v2/account/configurations endpoint.
 // TODO: Not all fields are hooked up yet.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Configuration {
   /// Whether and how trades are confirmed.

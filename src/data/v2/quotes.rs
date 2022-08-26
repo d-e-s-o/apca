@@ -19,7 +19,7 @@ pub use super::last_quote::Quote;
 
 /// A collection of quotes as returned by the API. This is one page of
 /// quotes.
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Quotes {
   /// The list of returned quotes.
@@ -34,7 +34,7 @@ pub struct Quotes {
 
 
 /// A helper for initializing [`QuotesReq`] objects.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct QuotesReqInit {
   /// See `QuotesReq::limit`.
   pub limit: Option<usize>,
@@ -67,7 +67,7 @@ impl QuotesReqInit {
 
 /// A GET request to be made to the /v2/stocks/<symbol>/quotes endpoint.
 // TODO: Not all fields are hooked up.
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct QuotesReq {
   /// The symbol to retrieve quotes for.
   #[serde(skip)]
