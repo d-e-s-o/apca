@@ -309,6 +309,7 @@ impl Activity {
 
   /// Convert this activity into a trade activity, if it is of the
   /// corresponding variant.
+  #[allow(clippy::result_large_err)]
   pub fn into_trade(self) -> Result<TradeActivity, Self> {
     match self {
       Activity::Trade(trade) => Ok(trade),
@@ -318,6 +319,7 @@ impl Activity {
 
   /// Convert this activity into a non-trade activity, if it is of the
   /// corresponding variant.
+  #[allow(clippy::result_large_err)]
   pub fn into_non_trade(self) -> Result<NonTradeActivity, Self> {
     match self {
       Activity::Trade(..) => Err(self),
