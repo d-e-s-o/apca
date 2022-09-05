@@ -194,9 +194,6 @@ mod tests {
       let before = result.unwrap();
       let after = client.issue::<Get>(&request).await.unwrap();
 
-      let before = Into::<Vec<_>>::into(before);
-      let after = Into::<Vec<_>>::into(after);
-
       match status {
         Status::Open => {
           assert!(before.into_iter().any(|x| x.id == order.id));
