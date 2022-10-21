@@ -16,17 +16,17 @@ use crate::data::v2::Feed;
 use crate::data::DATA_BASE_URL;
 use crate::Str;
 
-/// A GET request to be made to the /v2/stocks/quotes/latest endpoint.
+/// A GET request to be made to the /v2/stocks/{symbol}/trades/latest endpoint.
 #[derive(Clone, Serialize, Eq, PartialEq, Debug)]
-pub struct LastQuoteReq {
-  /// Comma-separated list of symbols to retrieve the last quote for.
+pub struct LastTradeRequest {
+  /// Symbols to retrieve the last trade for, comma separated.
   pub symbols: String,
   /// The data feed to use.
   pub feed: Option<Feed>,
 }
 
-impl LastQuoteReq {
-  /// Create a new LastQuoteReq with the given symbols.
+impl LastTradeRequest {
+  /// Create a new LastTradeRequest.
   pub fn new(symbols: Vec<String>) -> Self {
     Self {
       symbols: symbols.join(",").into(),
@@ -40,45 +40,39 @@ impl LastQuoteReq {
   }
 }
 
-/// A quote bar as returned by the /v2/stocks/quotes/latest endpoint.
+/// A trade data point as returned by the /v2/stocks/{symbol}/trades/latest endpoint.
 /// See
-/// https://alpaca.markets/docs/api-references/market-data-api/stock-pricing-data/historical/#latest-multi-quotes
+/// https://alpaca.markets/docs/api-references/market-data-api/stock-pricing-data/historical/#trade
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
-pub struct Quote {
-  /// The time stamp of this quote.
+pub struct Trade {
+  /// The time stamp of this trade.
   pub time: DateTime<Utc>,
-  /// The ask price.
-  pub ask_price: Num,
-  /// The ask size.
-  pub ask_size: u64,
-  /// The bid price.
-  pub bid_price: Num,
-  /// The bid size.
-  pub bid_size: u64,
-  /// Symbol of this quote
+  /// Trade price
+  pub price: Num,
+  /// Trade size
+  pub size: u64,
+  /// Symbol
   pub symbol: String,
 }
 
-impl Quote {
-  fn from(symbol: &str, point: QuoteDataPoint) -> Self {
+impl Trade {
+  fn from(symbol: &str, point: TradeDataPoint) -> Self {
     Self {
       time: point.t,
-      ask_price: point.ap.clone(),
-      ask_size: point.r#as,
-      bid_price: point.bp.clone(),
-      bid_size: point.bs,
+      price: point.p,
+      size: point.s,
       symbol: symbol.to_string(),
     }
   }
 
-  fn parse(body: &[u8]) -> Result<Vec<Quote>, serde_json::Error> {
-    from_json::<LastQuoteResponse>(body).map(|response| {
+  fn parse(body: &[u8]) -> Result<Vec<Trade>, serde_json::Error> {
+    from_json::<LastTradeResponse>(body).map(|response| {
       response
-        .quotes
+        .trades
         .into_iter()
-        .map(|(sym, point)| Quote::from(&sym, point))
+        .map(|(sym, point)| Trade::from(&sym, point))
         .collect()
     })
   }
@@ -86,26 +80,24 @@ impl Quote {
 
 /// fields for individual data points in the response JSON
 #[derive(Clone, Debug, Deserialize)]
-pub struct QuoteDataPoint {
+struct TradeDataPoint {
   t: DateTime<Utc>,
-  ap: Num,
-  r#as: u64,
-  bp: Num,
-  bs: u64,
+  p: Num,
+  s: u64,
 }
 
 /// A representation of the JSON data in the response
-#[derive(Debug, Deserialize)]
-pub struct LastQuoteResponse {
-  quotes: HashMap<String, QuoteDataPoint>,
+#[derive(Deserialize)]
+struct LastTradeResponse {
+  trades: HashMap<String, TradeDataPoint>,
 }
 
 EndpointNoParse! {
   /// The representation of a GET request to the
-  /// /v2/stocks/quotes/latest endpoint.
-  pub Get(LastQuoteReq),
-  Ok => Vec<Quote>, [
-    /// The last quote was retrieved successfully.
+  /// /v2/stocks/trades/latest endpoint.
+  pub Get(LastTradeRequest),
+  Ok => Vec<Trade>, [
+    /// The last Trade was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
@@ -119,7 +111,7 @@ EndpointNoParse! {
   }
 
   fn path(_input: &Self::Input) -> Str {
-    format!("/v2/stocks/quotes/latest").into()
+    "/v2/stocks/trades/latest".into()
   }
 
   fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
@@ -127,7 +119,7 @@ EndpointNoParse! {
   }
 
   fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
-    Quote::parse(body).map_err(Self::ConversionError::from)
+    Trade::parse(body).map_err(Self::ConversionError::from)
   }
 
   fn parse_err(body: &[u8]) -> Result<Self::ApiError, Vec<u8>> {
@@ -147,79 +139,76 @@ mod tests {
   use crate::Client;
   use crate::RequestError;
 
-  /// Check that we can parse the reference quote from the
+  /// Check that we can parse the reference trade from the
   /// documentation.
   #[test]
-  fn parse_reference_quote() {
+  fn parse_reference_trade() {
     let response = br#"{
-			"quotes": {
+			"trades": {
 				"TSLA": {
-					"t": "2022-04-12T17:26:45.009288296Z",
-					"ax": "V",
-					"ap": 1020,
-					"as": 3,
-					"bx": "V",
-					"bp": 990,
-					"bs": 5,
-					"c": ["R"],
+					"t": "2022-04-12T17:05:06.936423531Z",
+					"x": "V",
+					"p": 995,
+					"s": 100,
+					"c": ["@"],
+					"i": 10741,
 					"z": "C"
 				},
 				"AAPL": {
-					"t": "2022-04-12T17:26:44.962998616Z",
-					"ax": "V",
-					"ap": 170,
-					"as": 1,
-					"bx": "V",
-					"bp": 168.03,
-					"bs": 1,
-					"c": ["R"],
+					"t": "2022-04-12T17:05:17.428334819Z",
+					"x": "V",
+					"p": 167.86,
+					"s": 99,
+					"c": ["@"],
+					"i": 7980,
 					"z": "C"
 				}
 			}
 		}"#;
 
-    let mut result = Quote::parse(response).unwrap();
+    let mut result = Trade::parse(response).unwrap();
     result.sort_by_key(|t| t.time);
     assert_eq!(result.len(), 2);
-    assert_eq!(result[1].ask_price, Num::new(1020, 1));
-    assert_eq!(result[1].ask_size, 3);
-    assert_eq!(result[1].bid_price, Num::new(990, 1));
-    assert_eq!(result[1].bid_size, 5);
-    assert_eq!(result[1].symbol, "TSLA".to_string());
+    assert_eq!(result[1].price, Num::new(16786, 100));
+    assert_eq!(result[1].size, 99);
+    assert_eq!(result[1].symbol, "AAPL".to_string());
     assert_eq!(
       result[1].time,
-      DateTime::parse_from_rfc3339("2022-04-12T17:26:45.009288296Z").unwrap()
+      DateTime::parse_from_rfc3339("2022-04-12T17:05:17.428334819Z").unwrap()
     );
   }
 
-  /// Verify that we can retrieve the last quote for an asset.
+  /// Verify that we can retrieve the last trade for an asset.
   #[test(tokio::test)]
-  async fn request_last_quote() {
+  async fn request_last_trade() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReq::new(vec!["SPY".to_string()]);
-    let quotes = client.issue::<Get>(&req).await.unwrap();
+    let req = LastTradeRequest::new(vec!["SPY".to_string()]);
+    let trades = client.issue::<Get>(&req).await.unwrap();
     // Just as a rough sanity check, we require that the reported time
     // is some time after two weeks before today. That should safely
     // account for any combination of holidays, weekends, etc.
-    assert!(quotes[0].time >= Utc::now() - Duration::weeks(2));
+    assert!(trades[0].time >= Utc::now() - Duration::weeks(2));
+    // This test will fail if SPY goes below $1, but in that case a lot else is wrong with the world.
+    assert!(trades[0].price >= Num::new(1, 1));
   }
 
   /// Retrieve multiple symbols at once.
   #[test(tokio::test)]
-  async fn request_last_quotes_multi() {
+  async fn request_last_trades_multi() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReq::new(vec![
+    let req = LastTradeRequest::new(vec![
       "SPY".to_string(),
       "QQQ".to_string(),
       "MSFT".to_string(),
     ]);
-    let quotes = client.issue::<Get>(&req).await.unwrap();
-    assert_eq!(quotes.len(), 3);
-    assert!(quotes[0].time >= Utc::now() - Duration::weeks(2));
+    let trades = client.issue::<Get>(&req).await.unwrap();
+    assert_eq!(trades.len(), 3);
+    assert!(trades[0].time >= Utc::now() - Duration::weeks(2));
+    assert!(trades[0].price >= Num::new(1, 1));
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.
@@ -228,7 +217,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReq::new(vec!["SPY".to_string()]).with_feed(Feed::SIP);
+    let req = LastTradeRequest::new(vec!["SPY".to_string()]).with_feed(Feed::SIP);
 
     let result = client.issue::<Get>(&req).await;
     // Unfortunately we can't really know whether the user has the
@@ -240,28 +229,14 @@ mod tests {
     }
   }
 
-  /// Non-existent symbol is skipped in the result.
+  /// A bad symbol should not result in an error, but skips it in the result
   #[test(tokio::test)]
   async fn nonexistent_symbol() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReq::new(vec!["SPY".to_string(), "NOSUCHSYMBOL".to_string()]);
-    let quotes = client.issue::<Get>(&req).await.unwrap();
-    assert_eq!(quotes.len(), 1);
-  }
-
-  /// Symbol with characters outside A-Z results in an error response from the server.
-  #[test(tokio::test)]
-  async fn bad_symbol() {
-    let api_info = ApiInfo::from_env().unwrap();
-    let client = Client::new(api_info);
-
-    let req = LastQuoteReq::new(vec!["ABC123".to_string()]);
-    let err = client.issue::<Get>(&req).await.unwrap_err();
-    match err {
-      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
-    };
+    let req = LastTradeRequest::new(vec!["BZZZZZZT".to_string(), "AAPL".to_string()]);
+    let trades = client.issue::<Get>(&req).await.unwrap();
+    assert_eq!(trades.len(), 1);
   }
 }
