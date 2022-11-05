@@ -12,5 +12,7 @@ pub mod last_quote;
 pub mod quotes;
 /// Definitions for real-time streaming of market data.
 pub mod stream;
+/// Definitions for retrieval of market data trades.
+pub mod trades;
 
 pub use feed::Feed;
