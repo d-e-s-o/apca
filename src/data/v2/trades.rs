@@ -283,7 +283,7 @@ mod tests {
   }
 
   /// Verify that we error out as expected when attempting to retrieve
-  /// aggregate data bars for a non-existent symbol.
+  /// aggregate data trades for a non-existent symbol.
   #[test(tokio::test)]
   async fn nonexistent_symbol() {
     let api_info = ApiInfo::from_env().unwrap();
