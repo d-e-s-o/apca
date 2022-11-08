@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added support for historic trade retrieval via `data::v2::trades`
+
+
 0.25.1
 ------
 - Added optional `price` member to
