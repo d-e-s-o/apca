@@ -109,9 +109,9 @@ mod tests {
     let serialized = r#"{"date":"2020-04-09","open":"09:30","close":"16:00"}"#;
     let open_close = from_json::<OpenClose>(serialized).unwrap();
     let expected = OpenClose {
-      date: NaiveDate::from_ymd(2020, 4, 9),
-      open: NaiveTime::from_hms(9, 30, 0),
-      close: NaiveTime::from_hms(16, 0, 0),
+      date: NaiveDate::from_ymd_opt(2020, 4, 9).unwrap(),
+      open: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
+      close: NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
     };
     assert_eq!(open_close, expected);
   }
@@ -134,8 +134,8 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let start = NaiveDate::from_ymd(2020, 4, 6);
-    let end = NaiveDate::from_ymd(2020, 4, 10);
+    let start = NaiveDate::from_ymd_opt(2020, 4, 6).unwrap();
+    let end = NaiveDate::from_ymd_opt(2020, 4, 10).unwrap();
     let calendar = client
       .issue::<Get>(&CalendarReq::from(start..end))
       .await
@@ -143,9 +143,9 @@ mod tests {
 
     let expected = (6..10)
       .map(|day| OpenClose {
-        date: NaiveDate::from_ymd(2020, 4, day),
-        open: NaiveTime::from_hms(9, 30, 0),
-        close: NaiveTime::from_hms(16, 0, 0),
+        date: NaiveDate::from_ymd_opt(2020, 4, day).unwrap(),
+        open: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
+        close: NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
       })
       .collect::<Vec<_>>();
 

@@ -26,7 +26,8 @@ where
   D: Deserializer<'de>,
 {
   let date = NaiveDate::deserialize(deserializer)?;
-  Ok(DateTime::from_utc(date.and_hms(0, 0, 0), Utc))
+  // SANITY: We know that our hour, minute, and second are valid.
+  Ok(DateTime::from_utc(date.and_hms_opt(0, 0, 0).unwrap(), Utc))
 }
 
 
@@ -488,7 +489,7 @@ mod tests {
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
       non_trade.date.naive_utc().date(),
-      NaiveDate::from_ymd(2019, 8, 1)
+      NaiveDate::from_ymd_opt(2019, 8, 1).unwrap()
     );
     assert_eq!(non_trade.symbol, Some("T".into()));
     assert_eq!(non_trade.per_share_amount, Some(Num::new(51, 100)));
@@ -514,7 +515,7 @@ mod tests {
     assert_eq!(non_trade.type_, ActivityType::Dividend);
     assert_eq!(
       non_trade.date.naive_utc().date(),
-      NaiveDate::from_ymd(2020, 1, 1)
+      NaiveDate::from_ymd_opt(2020, 1, 1).unwrap()
     );
     assert_eq!(non_trade.symbol, Some("SPY".into()));
     assert_eq!(
