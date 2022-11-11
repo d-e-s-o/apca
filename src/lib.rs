@@ -5,7 +5,6 @@
 #![allow(clippy::let_unit_value, clippy::unreadable_literal)]
 #![warn(
   bad_style,
-  broken_intra_doc_links,
   dead_code,
   future_incompatible,
   illegal_floating_point_literal_pattern,
@@ -44,7 +43,8 @@
   unused_qualifications,
   unused_results,
   where_clauses_object_safety,
-  while_true
+  while_true,
+  rustdoc::broken_intra_doc_links
 )]
 
 //! A crate for interacting with the Alpaca API.
