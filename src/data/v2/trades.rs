@@ -284,9 +284,9 @@ mod tests {
   }
 
   /// Verify that we error out as expected when attempting to retrieve
-  /// aggregate data trades for a non-existent symbol.
+  /// aggregate data trades for an invalid symbol.
   #[test(tokio::test)]
-  async fn nonexistent_symbol() {
+  async fn invalid_symbol() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 

@@ -160,9 +160,9 @@ mod tests {
   }
 
   /// Verify that we error out as expected when attempting to retrieve
-  /// the quotes for a non-existent symbol.
+  /// the quotes for an invalid symbol.
   #[test(tokio::test)]
-  async fn nonexistent_symbol() {
+  async fn invalid_symbol() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
@@ -171,7 +171,8 @@ mod tests {
     let request = QuotesReqInit::default().init("ABC123", start, end);
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      // 42210000 is the error code reported for "invalid symbol".
+      RequestError::Endpoint(GetError::InvalidInput(Ok(message))) if message.code == 42210000 => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
   }
