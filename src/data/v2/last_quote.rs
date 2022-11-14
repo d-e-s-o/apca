@@ -1,6 +1,8 @@
 // Copyright (C) 2021-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::collections::BTreeMap;
+
 use chrono::DateTime;
 use chrono::Utc;
 
@@ -13,15 +15,16 @@ use serde_urlencoded::to_string as to_query;
 
 use crate::data::v2::Feed;
 use crate::data::DATA_BASE_URL;
+use crate::util::string_slice_to_str;
 use crate::Str;
 
 
-/// A GET request to be made to the /v2/stocks/{symbol}/quotes/latest endpoint.
+/// A GET request to be made to the /v2/stocks/quotes/latest endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct LastQuoteReq {
-  /// The symbol to retrieve the last quote for.
-  #[serde(skip)]
-  pub symbol: String,
+  /// The symbols to retrieve the last quote for.
+  #[serde(rename = "symbols", serialize_with = "string_slice_to_str")]
+  pub symbols: Vec<String>,
   /// The data feed to use.
   #[serde(rename = "feed")]
   pub feed: Option<Feed>,
@@ -41,19 +44,20 @@ pub struct LastQuoteReqInit {
 impl LastQuoteReqInit {
   /// Create a [`LastQuoteReq`] from a `LastQuoteReqInit`.
   #[inline]
-  pub fn init<S>(self, symbol: S) -> LastQuoteReq
+  pub fn init<I, S>(self, symbols: I) -> LastQuoteReq
   where
+    I: IntoIterator<Item = S>,
     S: Into<String>,
   {
     LastQuoteReq {
-      symbol: symbol.into(),
+      symbols: symbols.into_iter().map(S::into).collect(),
       feed: self.feed,
     }
   }
 }
 
 
-/// A quote bar as returned by the /v2/stocks/<symbol>/quotes/latest endpoint.
+/// A quote as returned by the /v2/stocks/quotes/latest endpoint.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
@@ -78,10 +82,10 @@ pub struct Quote {
 
 EndpointNoParse! {
   /// The representation of a GET request to the
-  /// /v2/stocks/<symbol>/quotes/latest endpoint.
+  /// /v2/stocks/quotes/latest endpoint.
   pub Get(LastQuoteReq),
-  Ok => Quote, [
-    /// The last quote was retrieved successfully.
+  Ok => Vec<(String, Quote)>, [
+    /// The last quotes were retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, [
@@ -94,8 +98,8 @@ EndpointNoParse! {
     Some(DATA_BASE_URL.into())
   }
 
-  fn path(input: &Self::Input) -> Str {
-    format!("/v2/stocks/{}/quotes/latest", input.symbol).into()
+  fn path(_input: &Self::Input) -> Str {
+    "/v2/stocks/quotes/latest".into()
   }
 
   fn query(input: &Self::Input) -> Result<Option<Str>, Self::ConversionError> {
@@ -103,20 +107,28 @@ EndpointNoParse! {
   }
 
   fn parse(body: &[u8]) -> Result<Self::Output, Self::ConversionError> {
+    // TODO: Ideally we'd write our own deserialize implementation here
+    //       to create a vector right away instead of going through a
+    //       BTreeMap.
+
     /// A helper object for parsing the response to a `Get` request.
     #[derive(Deserialize)]
     struct Response {
-      /// The symbol for which the quote was reported.
-      #[allow(unused)]
-      symbol: String,
-      /// The quote belonging to the provided symbol.
-      quote: Quote,
+      /// A mapping from symbols to quote objects.
+      // We use a `BTreeMap` here to have a consistent ordering of
+      // quotes.
+      quotes: BTreeMap<String, Quote>,
     }
 
     // We are not interested in the actual `Response` object. Clients
     // can keep track of what symbol they requested a quote for.
     from_json::<Response>(body)
-      .map(|response| response.quote)
+      .map(|response| {
+        response
+          .quotes
+          .into_iter()
+          .collect()
+      })
       .map_err(Self::ConversionError::from)
   }
 
@@ -132,6 +144,8 @@ mod tests {
 
   use chrono::Duration;
 
+  use http_endpoint::Endpoint as _;
+
   use test_log::test;
 
   use crate::api_info::ApiInfo;
@@ -139,46 +153,96 @@ mod tests {
   use crate::RequestError;
 
 
-  /// Check that we can parse the reference quote from the
+  /// Check that we can parse the reference quotes from the
   /// documentation.
   #[test]
-  fn parse_reference_quote() {
+  fn parse_reference_quotes() {
     let response = br#"{
-      "t": "2021-02-06T13:35:08.946977536Z",
-      "ax": "C",
-      "ap": 387.7,
-      "as": 1,
-      "bx": "N",
-      "bp": 387.67,
-      "bs": 1,
-      "c": [
-        "R"
-      ]
-}"#;
+      "quotes": {
+        "TSLA": {
+          "t": "2022-04-12T17:26:45.009288296Z",
+          "ax": "V",
+          "ap": 1020,
+          "as": 3,
+          "bx": "V",
+          "bp": 990,
+          "bs": 5,
+          "c": ["R"],
+          "z": "C"
+        },
+        "AAPL": {
+          "t": "2022-04-12T17:26:44.962998616Z",
+          "ax": "V",
+          "ap": 170,
+          "as": 1,
+          "bx": "V",
+          "bp": 168.03,
+          "bs": 1,
+          "c": ["R"],
+          "z": "C"
+        }
+      }
+    }"#;
 
-    let quote = from_json::<Quote>(response).unwrap();
+    let quotes = Get::parse(response).unwrap();
+    assert_eq!(quotes.len(), 2);
+
+    assert_eq!(quotes[0].0, "AAPL");
+    let aapl = &quotes[0].1;
     assert_eq!(
-      quote.time,
-      DateTime::parse_from_rfc3339("2021-02-06T13:35:08.946977536Z").unwrap()
+      aapl.time,
+      DateTime::parse_from_rfc3339("2022-04-12T17:26:44.962998616Z").unwrap()
     );
-    assert_eq!(quote.ask_price, Num::new(3877, 10));
-    assert_eq!(quote.ask_size, 1);
-    assert_eq!(quote.bid_price, Num::new(38767, 100));
-    assert_eq!(quote.bid_size, 1);
+    assert_eq!(aapl.ask_price, Num::new(170, 1));
+    assert_eq!(aapl.ask_size, 1);
+    assert_eq!(aapl.bid_price, Num::new(16803, 100));
+    assert_eq!(aapl.bid_size, 1);
+
+    assert_eq!(quotes[1].0, "TSLA");
+    let tsla = &quotes[1].1;
+    assert_eq!(
+      tsla.time,
+      DateTime::parse_from_rfc3339("2022-04-12T17:26:45.009288296Z").unwrap()
+    );
+    assert_eq!(tsla.ask_price, Num::new(1020, 1));
+    assert_eq!(tsla.ask_size, 3);
+    assert_eq!(tsla.bid_price, Num::new(990, 1));
+    assert_eq!(tsla.bid_size, 5);
   }
 
   /// Verify that we can retrieve the last quote for an asset.
   #[test(tokio::test)]
-  async fn request_last_quote() {
+  async fn request_last_quotes() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReqInit::default().init("SPY");
-    let quote = client.issue::<Get>(&req).await.unwrap();
+    let req = LastQuoteReqInit::default().init(["SPY"]);
+    let quotes = client.issue::<Get>(&req).await.unwrap();
+    assert_eq!(quotes.len(), 1);
+    assert_eq!(quotes[0].0, "SPY");
     // Just as a rough sanity check, we require that the reported time
     // is some time after two weeks before today. That should safely
     // account for any combination of holidays, weekends, etc.
-    assert!(quote.time >= Utc::now() - Duration::weeks(2));
+    assert!(quotes[0].1.time >= Utc::now() - Duration::weeks(2));
+  }
+
+  /// Retrieve multiple symbols at once.
+  #[test(tokio::test)]
+  async fn request_last_quotes_multi() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let req = LastQuoteReqInit::default().init(["MSFT", "SPY", "AAPL"]);
+    let quotes = client.issue::<Get>(&req).await.unwrap();
+    assert_eq!(quotes.len(), 3);
+
+    // We always guarantee lexical order of quotes by symbol.
+    assert_eq!(quotes[0].0, "AAPL");
+    assert!(quotes[0].1.time >= Utc::now() - Duration::weeks(2));
+    assert_eq!(quotes[1].0, "MSFT");
+    assert!(quotes[1].1.time >= Utc::now() - Duration::weeks(2));
+    assert_eq!(quotes[2].0, "SPY");
+    assert!(quotes[2].1.time >= Utc::now() - Duration::weeks(2));
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.
@@ -187,10 +251,11 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReq {
-      symbol: "SPY".to_string(),
+    let req = LastQuoteReqInit {
       feed: Some(Feed::SIP),
-    };
+      ..Default::default()
+    }
+    .init(["SPY"]);
 
     let result = client.issue::<Get>(&req).await;
     // Unfortunately we can't really know whether the user has the
@@ -209,11 +274,23 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuoteReqInit::default().init("ABC123");
+    let req = LastQuoteReqInit::default().init(["ABC123"]);
     let err = client.issue::<Get>(&req).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
+  }
+
+  /// Check that a non-existent symbol is simply ignored in a request
+  /// for multiple symbols.
+  #[test(tokio::test)]
+  async fn nonexistent_symbol() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let req = LastQuoteReqInit::default().init(["SPY", "NOSUCHSYMBOL"]);
+    let quotes = client.issue::<Get>(&req).await.unwrap();
+    assert_eq!(quotes.len(), 1);
   }
 }

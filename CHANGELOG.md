@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added support for historic trade retrieval via `data::v2::trades`
+- Adjusted `data::v2::last_quote` module to work with multiple symbols
 
 
 0.25.1
