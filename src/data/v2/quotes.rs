@@ -14,7 +14,7 @@ use crate::util::vec_from_str;
 use crate::Str;
 
 /// A quote as returned by the /v2/stocks/<symbol>/quotes endpoint.
-pub use super::last_quote::Quote;
+pub use super::last_quotes::Quote;
 
 
 /// A collection of quotes as returned by the API. This is one page of

@@ -6,8 +6,8 @@ mod unfold;
 
 /// Definitions for retrieval of market data bars.
 pub mod bars;
-/// Functionality for retrieval of the most recent quote.
-pub mod last_quote;
+/// Functionality for retrieval of most recent quotes.
+pub mod last_quotes;
 /// Functionality for retrieving historic quotes.
 pub mod quotes;
 /// Definitions for real-time streaming of market data.
