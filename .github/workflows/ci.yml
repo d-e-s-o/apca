@@ -81,6 +81,8 @@ jobs:
   cargo-doc:
     name: Generate documentation
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: '-D warnings'
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
