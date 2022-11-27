@@ -96,7 +96,7 @@ pub struct Position {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/positions/<symbol>
+  /// The representation of a GET request to the /v2/positions/{symbol}
   /// endpoint.
   pub Get(asset::Symbol),
   Ok => Position, [
@@ -117,7 +117,7 @@ Endpoint! {
 
 Endpoint! {
   /// The representation of a DELETE request to the
-  /// /v2/positions/<symbol> endpoint.
+  /// /v2/positions/{symbol} endpoint.
   pub Delete(asset::Symbol),
   Ok => order::Order, [
     /// The position was liquidated successfully.

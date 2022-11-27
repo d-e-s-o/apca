@@ -516,7 +516,7 @@ impl ChangeReqInit {
 }
 
 
-/// A PATCH request to be made to the /v2/orders/<order-id> endpoint.
+/// A PATCH request to be made to the /v2/orders/{order-id} endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ChangeReq {
   /// Number of shares to trade.
@@ -641,7 +641,7 @@ pub struct Order {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/orders/<order-id>
+  /// The representation of a GET request to the /v2/orders/{order-id}
   /// endpoint.
   pub Get(Id),
   Ok => Order, [
@@ -734,7 +734,7 @@ Endpoint! {
 
 
 Endpoint! {
-  /// The representation of a PATCH request to the /v2/orders/<order-id>
+  /// The representation of a PATCH request to the /v2/orders/{order-id}
   /// endpoint.
   pub Patch((Id, ChangeReq)),
   Ok => Order, [
@@ -776,7 +776,7 @@ Endpoint! {
 
 
 EndpointNoParse! {
-  /// The representation of a DELETE request to the /v2/orders/<order-id>
+  /// The representation of a DELETE request to the /v2/orders/{order-id}
   /// endpoint.
   pub Delete(Id),
   Ok => (), [

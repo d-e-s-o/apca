@@ -287,7 +287,7 @@ Unreleased
 0.3.1
 -----
 - Added support for accessing `/v2/account/configurations` endpoint
-- Added support for querying `/v1/bars/<timeframe>` endpoint
+- Added support for querying `/v1/bars/{timeframe}` endpoint
 - Added support for serializing account & trade events
 - Switched from using `log` to `tracing` as a logging/tracing provider
 - Switched to using `serde_urlencoded` for encoding query parameters

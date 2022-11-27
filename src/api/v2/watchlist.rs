@@ -102,7 +102,7 @@ Endpoint! {
 
 Endpoint! {
   /// The representation of a GET request to the
-  /// /v2/watchlists/<watchlist-id> endpoint.
+  /// /v2/watchlists/{watchlist-id} endpoint.
   pub Get(Id),
   Ok => Watchlist, [
     /// The watchlist object with the given ID was retrieved successfully.
@@ -121,7 +121,7 @@ Endpoint! {
 
 EndpointNoParse! {
   /// The representation of a DELETE request to the
-  /// /v2/watchlists/<watchlist-id> endpoint.
+  /// /v2/watchlists/{watchlist-id} endpoint.
   pub Delete(Id),
   Ok => (), [
     /// The watchlist was deleted successfully.

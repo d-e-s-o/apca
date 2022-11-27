@@ -13,7 +13,7 @@ use crate::data::DATA_BASE_URL;
 use crate::util::vec_from_str;
 use crate::Str;
 
-/// A quote as returned by the /v2/stocks/<symbol>/quotes endpoint.
+/// A quote as returned by the /v2/stocks/{symbol}/quotes endpoint.
 pub use super::last_quotes::Quote;
 
 
@@ -65,7 +65,7 @@ impl QuotesReqInit {
 }
 
 
-/// A GET request to be made to the /v2/stocks/<symbol>/quotes endpoint.
+/// A GET request to be made to the /v2/stocks/{symbol}/quotes endpoint.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct QuotesReq {
@@ -95,7 +95,7 @@ pub struct QuotesReq {
 
 Endpoint! {
   /// The representation of a GET request to the
-  /// /v2/stocks/<symbol>/quotes endpoint.
+  /// /v2/stocks/{symbol}/quotes endpoint.
   pub Get(QuotesReq),
   Ok => Quotes, [
     /// The quote information was retrieved successfully.

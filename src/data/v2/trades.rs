@@ -16,7 +16,7 @@ use crate::util::vec_from_str;
 use crate::Str;
 
 
-/// A GET request to be issued to the /v2/stocks/<symbol>/trades endpoint.
+/// A GET request to be issued to the /v2/stocks/{symbol}/trades endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct TradesReq {
   /// The symbol for which to retrieve market data.
@@ -78,7 +78,7 @@ impl TradesReqInit {
 }
 
 
-/// A market data trade as returned by the /v2/stocks/<symbol>/trades endpoint.
+/// A market data trade as returned by the /v2/stocks/{symbol}/trades endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Trade {
@@ -109,7 +109,7 @@ pub struct Trades {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/stocks/<symbol>/trades endpoint.
+  /// The representation of a GET request to the /v2/stocks/{symbol}/trades endpoint.
   pub Get(TradesReq),
   Ok => Trades, [
     /// The market data was retrieved successfully.

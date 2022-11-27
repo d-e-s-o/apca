@@ -353,7 +353,7 @@ pub struct Asset {
 
 
 Endpoint! {
-  /// The representation of a GET request to the /v2/assets/<symbol> endpoint.
+  /// The representation of a GET request to the /v2/assets/{symbol} endpoint.
   pub Get(Symbol),
   Ok => Asset, [
     /// The asset object for the given symbol was retrieved successfully.
