@@ -15,7 +15,6 @@ use crate::api::v2::order;
 use crate::util::abs_num_from_str;
 use crate::Str;
 
-
 /// The side of a position.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum Side {
@@ -39,7 +38,6 @@ impl Not for Side {
   }
 }
 
-
 /// A single position as returned by the /v2/positions endpoint on a GET
 /// request.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -62,6 +60,9 @@ pub struct Position {
   /// The number of shares.
   #[serde(rename = "qty", deserialize_with = "abs_num_from_str")]
   pub quantity: Num,
+  /// Total number of shares available minus open orders
+  #[serde(rename = "qty_available")]
+  pub quantity_available: Num,
   /// The side the position is on.
   #[serde(rename = "side")]
   pub side: Side,
@@ -94,7 +95,6 @@ pub struct Position {
   pub change_today: Option<Num>,
 }
 
-
 Endpoint! {
   /// The representation of a GET request to the /v2/positions/<symbol>
   /// endpoint.
@@ -113,7 +113,6 @@ Endpoint! {
     format!("/v2/positions/{}", input).into()
   }
 }
-
 
 Endpoint! {
   /// The representation of a DELETE request to the
@@ -139,7 +138,6 @@ Endpoint! {
   }
 }
 
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -152,7 +150,6 @@ mod tests {
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::RequestError;
-
 
   /// Check that we can negate a `Side` object.
   #[test]
