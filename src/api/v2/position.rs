@@ -62,6 +62,10 @@ pub struct Position {
   /// The number of shares.
   #[serde(rename = "qty", deserialize_with = "abs_num_from_str")]
   pub quantity: Num,
+  /// Total number of shares available minus those covered by open
+  /// orders.
+  #[serde(rename = "qty_available")]
+  pub quantity_available: Num,
   /// The side the position is on.
   #[serde(rename = "side")]
   pub side: Side,
@@ -172,6 +176,7 @@ mod tests {
     "asset_class": "us_equity",
     "avg_entry_price": "100.0",
     "qty": "5",
+    "qty_available": "3",
     "side": "long",
     "market_value": "600.0",
     "cost_basis": "500.0",
@@ -191,6 +196,7 @@ mod tests {
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
     assert_eq!(pos.average_entry_price, Num::from(100));
     assert_eq!(pos.quantity, Num::from(5));
+    assert_eq!(pos.quantity_available, Num::from(3));
     assert_eq!(pos.side, Side::Long);
     assert_eq!(pos.market_value, Some(Num::from(600)));
     assert_eq!(pos.cost_basis, Num::from(500));
@@ -213,6 +219,7 @@ mod tests {
     "asset_class": "us_equity",
     "avg_entry_price": "100.0",
     "qty": "0.5",
+    "qty_available": "0.5",
     "side": "long",
     "market_value": "600.0",
     "cost_basis": "500.0",
@@ -231,6 +238,7 @@ mod tests {
     assert_eq!(pos.asset_class, asset::Class::UsEquity);
     assert_eq!(pos.average_entry_price, Num::from(100));
     assert_eq!(pos.quantity, Num::new(1, 2));
+    assert_eq!(pos.quantity_available, Num::new(1, 2));
     assert_eq!(pos.side, Side::Long);
     assert_eq!(pos.market_value, Some(Num::from(600)));
     assert_eq!(pos.cost_basis, Num::from(500));
@@ -252,6 +260,7 @@ mod tests {
       "exchange":"ARCA",
       "asset_class":"us_equity",
       "qty":"-24",
+      "qty_available": "-24",
       "avg_entry_price":"82.69",
       "side":"short",
       "market_value":"-2011.44",
@@ -268,6 +277,7 @@ mod tests {
     let pos = from_json::<Position>(response).unwrap();
     assert_eq!(pos.symbol, "XLK");
     assert_eq!(pos.quantity, Num::from(24));
+    assert_eq!(pos.quantity_available, Num::from(-24));
   }
 
   /// Check that we can retrieve an open position, if one exists.
