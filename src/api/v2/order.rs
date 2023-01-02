@@ -825,8 +825,6 @@ mod tests {
 
   use futures::TryFutureExt;
 
-  use serde_json::from_slice as from_json;
-
   use test_log::test;
 
   use uuid::Uuid;

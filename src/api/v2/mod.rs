@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /// Definitions pertaining the user's account.
@@ -7,6 +7,8 @@ pub mod account;
 pub mod account_activities;
 /// Definitions pertaining the user's account configuration.
 pub mod account_config;
+/// Definitions pertaining the account portfolio.
+pub mod account_portfolio;
 /// Definitions surrounding assets.
 pub mod asset;
 /// Functionality for listing available assets.
