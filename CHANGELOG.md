@@ -3,6 +3,8 @@ Unreleased
 - Added support for historic trade retrieval via `data::v2::trades`
 - Adjusted `data::v2::last_quote` module to work with multiple symbols
   and renamed it to `last_quotes`
+- Made `quanity` and `time_in_force` members of
+  `api::v2::order::ChangeReq` optional
 - Added `quantity_available` member to `api::v2::position::Position`
 
 

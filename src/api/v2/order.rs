@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -489,9 +489,9 @@ pub struct OrderReq {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ChangeReqInit {
   /// See `ChangeReq::quantity`.
-  pub quantity: Num,
+  pub quantity: Option<Num>,
   /// See `ChangeReq::time_in_force`.
-  pub time_in_force: TimeInForce,
+  pub time_in_force: Option<TimeInForce>,
   /// See `ChangeReq::limit_price`.
   pub limit_price: Option<Num>,
   /// See `ChangeReq::stop_price`.
@@ -521,10 +521,10 @@ impl ChangeReqInit {
 pub struct ChangeReq {
   /// Number of shares to trade.
   #[serde(rename = "qty")]
-  pub quantity: Num,
+  pub quantity: Option<Num>,
   /// How long the order will be valid.
   #[serde(rename = "time_in_force")]
-  pub time_in_force: TimeInForce,
+  pub time_in_force: Option<TimeInForce>,
   /// The limit price.
   #[serde(rename = "limit_price")]
   pub limit_price: Option<Num>,
@@ -998,8 +998,8 @@ mod tests {
   #[test]
   fn serialize_deserialize_change_request() {
     let request = ChangeReqInit {
-      quantity: Num::from(37),
-      time_in_force: TimeInForce::UntilCanceled,
+      quantity: Some(Num::from(37)),
+      time_in_force: Some(TimeInForce::UntilCanceled),
       trail: Some(Num::from(42)),
       ..Default::default()
     }
@@ -1371,8 +1371,8 @@ mod tests {
     let order = client.issue::<Post>(&request).await.unwrap();
 
     let request = ChangeReqInit {
-      quantity: Num::from(2),
-      time_in_force: TimeInForce::UntilCanceled,
+      quantity: Some(Num::from(2)),
+      time_in_force: Some(TimeInForce::UntilCanceled),
       limit_price: Some(Num::from(2)),
       ..Default::default()
     }
