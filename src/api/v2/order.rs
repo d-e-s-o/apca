@@ -498,6 +498,8 @@ pub struct ChangeReqInit {
   pub stop_price: Option<Num>,
   /// See `ChangeReq::trail`.
   pub trail: Option<Num>,
+  /// See `ChangeReq::client_order_id`.
+  pub client_order_id: Option<String>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -511,6 +513,7 @@ impl ChangeReqInit {
       limit_price: self.limit_price,
       stop_price: self.stop_price,
       trail: self.trail,
+      client_order_id: self.client_order_id,
     }
   }
 }
@@ -534,6 +537,9 @@ pub struct ChangeReq {
   /// The new value of the `trail_price` or `trail_percent` value.
   #[serde(rename = "trail")]
   pub trail: Option<Num>,
+  /// Client unique order ID (free form string).
+  #[serde(rename = "client_order_id")]
+  pub client_order_id: Option<String>,
 }
 
 
@@ -1443,8 +1449,10 @@ mod tests {
     }
   }
 
+  /// Check that we can submit an order with a custom client order ID
+  /// and then retrieve the order object back via this identifier.
   #[test(tokio::test)]
-  async fn with_client_order_id() {
+  async fn submit_with_client_order_id() {
     // We need a truly random identifier here, because Alpaca will never
     // forget any client order ID and any ID previously used one cannot
     // be reused again.
@@ -1483,5 +1491,49 @@ mod tests {
       RequestError::Endpoint(PostError::InvalidInput(..)) => (),
       _ => panic!("Received unexpected error: {:?}", err),
     };
+  }
+
+  /// Test that we can change the client order ID of an order.
+  #[test(tokio::test)]
+  async fn change_client_order_id() {
+    let request = OrderReqInit {
+      type_: Type::Limit,
+      limit_price: Some(Num::from(1)),
+      ..Default::default()
+    }
+    .init("SPY", Side::Buy, Amount::quantity(1));
+
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let order = client.issue::<Post>(&request).await.unwrap();
+
+    let client_order_id = Uuid::new_v4().as_simple().to_string();
+    let request = ChangeReqInit {
+      client_order_id: Some(client_order_id.clone()),
+      ..Default::default()
+    }
+    .init();
+
+    let patch_result = client.issue::<Patch>(&(order.id, request)).await;
+    let id = if let Ok(replaced) = &patch_result {
+      replaced.id
+    } else {
+      order.id
+    };
+
+    let get_result = client.issue::<GetByClientId>(&client_order_id).await;
+    let () = client.issue::<Delete>(&id).await.unwrap();
+
+    match patch_result {
+      Ok(..) => {
+        let order = get_result.unwrap();
+        assert_eq!(order.symbol, "SPY");
+        assert_eq!(order.type_, Type::Limit);
+        assert_eq!(order.limit_price, Some(Num::from(1)));
+      },
+      Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
+      e => panic!("received unexpected error: {:?}", e),
+    }
   }
 }
