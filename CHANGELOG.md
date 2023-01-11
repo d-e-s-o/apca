@@ -7,6 +7,7 @@ Unreleased
 - Made `quanity` and `time_in_force` members of
   `api::v2::order::ChangeReq` optional
 - Added `quantity_available` member to `api::v2::position::Position`
+- Bumped minimum supported Rust version to `1.59`
 
 
 0.25.1

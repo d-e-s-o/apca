@@ -1,4 +1,4 @@
-# Copyright (C) 2022 Daniel Mueller <deso@posteo.net>
+# Copyright (C) 2022-2023 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: CI
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [1.57.0, stable]
+        rust: [1.59.0, stable]
         profile: [dev, release]
     steps:
     - uses: actions/checkout@v3

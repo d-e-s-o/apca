@@ -2,7 +2,7 @@
 [![coverage](https://codecov.io/gh/d-e-s-o/apca/branch/main/graph/badge.svg)](https://codecov.io/gh/d-e-s-o/apca)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
 [![Docs](https://docs.rs/apca/badge.svg)](https://docs.rs/apca)
-[![rustc](https://img.shields.io/badge/rustc-1.57+-blue.svg)](https://blog.rust-lang.org/2021/12/02/Rust-1.57.0.html)
+[![rustc](https://img.shields.io/badge/rustc-1.59+-blue.svg)](https://blog.rust-lang.org/2022/02/24/Rust-1.59.0.html)
 
 apca
 ====
