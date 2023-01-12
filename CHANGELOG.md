@@ -8,6 +8,8 @@ Unreleased
   `api::v2::order::ChangeReq` optional
 - Added `quantity_available` member to `api::v2::position::Position`
 - Bumped minimum supported Rust version to `1.59`
+- Bumped `websocket-util` dependency to `0.11`
+- Bumped `tokio-tungstenite` dependency to `0.18`
 
 
 0.25.1
