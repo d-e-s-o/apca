@@ -1,6 +1,6 @@
 [package]
 name = "apca"
-version = "0.25.1"
+version = "0.26.0"
 edition = "2021"
 rust-version = "1.59"
 authors = ["Daniel Mueller <deso@posteo.net>"]

@@ -1,10 +1,10 @@
-Unreleased
-----------
+0.26.0
+------
 - Added support for historic trade retrieval via `data::v2::trades`
 - Adjusted `data::v2::last_quote` module to work with multiple symbols
   and renamed it to `last_quotes`
 - Added `client_order_id` member to `api::v2::order::ChangeReq`
-- Made `quanity` and `time_in_force` members of
+- Made `quantity` and `time_in_force` members of
   `api::v2::order::ChangeReq` optional
 - Added `quantity_available` member to `api::v2::position::Position`
 - Bumped minimum supported Rust version to `1.59`
