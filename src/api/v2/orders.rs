@@ -95,10 +95,9 @@ Endpoint! {
 mod tests {
   use super::*;
 
-  use futures::future::ok;
+  use futures::future::ready;
   use futures::pin_mut;
   use futures::StreamExt;
-  use futures::TryStreamExt;
 
   use num_decimal::Num;
 
@@ -166,19 +165,18 @@ mod tests {
 
     // Wait until we see the "canceled" event.
     let _update = stream
-      .try_filter_map(|res| {
-        let update = res.unwrap();
-        ok(Some(update))
+      .filter_map(|res| {
+        let update = res.unwrap().unwrap();
+        ready(Some(update))
       })
       // There could be other orders happening concurrently but we are
       // only interested in ones belonging to the order canceled
       // earlier.
-      .try_skip_while(|update| {
-        ok(update.order.id != id || !matches!(update.event, updates::OrderStatus::Canceled))
+      .skip_while(|update| {
+        ready(update.order.id != id || !matches!(update.event, updates::OrderStatus::Canceled))
       })
       .next()
       .await
-      .unwrap()
       .unwrap();
   }
 
