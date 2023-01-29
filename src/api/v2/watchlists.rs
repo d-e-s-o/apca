@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 The apca Developers
+// Copyright (C) 2021-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -33,7 +33,7 @@ Endpoint! {
   /// The representation of a GET request to the /v2/watchlists endpoint.
   pub Get(()),
   Ok => Vec<WatchlistItem>, [
-    /// The list of watchpoints was retrieved successfully.
+    /// The list of watchlist items was retrieved successfully.
     /* 200 */ OK,
   ],
   Err => GetError, []

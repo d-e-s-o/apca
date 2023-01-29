@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The apca Developers
+// Copyright (C) 2022-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Range;
@@ -11,6 +11,7 @@ use serde::de::Unexpected;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
+use serde::Serializer;
 use serde_urlencoded::to_string as to_query;
 
 use crate::Str;
@@ -30,18 +31,34 @@ where
   })
 }
 
+/// Deserialize a `NaiveTime` from a string.
+fn serialize_naive_time<S>(time: &NaiveTime, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  serializer.serialize_str(&time.format("%H:%M").to_string())
+}
+
 
 /// The market open and close times for a specific date.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OpenClose {
   /// The date to which the below open a close times apply.
   #[serde(rename = "date")]
   pub date: NaiveDate,
   /// The time the market opens at.
-  #[serde(rename = "open", deserialize_with = "deserialize_naive_time")]
+  #[serde(
+    rename = "open",
+    deserialize_with = "deserialize_naive_time",
+    serialize_with = "serialize_naive_time"
+  )]
   pub open: NaiveTime,
   /// The time the market closes at.
-  #[serde(rename = "close", deserialize_with = "deserialize_naive_time")]
+  #[serde(
+    rename = "close",
+    deserialize_with = "deserialize_naive_time",
+    serialize_with = "serialize_naive_time"
+  )]
   pub close: NaiveTime,
 }
 
@@ -97,30 +114,30 @@ mod tests {
   use crate::api_info::ApiInfo;
   use crate::Client;
 
-  use serde_json::from_str as from_json;
+  use serde_json::from_slice as from_json;
+  use serde_json::to_vec as to_json;
 
   use test_log::test;
 
 
-  /// Check that we error out as expected when failing to parse an
-  /// `OpenClose` object because the time format is unexpected.
+  /// Check that we can serialize and deserialize an `OpenClose` object.
   #[test]
-  fn parse_open_close() {
-    let serialized = r#"{"date":"2020-04-09","open":"09:30","close":"16:00"}"#;
-    let open_close = from_json::<OpenClose>(serialized).unwrap();
-    let expected = OpenClose {
+  fn serialize_deserialize_open_close() {
+    let open_close = OpenClose {
       date: NaiveDate::from_ymd_opt(2020, 4, 9).unwrap(),
       open: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
       close: NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
     };
-    assert_eq!(open_close, expected);
+
+    let json = to_json(&open_close).unwrap();
+    assert_eq!(from_json::<OpenClose>(&json).unwrap(), open_close);
   }
 
   /// Check that we error out as expected when failing to parse an
   /// `OpenClose` object because the time format is unexpected.
   #[test]
   fn parse_open_close_unexpected_time() {
-    let serialized = r#"{"date":"2020-04-09","open":"09:30:00","close":"16:00"}"#;
+    let serialized = br#"{"date":"2020-04-09","open":"09:30:00","close":"16:00"}"#;
     let err = from_json::<OpenClose>(serialized).unwrap_err();
     assert!(err
       .to_string()

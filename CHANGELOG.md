@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Made more types serializable/deserializable
+
+
 0.26.0
 ------
 - Added support for historic trade retrieval via `data::v2::trades`
