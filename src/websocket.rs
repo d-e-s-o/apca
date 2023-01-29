@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use url::Url;
@@ -103,7 +103,7 @@ pub(crate) mod test {
     R: Future<Output = Result<(), WebSocketError>> + Send + Sync + 'static,
   {
     let addr = mock_server(f).await;
-    let stream_url = Url::parse(&format!("ws://{}", addr)).unwrap();
+    let stream_url = Url::parse(&format!("ws://{addr}")).unwrap();
 
     // We just set both the API stream URL and the data stream URL to
     // our websocket server. We don't know which one clients are trying

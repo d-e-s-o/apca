@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 The apca Developers
+// Copyright (C) 2021-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Borrow as _;
@@ -664,7 +664,7 @@ where
           Ok(Ok(()))
         },
         Ok(ControlMessage::Error(error)) => Ok(Err(Error::Str(
-          format!("failed to subscribe: {}", error).into(),
+          format!("failed to subscribe: {error}").into(),
         ))),
         Ok(_) => Ok(Err(Error::Str(
           "server responded with unexpected message".into(),
@@ -866,7 +866,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let bar = match &message {
       DataMessage::Bar(bar) => bar,
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
     assert_eq!(bar.symbol, "SPY");
     assert_eq!(bar.open_price, Num::new(388985, 1000));
@@ -908,7 +908,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let quote = match &message {
       DataMessage::Quote(qoute) => qoute,
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
     assert_eq!(quote.symbol, "NVDA");
     assert_eq!(quote.bid_price, Num::new(2588, 10));
@@ -946,7 +946,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let trade = match &message {
       DataMessage::Trade(trade) => trade,
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
     assert_eq!(trade.symbol, "AAPL");
     assert_eq!(trade.trade_id, 96921);
@@ -972,7 +972,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let () = match message {
       DataMessage::Success => (),
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
 
     assert_eq!(
@@ -989,7 +989,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let error = match &message {
       DataMessage::Error(error) => error,
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
 
     assert_eq!(error.code, 400);
@@ -1004,7 +1004,7 @@ mod tests {
     let message = json_from_str::<DataMessage>(json).unwrap();
     let error = match &message {
       DataMessage::Error(error) => error,
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
 
     assert_eq!(error.code, 500);
@@ -1172,7 +1172,7 @@ mod tests {
 
     match error {
       Error::Str(ref e) if e == "failed to subscribe: invalid syntax (400)" => {},
-      e => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {e}"),
     }
   }
 
@@ -1355,7 +1355,7 @@ mod tests {
 
     match err {
       Error::Str(ref e) if e.starts_with("failed to authenticate with server") => (),
-      e => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {e}"),
     }
   }
 }

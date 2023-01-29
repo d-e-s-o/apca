@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The apca Developers
+// Copyright (C) 2022-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -173,7 +173,7 @@ mod tests {
     match err {
       // 42210000 is the error code reported for "invalid symbol".
       RequestError::Endpoint(GetError::InvalidInput(Ok(message))) if message.code == 42210000 => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -195,7 +195,7 @@ mod tests {
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 

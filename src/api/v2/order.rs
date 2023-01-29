@@ -1066,7 +1066,7 @@ mod tests {
     let result = test(true).await;
     match result {
       Ok(()) | Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
-      err => panic!("unexpected error: {:?}", err),
+      err => panic!("unexpected error: {err:?}"),
     };
   }
 
@@ -1221,7 +1221,7 @@ mod tests {
         // Submission of those orders may fail at certain times of the
         // day as per the Alpaca documentation. So ignore those errors.
         Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
-        Err(err) => panic!("Received unexpected error: {:?}", err),
+        Err(err) => panic!("Received unexpected error: {err:?}"),
       }
     }
 
@@ -1248,7 +1248,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(PostError::NotPermitted(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1266,7 +1266,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(PostError::NotPermitted(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1284,7 +1284,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(PostError::NotPermitted(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1300,7 +1300,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(DeleteError::NotFound(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1336,7 +1336,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(GetError::NotFound(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1358,7 +1358,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(PostError::InvalidInput(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1406,7 +1406,7 @@ mod tests {
         // "unable to replace order, order isn't sent to exchange yet".
         // We can't do much more than accept this behavior.
       },
-      e => panic!("received unexpected error: {:?}", e),
+      e => panic!("received unexpected error: {e:?}"),
     }
   }
 
@@ -1445,7 +1445,7 @@ mod tests {
         assert_eq!(order.trail_price, Some(Num::from(30)));
       },
       Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
-      e => panic!("received unexpected error: {:?}", e),
+      e => panic!("received unexpected error: {e:?}"),
     }
   }
 
@@ -1489,7 +1489,7 @@ mod tests {
 
     match err {
       RequestError::Endpoint(PostError::InvalidInput(..)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -1533,7 +1533,7 @@ mod tests {
         assert_eq!(order.limit_price, Some(Num::from(1)));
       },
       Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
-      e => panic!("received unexpected error: {:?}", e),
+      e => panic!("received unexpected error: {e:?}"),
     }
   }
 }

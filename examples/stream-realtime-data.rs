@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The apca Developers
+// Copyright (C) 2022-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![allow(clippy::let_unit_value)]
@@ -47,11 +47,7 @@ async fn main() {
     // Stop after receiving and printing 50 updates.
     .take(50)
     .map_err(Error::WebSocket)
-    .try_for_each(|result| async {
-      result
-        .map(|data| println!("{:?}", data))
-        .map_err(Error::Json)
-    })
+    .try_for_each(|result| async { result.map(|data| println!("{data:?}")).map_err(Error::Json) })
     .await
     .unwrap();
 

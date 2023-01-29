@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 The apca Developers
+// Copyright (C) 2021-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -222,7 +222,7 @@ mod tests {
     let err = result.unwrap_err();
     match err {
       RequestError::Endpoint(CreateError::InvalidInput(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -244,7 +244,7 @@ mod tests {
     let err = client.issue::<Get>(&created.id).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::NotFound(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 
@@ -259,7 +259,7 @@ mod tests {
     let err = client.issue::<Delete>(&id).await.unwrap_err();
     match err {
       RequestError::Endpoint(DeleteError::NotFound(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 }

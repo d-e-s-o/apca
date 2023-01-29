@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::convert::TryFrom;
@@ -134,10 +134,10 @@ pub enum ParseSymbolError {
 impl Display for ParseSymbolError {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match self {
-      Self::InvalidSymbol(c) => write!(fmt, "the symbol contains an invalid character ('{}')", c),
+      Self::InvalidSymbol(c) => write!(fmt, "the symbol contains an invalid character ('{c}')"),
       Self::UnknownExchange => fmt.write_str("the exchange is unknown"),
       Self::UnknownClass => fmt.write_str("the asset class is unknown"),
-      Self::InvalidId(err) => write!(fmt, "failed to parse asset ID: {}", err),
+      Self::InvalidId(err) => write!(fmt, "failed to parse asset ID: {err}"),
       Self::InvalidFormat => fmt.write_str("the symbol is of an invalid format"),
     }
   }
@@ -366,7 +366,7 @@ Endpoint! {
 
   #[inline]
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/assets/{}", input).into()
+    format!("/v2/assets/{input}").into()
   }
 }
 

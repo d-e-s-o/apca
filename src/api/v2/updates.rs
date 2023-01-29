@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -499,7 +499,7 @@ mod tests {
         assert_eq!(update.event, OrderStatus::New);
         assert_eq!(update.order.side, order::Side::Buy);
       },
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     }
   }
 
@@ -513,7 +513,7 @@ mod tests {
       OrderMessage::AuthenticationMessage(authentication) => {
         assert_eq!(authentication.status, AuthenticationStatus::Authorized);
       },
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     }
   }
 
@@ -528,7 +528,7 @@ mod tests {
       OrderMessage::AuthenticationMessage(authentication) => {
         assert_eq!(authentication.status, AuthenticationStatus::Unauthorized);
       },
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     }
   }
 
@@ -542,7 +542,7 @@ mod tests {
       OrderMessage::ListeningMessage(streams) => {
         assert_eq!(streams.streams, vec![StreamType::OrderUpdates]);
       },
-      _ => panic!("Decoded unexpected message variant: {:?}", message),
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
     }
   }
 
@@ -562,7 +562,7 @@ mod tests {
       Ok(..) => panic!("authentication succeeded unexpectedly"),
       Err(Error::WebSocket(WebSocketError::Protocol(e)))
         if e == ProtocolError::ResetWithoutClosingHandshake => {},
-      Err(e) => panic!("received unexpected error: {}", e),
+      Err(e) => panic!("received unexpected error: {e}"),
     }
   }
 
@@ -592,7 +592,7 @@ mod tests {
     match result {
       Ok(..) => panic!("operation succeeded unexpectedly"),
       Err(Error::Str(ref e)) if e.starts_with("stream was closed before listen") => (),
-      Err(e) => panic!("received unexpected error: {}", e),
+      Err(e) => panic!("received unexpected error: {e}"),
     }
   }
 
@@ -621,7 +621,7 @@ mod tests {
     match err {
       Error::WebSocket(WebSocketError::Protocol(e))
         if e == ProtocolError::ResetWithoutClosingHandshake => {},
-      e => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {e}"),
     }
   }
 
@@ -646,7 +646,7 @@ mod tests {
     let result = mock_stream::<OrderUpdates, _, _>(test).await.unwrap_err();
     match result {
       Error::Json(_) => (),
-      e => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {e}"),
     }
   }
 
@@ -777,7 +777,7 @@ mod tests {
 
     match err {
       Error::Str(ref e) if e == "authentication not successful" => (),
-      e => panic!("received unexpected error: {}", e),
+      e => panic!("received unexpected error: {e}"),
     }
   }
 }

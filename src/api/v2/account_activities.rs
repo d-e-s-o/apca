@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 The apca Developers
+// Copyright (C) 2020-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -572,7 +572,7 @@ mod tests {
       match activity {
         Activity::Trade(..) => (),
         Activity::NonTrade(non_trade) => {
-          panic!("received unexpected non-trade variant {:?}", non_trade)
+          panic!("received unexpected non-trade variant {non_trade:?}")
         },
       }
     }

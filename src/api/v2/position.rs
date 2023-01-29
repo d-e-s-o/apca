@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Not;
@@ -114,7 +114,7 @@ Endpoint! {
 
   #[inline]
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/positions/{}", input).into()
+    format!("/v2/positions/{input}").into()
   }
 }
 
@@ -139,7 +139,7 @@ Endpoint! {
 
   #[inline]
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/positions/{}", input).into()
+    format!("/v2/positions/{input}").into()
   }
 }
 
@@ -299,7 +299,7 @@ mod tests {
       },
       Err(err) => match err {
         RequestError::Endpoint(GetError::NotFound(..)) => (),
-        _ => panic!("Received unexpected error: {:?}", err),
+        _ => panic!("Received unexpected error: {err:?}"),
       },
     }
   }

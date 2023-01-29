@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::env::var_os;
@@ -26,7 +26,7 @@ const ENV_SECRET: &str = "APCA_API_SECRET_KEY";
 fn make_api_stream_url(base_url: Url) -> Result<Url, Error> {
   let mut url = base_url;
   url.set_scheme("wss").map_err(|()| {
-    Error::Str(format!("unable to change URL scheme for {}: invalid URL?", url).into())
+    Error::Str(format!("unable to change URL scheme for {url}: invalid URL?").into())
   })?;
   url.set_path("stream");
   Ok(url)
@@ -104,13 +104,7 @@ impl ApiInfo {
       .unwrap_or_else(|| OsString::from(API_BASE_URL))
       .into_string()
       .map_err(|_| {
-        Error::Str(
-          format!(
-            "{} environment variable is not a valid string",
-            ENV_API_BASE_URL
-          )
-          .into(),
-        )
+        Error::Str(format!("{ENV_API_BASE_URL} environment variable is not a valid string").into())
       })?;
     let api_base_url = Url::parse(&api_base_url)?;
 
@@ -125,27 +119,23 @@ impl ApiInfo {
       .into_string()
       .map_err(|_| {
         Error::Str(
-          format!(
-            "{} environment variable is not a valid string",
-            ENV_API_STREAM_URL
-          )
-          .into(),
+          format!("{ENV_API_STREAM_URL} environment variable is not a valid string").into(),
         )
       })?;
     let api_stream_url = Url::parse(&api_stream_url)?;
 
     let key_id = var_os(ENV_KEY_ID)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_KEY_ID).into()))?
+      .ok_or_else(|| Error::Str(format!("{ENV_KEY_ID} environment variable not found").into()))?
       .into_string()
       .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_KEY_ID).into())
+        Error::Str(format!("{ENV_KEY_ID} environment variable is not a valid string").into())
       })?;
 
     let secret = var_os(ENV_SECRET)
-      .ok_or_else(|| Error::Str(format!("{} environment variable not found", ENV_SECRET).into()))?
+      .ok_or_else(|| Error::Str(format!("{ENV_SECRET} environment variable not found").into()))?
       .into_string()
       .map_err(|_| {
-        Error::Str(format!("{} environment variable is not a valid string", ENV_SECRET).into())
+        Error::Str(format!("{ENV_SECRET} environment variable is not a valid string").into())
       })?;
 
     Ok(Self {

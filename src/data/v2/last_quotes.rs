@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2022 The apca Developers
+// Copyright (C) 2021-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
@@ -263,7 +263,7 @@ mod tests {
     // do here is accept both possible outcomes.
     match result {
       Ok(_) | Err(RequestError::Endpoint(GetError::InvalidInput(_))) => (),
-      err => panic!("Received unexpected error: {:?}", err),
+      err => panic!("Received unexpected error: {err:?}"),
     }
   }
 
@@ -278,7 +278,7 @@ mod tests {
     let err = client.issue::<Get>(&req).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 

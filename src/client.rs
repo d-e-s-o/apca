@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -360,7 +360,7 @@ mod tests {
         assert_eq!(message, Ok(expected));
         assert_eq!(status, StatusCode::NOT_FOUND);
       },
-      _ => panic!("Received unexpected error: {:?}", err),
+      _ => panic!("Received unexpected error: {err:?}"),
     };
   }
 }
