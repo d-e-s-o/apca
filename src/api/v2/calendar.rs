@@ -64,7 +64,7 @@ pub struct OpenClose {
 
 
 /// A GET request to be made to the /v2/calendar endpoint.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CalendarReq {
   /// The (inclusive) start date of the range for which to retrieve
   /// calendar data.
@@ -142,6 +142,18 @@ mod tests {
     assert!(err
       .to_string()
       .starts_with("invalid value: string \"09:30:00\""));
+  }
+
+  /// Check that we can serialize and deserialize a [`CalendarReq`].
+  #[test]
+  fn serialize_deserialize_calendar_request() {
+    let request = CalendarReq {
+      start: NaiveDate::from_ymd_opt(2020, 4, 6).unwrap(),
+      end: NaiveDate::from_ymd_opt(2020, 4, 10).unwrap(),
+    };
+
+    let json = to_json(&request).unwrap();
+    assert_eq!(from_json::<CalendarReq>(&json).unwrap(), request);
   }
 
   /// Check that we can retrieve the market calendar for a specific time
