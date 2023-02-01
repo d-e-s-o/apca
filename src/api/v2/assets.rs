@@ -1,6 +1,7 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use serde::Deserialize;
 use serde::Serialize;
 use serde_urlencoded::to_string as to_query;
 
@@ -34,7 +35,7 @@ impl AssetsReqInit {
 
 
 /// A GET request to be made to the /v2/assets endpoint.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AssetsReq {
   /// The status of assets to include in the response.
   #[serde(rename = "status")]
@@ -69,11 +70,29 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use serde_json::from_slice as from_json;
+  use serde_json::to_vec as to_json;
+
   use test_log::test;
 
   use crate::api::v2::asset::Exchange;
   use crate::api_info::ApiInfo;
   use crate::Client;
+
+
+  /// Check that we can serialize and deserialize a [`AssetsReq`].
+  #[test]
+  fn serialize_deserialize_assets_request() {
+    let request = AssetsReqInit {
+      status: Status::Active,
+      class: Class::UsEquity,
+      ..Default::default()
+    }
+    .init();
+
+    let json = to_json(&request).unwrap();
+    assert_eq!(from_json::<AssetsReq>(&json).unwrap(), request);
+  }
 
 
   /// Make sure that we can list available US stock assets.
