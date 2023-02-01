@@ -314,7 +314,7 @@ impl FromStr for Exchange {
 
 
 /// The representation of an asset as used by Alpaca.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[non_exhaustive]
 pub struct Asset {
   /// The asset's ID.
@@ -497,6 +497,20 @@ mod tests {
 
     let asset = from_json::<Asset>(response).unwrap();
     assert_eq!(asset.exchange, Exchange::Unknown);
+  }
+
+  /// Check that we can serialize and deserialize an `Asset` object.
+  #[test(tokio::test)]
+  async fn serialize_deserialize_asset() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let asset = client
+      .issue::<Get>(&Symbol::try_from("SPY").unwrap())
+      .await
+      .unwrap();
+
+    let json = to_json(&asset).unwrap();
+    assert_eq!(from_json::<Asset>(&json).unwrap(), asset);
   }
 
   /// Check that we can retrieve information about an asset.
