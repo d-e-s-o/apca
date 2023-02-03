@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.26.1
+------
 - Made more types serializable/deserializable
 
 
