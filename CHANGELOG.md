@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Introduced `vendored-openssl` to build with vendored `openssl` library
+- Added GitHub Actions workflow for publishing the crate
 
 
 0.26.1
