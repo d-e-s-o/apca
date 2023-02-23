@@ -24,6 +24,7 @@ include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 [features]
 default = ["gzip"]
 gzip = ["async-compression/futures-io", "async-compression/gzip"]
+vendored-openssl = ["hyper-tls/vendored"]
 
 [dependencies]
 async-compression = {version = "0.3.12", default-features = false, optional = true}

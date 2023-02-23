@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Introduced `vendored-openssl` to build with vendored `openssl` library
+
+
 0.26.1
 ------
 - Made more types serializable/deserializable
