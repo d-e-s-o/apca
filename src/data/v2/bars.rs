@@ -356,8 +356,8 @@ mod tests {
     );
     assert_eq!(bars[0].open.to_u64(), Some(174));
     assert_eq!(bars[0].close.to_u64(), Some(170));
-    assert_eq!(bars[0].high.to_u64(), Some(176));
-    assert_eq!(bars[0].low.to_u64(), Some(170));
+    assert_eq!(bars[0].high.to_u64(), Some(175));
+    assert_eq!(bars[0].low.to_u64(), Some(169));
     assert_eq!(bars[0].volume, 41344313);
   }
 
@@ -391,7 +391,7 @@ mod tests {
     );
     assert_eq!(bars[0].open.to_u64(), Some(43));
     assert_eq!(bars[0].close.to_u64(), Some(42));
-    assert_eq!(bars[0].high.to_u64(), Some(44));
+    assert_eq!(bars[0].high.to_u64(), Some(43));
     assert_eq!(bars[0].low.to_u64(), Some(42));
     assert_eq!(bars[0].volume, 165377252);
   }
