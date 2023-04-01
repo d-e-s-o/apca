@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Added support for overwriting default realtime data bar, quote, and
+  trade types
+
+
 0.26.2
 ------
 - Introduced `vendored-openssl` to build with vendored `openssl` library
