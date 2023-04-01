@@ -4,6 +4,7 @@
 use std::borrow::Borrow as _;
 use std::borrow::Cow;
 use std::cmp::Ordering;
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
@@ -24,6 +25,7 @@ use futures::StreamExt as _;
 
 use num_decimal::Num;
 
+use serde::de::DeserializeOwned;
 use serde::de::Deserializer;
 use serde::ser::SerializeSeq as _;
 use serde::ser::Serializer;
@@ -57,19 +59,22 @@ use crate::Error;
 use crate::Str;
 
 
-type UserMessage = <ParsedMessage as subscribe::Message>::UserMessage;
+type UserMessage<B, Q, T> = <ParsedMessage<B, Q, T> as subscribe::Message>::UserMessage;
 
 /// Helper function to drive a [`Subscription`] related future to
 /// completion. The function makes sure to poll the provided stream,
 /// which is assumed to be associated with the `Subscription` that the
 /// future belongs to, so that control messages can be received.
 #[inline]
-pub async fn drive<F, S>(future: F, stream: &mut S) -> Result<F::Output, UserMessage>
+pub async fn drive<F, S, B, Q, T>(
+  future: F,
+  stream: &mut S,
+) -> Result<F::Output, UserMessage<B, Q, T>>
 where
   F: Future + Unpin,
-  S: FusedStream<Item = UserMessage> + Unpin,
+  S: FusedStream<Item = UserMessage<B, Q, T>> + Unpin,
 {
-  subscribe::drive::<ParsedMessage, _, _>(future, stream).await
+  subscribe::drive::<ParsedMessage<B, Q, T>, _, _>(future, stream).await
 }
 
 
@@ -269,16 +274,16 @@ pub struct StreamApiError {
 #[doc(hidden)]
 #[serde(tag = "T")]
 #[allow(clippy::large_enum_variant)]
-pub enum DataMessage {
+pub enum DataMessage<B = Bar, Q = Quote, T = Trade> {
   /// A variant representing aggregate data for a given symbol.
   #[serde(rename = "b")]
-  Bar(Bar),
+  Bar(B),
   /// A variant representing a quote for a given symbol.
   #[serde(rename = "q")]
-  Quote(Quote),
+  Quote(Q),
   /// A variant representing a trade for a given symbol.
   #[serde(rename = "t")]
-  Trade(Trade),
+  Trade(T),
   /// A control message describing the current list of subscriptions.
   #[serde(rename = "subscription")]
   Subscription(MarketData),
@@ -295,13 +300,13 @@ pub enum DataMessage {
 /// A data item as received over our websocket channel.
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum Data {
+pub enum Data<B = Bar, Q = Quote, T = Trade> {
   /// A variant representing aggregate data for a given symbol.
-  Bar(Bar),
+  Bar(B),
   /// A variant representing quote data for a given symbol.
-  Quote(Quote),
+  Quote(Q),
   /// A variant representing trade data for a given symbol.
-  Trade(Trade),
+  Trade(T),
 }
 
 impl Data {
@@ -340,10 +345,11 @@ pub enum ControlMessage {
 
 
 /// A websocket message that we tried to parse.
-type ParsedMessage = MessageResult<Result<DataMessage, JsonError>, WebSocketError>;
+type ParsedMessage<B, Q, T> =
+  MessageResult<Result<DataMessage<B, Q, T>, JsonError>, WebSocketError>;
 
-impl subscribe::Message for ParsedMessage {
-  type UserMessage = Result<Result<Data, JsonError>, WebSocketError>;
+impl<B, Q, T> subscribe::Message for ParsedMessage<B, Q, T> {
+  type UserMessage = Result<Result<Data<B, Q, T>, JsonError>, WebSocketError>;
   type ControlMessage = ControlMessage;
 
   fn classify(self) -> subscribe::Classification<Self::UserMessage, Self::ControlMessage> {
@@ -584,18 +590,18 @@ pub enum Request<'d> {
 ///   the associated [`MessageStream`] stream needs to be polled;
 ///   consider using the [`drive`] function for that purpose
 #[derive(Debug)]
-pub struct Subscription<S> {
+pub struct Subscription<S, B, Q, T> {
   /// Our internally used subscription object for sending control
   /// messages.
-  subscription: subscribe::Subscription<S, ParsedMessage, wrap::Message>,
+  subscription: subscribe::Subscription<S, ParsedMessage<B, Q, T>, wrap::Message>,
   /// The currently active individual market data subscriptions.
   subscriptions: MarketData,
 }
 
-impl<S> Subscription<S> {
+impl<S, B, Q, T> Subscription<S, B, Q, T> {
   /// Create a `Subscription` object wrapping the `websocket_util` based one.
   #[inline]
-  fn new(subscription: subscribe::Subscription<S, ParsedMessage, wrap::Message>) -> Self {
+  fn new(subscription: subscribe::Subscription<S, ParsedMessage<B, Q, T>, wrap::Message>) -> Self {
     Self {
       subscription,
       subscriptions: MarketData::default(),
@@ -603,7 +609,7 @@ impl<S> Subscription<S> {
   }
 }
 
-impl<S> Subscription<S>
+impl<S, B, Q, T> Subscription<S, B, Q, T>
 where
   S: Sink<wrap::Message> + Unpin,
 {
@@ -709,40 +715,53 @@ where
 }
 
 
-type ParseFn = fn(
+type ParseFn<B, Q, T> = fn(
   Result<wrap::Message, WebSocketError>,
-) -> Result<Result<Vec<DataMessage>, JsonError>, WebSocketError>;
-type MapFn = fn(Result<Result<DataMessage, JsonError>, WebSocketError>) -> ParsedMessage;
-type Stream = Map<
-  Unfold<Map<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, ParseFn>, DataMessage, JsonError>,
-  MapFn,
+) -> Result<Result<Vec<DataMessage<B, Q, T>>, JsonError>, WebSocketError>;
+type MapFn<B, Q, T> =
+  fn(Result<Result<DataMessage<B, Q, T>, JsonError>, WebSocketError>) -> ParsedMessage<B, Q, T>;
+type Stream<B, Q, T> = Map<
+  Unfold<
+    Map<Wrapper<WebSocketStream<MaybeTlsStream<TcpStream>>>, ParseFn<B, Q, T>>,
+    DataMessage<B, Q, T>,
+    JsonError,
+  >,
+  MapFn<B, Q, T>,
 >;
 
 
 /// A type used for requesting a subscription to real time market
 /// data.
 #[derive(Debug)]
-pub struct RealtimeData<S> {
+pub struct RealtimeData<S, B = Bar, Q = Quote, T = Trade> {
   /// Phantom data to make sure that we "use" `S`.
-  _phantom: PhantomData<S>,
+  _phantom: PhantomData<(S, B, Q, T)>,
 }
 
 #[async_trait]
-impl<S> Subscribable for RealtimeData<S>
+impl<S, B, Q, T> Subscribable for RealtimeData<S, B, Q, T>
 where
   S: Source,
+  B: Send + Unpin + Debug + DeserializeOwned,
+  Q: Send + Unpin + Debug + DeserializeOwned,
+  T: Send + Unpin + Debug + DeserializeOwned,
 {
   type Input = ApiInfo;
-  type Subscription = Subscription<SplitSink<Stream, wrap::Message>>;
-  type Stream = Fuse<MessageStream<SplitStream<Stream>, ParsedMessage>>;
+  type Subscription = Subscription<SplitSink<Stream<B, Q, T>, wrap::Message>, B, Q, T>;
+  type Stream = Fuse<MessageStream<SplitStream<Stream<B, Q, T>>, ParsedMessage<B, Q, T>>>;
 
   async fn connect(api_info: &Self::Input) -> Result<(Self::Stream, Self::Subscription), Error> {
-    fn parse(
+    fn parse<B, Q, T>(
       result: Result<wrap::Message, WebSocketError>,
-    ) -> Result<Result<Vec<DataMessage>, JsonError>, WebSocketError> {
+    ) -> Result<Result<Vec<DataMessage<B, Q, T>>, JsonError>, WebSocketError>
+    where
+      B: DeserializeOwned,
+      Q: DeserializeOwned,
+      T: DeserializeOwned,
+    {
       result.map(|message| match message {
-        wrap::Message::Text(string) => json_from_str::<Vec<DataMessage>>(&string),
-        wrap::Message::Binary(data) => json_from_slice::<Vec<DataMessage>>(&data),
+        wrap::Message::Text(string) => json_from_str::<Vec<DataMessage<B, Q, T>>>(&string),
+        wrap::Message::Binary(data) => json_from_slice::<Vec<DataMessage<B, Q, T>>>(&data),
       })
     }
 
@@ -756,8 +775,12 @@ where
     let mut url = url.clone();
     url.set_path(&format!("v2/{}", S::as_str()));
 
-    let stream =
-      Unfold::new(connect(&url).await?.map(parse as ParseFn)).map(MessageResult::from as MapFn);
+    let stream = Unfold::new(
+      connect(&url)
+        .await?
+        .map(parse::<B, Q, T> as ParseFn<_, _, _>),
+    )
+    .map(MessageResult::from as MapFn<B, Q, T>);
     let (send, recv) = stream.split();
     let (stream, subscription) = subscribe::subscribe(recv, send);
     let mut stream = stream.fuse();
