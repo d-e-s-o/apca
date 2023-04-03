@@ -36,7 +36,7 @@ http-endpoint = "0.5"
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
 hyper-tls = {version = "0.5", default-features = false}
 num-decimal = {version = "0.2.4", default-features = false, features = ["num-v04", "serde"]}
-serde = {version = "1.0", features = ["derive"]}
+serde = {version = "1.0.103", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
@@ -56,3 +56,8 @@ tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread
 tracing-subscriber = {version = "0.3", default-features = false, features = ["ansi", "env-filter", "fmt"]}
 uuid = {version = "1.0", default-features = false, features = ["v4"]}
 websocket-util = {version = "0.11.0", features = ["test"]}
+
+# A set of unused dependencies that we require to force correct minimum versions
+# of transitive dependencies, for cases where our dependencies have incorrect
+# dependency specifications themselves.
+_rustc_version_unused = { package = "rustc_version", version = "0.2.2" }
