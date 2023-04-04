@@ -229,6 +229,14 @@ pub enum TimeInForce {
   /// automatically at the end of Regular Trading Hours if unfilled.
   #[serde(rename = "day")]
   Day,
+  /// The order is only executed if the entire order quantity can
+  /// be filled, otherwise the order is canceled.
+  #[serde(rename = "fok")]
+  FillOrKill,
+  /// The order requires all or part of the order to be executed
+  /// immediately. Any unfilled portion of the order is canceled.
+  #[serde(rename = "ioc")]
+  ImmediateOrCancel,
   /// The order is good until canceled.
   #[serde(rename = "gtc")]
   UntilCanceled,
@@ -1196,7 +1204,7 @@ mod tests {
     assert_eq!(order.legs[0].status, Status::Held);
   }
 
-  /// Test submission of market open and market close orders.
+  /// Test submission of orders of various time in force types.
   #[test(tokio::test)]
   async fn submit_other_order_types() {
     async fn test(time_in_force: TimeInForce) {
@@ -1225,6 +1233,8 @@ mod tests {
       }
     }
 
+    test(TimeInForce::FillOrKill).await;
+    test(TimeInForce::ImmediateOrCancel).await;
     test(TimeInForce::UntilMarketOpen).await;
     test(TimeInForce::UntilMarketClose).await;
   }
