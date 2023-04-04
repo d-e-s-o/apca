@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![allow(clippy::let_unit_value)]
+use serde::Deserialize;
+use serde::Serialize;
 
-use apca::data::v2::stream::drive;
+use chrono::{DateTime, Utc};
+use apca::data::v2::stream::{Bar, drive, Quote, SIP};
 use apca::data::v2::stream::MarketData;
 use apca::data::v2::stream::RealtimeData;
-use apca::data::v2::stream::IEX;
 use apca::ApiInfo;
 use apca::Client;
 use apca::Error;
@@ -14,6 +16,44 @@ use apca::Error;
 use futures::FutureExt as _;
 use futures::StreamExt as _;
 use futures::TryStreamExt as _;
+use num_decimal::Num;
+
+/// A trade for an equity.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct Trade
+{
+  /// The trade's symbol.
+  #[serde(rename = "S")]
+  pub symbol: String,
+  /// The trade's ID.
+  #[serde(rename = "i")]
+  pub trade_id: u64,
+  /// The trade's price.
+  #[serde(rename = "p")]
+  pub trade_price: Num,
+  /// The trade's size.
+  #[serde(rename = "s")]
+  pub trade_size: u64,
+  /// The trade's conditions.
+  #[serde(rename = "c")]
+  pub conditions: Vec<String>,
+  /// The trade's time stamp.
+  #[serde(rename = "t")]
+  pub timestamp: DateTime<Utc>,
+  /// The trade's exchange.
+  #[serde(rename = "x")]
+  pub exchange: String,
+  /// The trade's tape.
+  #[serde(rename = "z")]
+  pub tape: String,
+  /// The trade's update. “canceled”, “corrected”, “incorrect”
+  #[serde(rename = "u", default)]
+  pub update: Option<String>,
+}
+
+type CustomRealtimeData<S, T> = RealtimeData<S, Bar, Quote, T>;
+
+
 
 #[tokio::main]
 async fn main() {
@@ -27,13 +67,10 @@ async fn main() {
   let api_info = ApiInfo::from_env().unwrap();
   let client = Client::new(api_info);
 
-  let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+  let (mut stream, mut subscription) = client.subscribe::<CustomRealtimeData::<SIP, Trade>>().await.unwrap();
 
   let mut data = MarketData::default();
-  // Subscribe to minute aggregate bars for SPY and XLK...
-  data.set_bars(["SPY", "XLK"]);
-  // ... and realtime quotes for AAPL.
-  data.set_quotes(["AAPL"]);
+  data.set_trades(["SPY", "XLK"]);
 
   let subscribe = subscription.subscribe(&data).boxed();
   // Actually subscribe with the websocket server.
