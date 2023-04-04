@@ -53,8 +53,6 @@ pub struct Trade
 
 type CustomRealtimeData<S, T> = RealtimeData<S, Bar, Quote, T>;
 
-
-
 #[tokio::main]
 async fn main() {
   // Requires the following environment variables to be present:
