@@ -510,6 +510,7 @@ pub struct CreateReq {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ChangeReq {
   /// Number of shares to trade.
+  // TODO: Should this really be an `Amount`?
   #[serde(rename = "qty")]
   pub quantity: Option<Num>,
   /// How long the order will be valid.

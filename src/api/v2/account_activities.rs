@@ -225,6 +225,8 @@ pub struct NonTradeActivityImpl<T> {
   pub type_: T,
   /// The date on which the activity occurred or on which the
   /// transaction associated with the activity settled.
+  // TODO: Should probably be a `Date<Utc>`, but we should check whether
+  //       it is actually naive (likely).
   #[serde(rename = "date", deserialize_with = "datetime_from_date_str")]
   pub date: DateTime<Utc>,
   /// The net amount of money (positive or negative) associated with the
