@@ -588,10 +588,14 @@ mod tests {
     };
     let activities = client.issue::<Get>(&request).await.unwrap();
 
-    // We don't really have a better way to test this than testing that
-    // we parsed something. Note that this may not work for newly
-    // created accounts, an order may have to be filled first.
-    assert!(!activities.is_empty());
+    // Various tests assume two or more activities to be present and
+    // will fail otherwise. We use this check here as a canary for when
+    // things are expected to go south.
+    assert!(
+      activities.len() >= 2,
+      "your account has less than 2 activities present ({}); activity related tests will fail",
+      activities.len(),
+    );
 
     let mut iter = activities.iter();
     let mut time = iter.next().unwrap().time();

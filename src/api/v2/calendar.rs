@@ -43,7 +43,7 @@ where
 /// The market open and close times for a specific date.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OpenClose {
-  /// The date to which the below open a close times apply.
+  /// The date to which the below open and close times apply.
   #[serde(rename = "date")]
   pub date: NaiveDate,
   /// The time the market opens at.

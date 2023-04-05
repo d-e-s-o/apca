@@ -152,7 +152,8 @@ pub struct Bar {
 }
 
 
-/// A collection of bars as returned by the API. This is one page of bars.
+/// A collection of bars as returned by the API. This is one page of
+/// bars.
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct Bars {
@@ -161,7 +162,8 @@ pub struct Bars {
   pub bars: Vec<Bar>,
   /// The symbol the bars correspond to.
   pub symbol: String,
-  /// The token to provide to a request to get the next page of bars for this request.
+  /// The token to provide to a request to get the next page of bars for
+  /// this request.
   pub next_page_token: Option<String>,
 }
 
