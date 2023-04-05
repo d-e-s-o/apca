@@ -344,6 +344,28 @@ mod tests {
     }
   }
 
+
+  /// Check that we can retrieve the `ApiInfo` object used by a client.
+  #[test]
+  fn client_api_info() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::builder().build(api_info.clone());
+    assert_eq!(&api_info, client.api_info());
+  }
+
+  /// Check that formatting a [`DebugRequest`] masks secret values.
+  #[test]
+  fn request_debugging() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::builder().build(api_info);
+
+    let request = client.request::<GetNotFound>(&()).unwrap();
+    let value = debug_request(&request);
+    let string = format!("{value:?}");
+    assert!(string.contains("<masked>"), "{string}");
+  }
+
+  /// Check basic workings of the HTTP status evaluation logic.
   #[test(tokio::test)]
   async fn unexpected_status_code_return() {
     let api_info = ApiInfo::from_env().unwrap();

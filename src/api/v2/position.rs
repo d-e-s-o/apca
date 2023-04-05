@@ -108,7 +108,7 @@ Endpoint! {
     /* 200 */ OK,
   ],
   Err => GetError, [
-    /// No position was found with the given ID.
+    /// No position was found for the given symbol.
     /* 404 */ NOT_FOUND => NotFound,
   ]
 
@@ -301,6 +301,30 @@ mod tests {
         RequestError::Endpoint(GetError::NotFound(..)) => (),
         _ => panic!("Received unexpected error: {err:?}"),
       },
+    }
+  }
+
+  /// Check that we error out as expected when attempting to delete a
+  /// non-existent position.
+  #[test(tokio::test)]
+  async fn delete_non_existent_position() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    // A few candidate symbols. The hope is that the account does *not*
+    // have a position in one of these.
+    for symbol in ["TSLA", "SPY", "XLK"] {
+      let symbol = asset::Symbol::Sym(symbol.to_string());
+      if client.issue::<Get>(&symbol).await.is_ok() {
+        // Seems as if a position exists. Try the next one.
+        continue
+      }
+
+      let result = client.issue::<Delete>(&symbol).await;
+      match result {
+        Err(RequestError::Endpoint(DeleteError::NotFound(..))) => (),
+        _ => panic!("Received unexpected result: {:?}", result),
+      }
     }
   }
 }
