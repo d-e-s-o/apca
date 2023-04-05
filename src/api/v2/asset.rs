@@ -513,6 +513,15 @@ mod tests {
     assert_eq!(from_json::<Asset>(&json).unwrap(), asset);
   }
 
+  /// Check that we can create a `Symbol` from an `Id`.
+  #[test]
+  fn symbol_from_id() {
+    let id = Id(Uuid::parse_str("904837e3-3b76-47ec-b432-046db621571b").unwrap());
+    let symbol = Symbol::from(id);
+
+    assert_eq!(symbol, Symbol::Id(id))
+  }
+
   /// Check that we can retrieve information about an asset.
   #[test(tokio::test)]
   async fn retrieve_asset() {
