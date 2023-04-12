@@ -987,6 +987,81 @@ mod tests {
     );
   }
 
+  /// A trade for an equity.
+  #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+  struct DetailedTrade {
+    /// The trade's symbol.
+    #[serde(rename = "S")]
+    symbol: String,
+    /// The trade's ID.
+    #[serde(rename = "i")]
+    trade_id: u64,
+    /// The trade's price.
+    #[serde(rename = "p")]
+    trade_price: Num,
+    /// The trade's size.
+    #[serde(rename = "s")]
+    trade_size: u64,
+    /// The trade's conditions.
+    #[serde(rename = "c")]
+    conditions: Vec<String>,
+    /// The trade's time stamp.
+    #[serde(rename = "t")]
+    timestamp: DateTime<Utc>,
+    /// The trade's exchange.
+    #[serde(rename = "x")]
+    exchange: String,
+    /// The trade's tape.
+    #[serde(rename = "z")]
+    tape: String,
+    /// The trade's update, may be "canceled", "corrected", or
+    /// "incorrect".
+    #[serde(rename = "u", default)]
+    update: Option<String>,
+  }
+
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Trade`] variant with a custom trade type.
+  #[test]
+  fn serialize_deserialize_custom_trade() {
+    let json: &str = r#"{
+  "T": "t",
+  "i": 96921,
+  "S": "AAPL",
+  "x": "D",
+  "p": 126.55,
+  "s": 1,
+  "t": "2021-02-22T15:51:44.208Z",
+  "c": ["@", "I"],
+  "z": "C",
+  "u": "corrected"
+}"#;
+
+    let message = json_from_str::<DataMessage<Bar, Quote, DetailedTrade>>(json).unwrap();
+    let trade = match &message {
+      DataMessage::Trade(trade) => trade,
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
+    };
+    assert_eq!(trade.symbol, "AAPL");
+    assert_eq!(trade.trade_id, 96921);
+    assert_eq!(trade.trade_price, Num::new(12655, 100));
+    assert_eq!(trade.trade_size, 1);
+
+    assert_eq!(
+      trade.timestamp,
+      DateTime::<Utc>::from_str("2021-02-22T15:51:44.208Z").unwrap()
+    );
+
+    assert_eq!(trade.conditions, vec!["@", "I"]);
+    assert_eq!(trade.tape, "C");
+    assert_eq!(trade.update, Some("corrected".to_string()));
+
+    assert_eq!(
+      json_from_str::<DataMessage<Bar, Quote, DetailedTrade>>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
+  }
+
   /// Check that we can serialize and deserialize the
   /// [`DataMessage::Success`] variant.
   #[test]
