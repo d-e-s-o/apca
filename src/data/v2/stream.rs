@@ -930,7 +930,7 @@ mod tests {
 
     let message = json_from_str::<DataMessage>(json).unwrap();
     let quote = match &message {
-      DataMessage::Quote(qoute) => qoute,
+      DataMessage::Quote(quote) => quote,
       _ => panic!("Decoded unexpected message variant: {message:?}"),
     };
     assert_eq!(quote.symbol, "NVDA");
@@ -946,6 +946,90 @@ mod tests {
 
     assert_eq!(
       json_from_str::<DataMessage>(&to_json(&message).unwrap()).unwrap(),
+      message
+    );
+  }
+
+  /// A quote for an equity.
+  #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+  struct DetailedQuote {
+    /// The quote's symbol.
+    #[serde(rename = "S")]
+    symbol: String,
+    /// The bid's price.
+    #[serde(rename = "bp")]
+    bid_price: Num,
+    /// The bid's size.
+    #[serde(rename = "bs")]
+    bid_size: u64,
+    /// The bid's exchange code.
+    #[serde(rename = "bx")]
+    bid_exchange_code: String,
+    /// The ask's price.
+    #[serde(rename = "ap")]
+    ask_price: Num,
+    /// The ask's size.
+    #[serde(rename = "as")]
+    ask_size: u64,
+    /// The ask's exchange code.
+    #[serde(rename = "ax")]
+    ask_exchange_code: String,
+    /// The trade's size.
+    #[serde(rename = "s")]
+    trade_size: u64,
+    /// The quote's time stamp.
+    #[serde(rename = "t")]
+    timestamp: DateTime<Utc>,
+    /// The quote's conditions.
+    #[serde(rename = "c")]
+    quote_conditions: Vec<String>,
+    /// The tape.
+    #[serde(rename = "z")]
+    tape: String,
+  }
+
+  /// Check that we can serialize and deserialize the
+  /// [`DataMessage::Quote`] variant with a DetailedTrade.
+  #[test]
+  fn serialize_deserialize_detailed_quote() {
+    let json: &str = r#"{
+  "T": "q",
+  "S": "NVDA",
+  "bx": "P",
+  "bp": 258.8,
+  "bs": 2,
+  "s": 3,
+  "ax": "A",
+  "ap": 259.99,
+  "as": 5,
+  "c": [
+      "R"
+  ],
+  "z": "C",
+  "t": "2022-01-18T23:09:42.151875584Z"
+}"#;
+
+    let message = json_from_str::<DataMessage<Bar, DetailedQuote, Trade>>(json).unwrap();
+    let quote = match &message {
+      DataMessage::Quote(quote) => quote,
+      _ => panic!("Decoded unexpected message variant: {message:?}"),
+    };
+    assert_eq!(quote.symbol, "NVDA");
+    assert_eq!(quote.bid_price, Num::new(2588, 10));
+    assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.bid_exchange_code, "P");
+    assert_eq!(quote.ask_price, Num::new(25999, 100));
+    assert_eq!(quote.ask_size, 5);
+    assert_eq!(quote.ask_exchange_code, "A");
+    assert_eq!(quote.trade_size, 3);
+
+    assert_eq!(
+      quote.timestamp,
+      DateTime::<Utc>::from_str("2022-01-18T23:09:42.151875584Z").unwrap()
+    );
+
+    assert_eq!(
+      json_from_str::<DataMessage<Bar, DetailedQuote, Trade>>(&to_json(&message).unwrap()).unwrap(),
       message
     );
   }
@@ -1036,7 +1120,7 @@ mod tests {
   "c": ["@", "I"],
   "z": "C",
   "u": "corrected"
-}"#;
+  }"#;
 
     let message = json_from_str::<DataMessage<Bar, Quote, DetailedTrade>>(json).unwrap();
     let trade = match &message {
