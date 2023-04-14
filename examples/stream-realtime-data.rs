@@ -6,9 +6,12 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use chrono::{DateTime, Utc};
-use apca::data::v2::stream::{Bar, drive, Quote, SIP};
+use apca::data::v2::stream::drive;
+use apca::data::v2::stream::Bar;
+use apca::data::v2::stream::Quote;
 use apca::data::v2::stream::MarketData;
 use apca::data::v2::stream::RealtimeData;
+use apca::data::v2::stream::IEX;
 use apca::ApiInfo;
 use apca::Client;
 use apca::Error;
@@ -51,8 +54,6 @@ pub struct Trade
   pub update: Option<String>,
 }
 
-type CustomRealtimeData<S, T> = RealtimeData<S, Bar, Quote, T>;
-
 #[tokio::main]
 async fn main() {
   // Requires the following environment variables to be present:
@@ -65,10 +66,15 @@ async fn main() {
   let api_info = ApiInfo::from_env().unwrap();
   let client = Client::new(api_info);
 
-  let (mut stream, mut subscription) = client.subscribe::<CustomRealtimeData::<SIP, Trade>>().await.unwrap();
+  let (mut stream, mut subscription) = client.subscribe::<RealtimeData::<IEX, Bar, Quote, Trade>>().await.unwrap();
 
   let mut data = MarketData::default();
-  data.set_trades(["SPY", "XLK"]);
+  // Subscribe to minute aggregate bars for SPY and XLK...
+  data.set_bars(["SPY", "XLK"]);
+  // ... and realtime quotes for AAPL...
+  data.set_quotes(["AAPL"]);
+  // ... and realtime trades for TSLA.
+  data.set_trades(["TSLA"]);
 
   let subscribe = subscription.subscribe(&data).boxed();
   // Actually subscribe with the websocket server.
