@@ -29,7 +29,6 @@
   trivial_numeric_casts,
   type_alias_bounds,
   tyvar_behind_raw_pointer,
-  unaligned_references,
   unconditional_recursion,
   unreachable_code,
   unreachable_patterns,
