@@ -13,7 +13,6 @@ use http::StatusCode as HttpStatusCode;
 use hyper::Error as HyperError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
-use url::ParseError;
 use websocket_util::tungstenite::Error as WebSocketError;
 
 use crate::Str;
@@ -80,13 +79,6 @@ pub enum Error {
   /// An error directly originating in this crate.
   #[error("{0}")]
   Str(Str),
-  /// An URL parsing error.
-  #[error("failed to parse the URL")]
-  Url(
-    #[from]
-    #[source]
-    ParseError,
-  ),
   /// A websocket error.
   #[error("encountered a websocket related error")]
   WebSocket(
