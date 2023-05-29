@@ -393,7 +393,7 @@ impl Subscribable for OrderUpdates {
     let mut stream = stream.fuse();
 
     let mut subscription = Subscription(subscription);
-    let authenticate = subscription.authenticate(key_id, secret).boxed().fuse();
+    let authenticate = subscription.authenticate(key_id, secret).boxed();
     let () = subscribe::drive::<ParsedMessage, _, _>(authenticate, &mut stream)
       .await
       .map_err(|result| {
@@ -403,7 +403,7 @@ impl Subscribable for OrderUpdates {
           .unwrap_or_else(|err| err)
       })???;
 
-    let listen = subscription.listen().boxed().fuse();
+    let listen = subscription.listen().boxed();
     let () = subscribe::drive::<ParsedMessage, _, _>(listen, &mut stream)
       .await
       .map_err(|result| {

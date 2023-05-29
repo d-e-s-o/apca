@@ -791,7 +791,7 @@ where
     let mut stream = stream.fuse();
     let mut subscription = Subscription::new(subscription);
 
-    let connect = subscription.subscription.read().boxed().fuse();
+    let connect = subscription.subscription.read().boxed();
     let message = drive(connect, &mut stream).await.map_err(|result| {
       result
         .map(|result| Error::Json(result.unwrap_err()))
@@ -814,7 +814,7 @@ where
       },
     }
 
-    let authenticate = subscription.authenticate(key_id, secret).boxed().fuse();
+    let authenticate = subscription.authenticate(key_id, secret).boxed();
     let () = drive(authenticate, &mut stream).await.map_err(|result| {
       result
         .map(|result| Error::Json(result.unwrap_err()))
@@ -1310,7 +1310,7 @@ mod tests {
     let mut data = MarketData::default();
     data.set_bars(["AAPL", "VOO"]);
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1352,7 +1352,7 @@ mod tests {
 
     let data = MarketData::default();
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let error = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1377,7 +1377,7 @@ mod tests {
     let mut data = MarketData::default();
     data.set_bars(["AAPL", "SPY"]);
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1388,7 +1388,7 @@ mod tests {
 
     let mut data = MarketData::default();
     data.set_bars(["XLK"]);
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1417,7 +1417,7 @@ mod tests {
       ..Default::default()
     };
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1456,7 +1456,7 @@ mod tests {
     let mut data = MarketData::default();
     data.set_quotes(["SPY"]);
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1489,7 +1489,7 @@ mod tests {
     let mut data = MarketData::default();
     data.set_trades(["SPY"]);
 
-    let subscribe = subscription.subscribe(&data).boxed_local().fuse();
+    let subscribe = subscription.subscribe(&data).boxed_local();
     let () = drive(subscribe, &mut stream)
       .await
       .unwrap()
@@ -1523,7 +1523,7 @@ mod tests {
     let mut data = MarketData::default();
     data.set_bars(["AAPL"]);
 
-    let unsubscribe = subscription.unsubscribe(&data).boxed_local().fuse();
+    let unsubscribe = subscription.unsubscribe(&data).boxed_local();
     let () = drive(unsubscribe, &mut stream)
       .await
       .unwrap()
