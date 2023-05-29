@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Added support for overwriting default realtime data bar, quote, and
   trade types
+- Switched to using new stream authentication request message format
 
 
 0.26.2

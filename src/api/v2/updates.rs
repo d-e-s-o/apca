@@ -165,23 +165,30 @@ pub struct Authentication {
 }
 
 
-/// A control message "request" sent over a websocket channel.
+/// A control message authentication request sent over a websocket
+/// channel.
 #[derive(Debug, Deserialize, Serialize)]
-#[doc(hidden)]
-#[serde(tag = "action", content = "data")]
-pub enum Request<'d> {
+#[serde(tag = "action")]
+enum Authenticate<'d> {
   /// A request to authenticate with the server after a websocket
   /// connection was established.
-  #[serde(rename = "authenticate")]
-  Authenticate {
-    #[serde(rename = "key_id")]
+  #[serde(rename = "auth")]
+  Request {
+    #[serde(rename = "key")]
     key_id: Cow<'d, str>,
-    #[serde(rename = "secret_key")]
+    #[serde(rename = "secret")]
     secret: Cow<'d, str>,
   },
-  /// A request to subscribe to a particular stream.
+}
+
+
+/// A control message listen request sent over a websocket channel.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "action", content = "data")]
+enum Listen<'d> {
+  /// A request to listen to a particular stream.
   #[serde(rename = "listen")]
-  Listen(Streams<'d>),
+  Request(Streams<'d>),
 }
 
 
@@ -284,7 +291,7 @@ where
     key_id: &str,
     secret: &str,
   ) -> Result<Result<(), Error>, S::Error> {
-    let request = Request::Authenticate {
+    let request = Authenticate::Request {
       key_id: key_id.into(),
       secret: secret.into(),
     };
@@ -317,7 +324,7 @@ where
   /// Subscribe and listen to order updates.
   async fn listen(&mut self) -> Result<Result<(), Error>, S::Error> {
     let streams = Streams::from([StreamType::OrderUpdates].as_ref());
-    let request = Request::Listen(streams);
+    let request = Listen::Request(streams);
     let json = match to_json(&request) {
       Ok(json) => json,
       Err(err) => return Ok(Err(Error::Json(err))),
@@ -441,8 +448,7 @@ mod tests {
   //       `std::format` in a const context we have to hard code the
   //       values of `crate::websocket::test::KEY_ID` and
   //       `crate::websocket::test::SECRET` here.
-  const AUTH_REQ: &str =
-    r#"{"action":"authenticate","data":{"key_id":"USER12345678","secret_key":"justletmein"}}"#;
+  const AUTH_REQ: &str = r#"{"action":"auth","key":"USER12345678","secret":"justletmein"}"#;
   const AUTH_RESP: &str =
     r#"{"stream":"authorization","data":{"action":"authenticate","status":"authorized"}}"#;
   const STREAM_REQ: &str = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
@@ -454,11 +460,9 @@ mod tests {
   fn encode_authentication_request() {
     let key_id = "some-key".into();
     let secret = "super-secret-secret".into();
-    let expected = {
-      r#"{"action":"authenticate","data":{"key_id":"some-key","secret_key":"super-secret-secret"}}"#
-    };
+    let expected = r#"{"action":"auth","key":"some-key","secret":"super-secret-secret"}"#;
 
-    let request = Request::Authenticate { key_id, secret };
+    let request = Authenticate::Request { key_id, secret };
     let json = to_json(&request).unwrap();
     assert_eq!(json, expected)
   }
@@ -468,7 +472,7 @@ mod tests {
   fn encode_listen_request() {
     let expected = r#"{"action":"listen","data":{"streams":["trade_updates"]}}"#;
     let streams = Streams::from([StreamType::OrderUpdates].as_ref());
-    let request = Request::Listen(streams);
+    let request = Listen::Request(streams);
     let json = to_json(&request).unwrap();
     assert_eq!(json, expected)
   }
