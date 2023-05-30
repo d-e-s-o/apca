@@ -43,6 +43,8 @@ use tokio::net::TcpStream;
 use tungstenite::MaybeTlsStream;
 use tungstenite::WebSocketStream;
 
+use url::Url;
+
 use websocket_util::subscribe;
 use websocket_util::subscribe::MessageStream;
 use websocket_util::tungstenite::Error as WebSocketError;
@@ -83,14 +85,25 @@ mod private {
 }
 
 
+#[doc(hidden)]
+#[derive(Clone, Debug)]
+pub enum SourceVariant {
+  /// The source provided is a path component to be appended to an
+  /// already present base URL.
+  PathComponent(&'static str),
+  /// The source provided is a complete URL.
+  Url(String),
+}
+
+
 /// A trait representing the source from which to stream real time data.
 // TODO: Once we can use enumerations as const generic parameters we
 //       should probably switch over to repurposing `data::v2::Feed`
 //       here instead.
 pub trait Source: private::Sealed {
-  /// Return a textual representation of the source.
+  /// Return the source.
   #[doc(hidden)]
-  fn as_str() -> &'static str;
+  fn source() -> SourceVariant;
 }
 
 
@@ -103,8 +116,8 @@ pub enum IEX {}
 
 impl Source for IEX {
   #[inline]
-  fn as_str() -> &'static str {
-    "iex"
+  fn source() -> SourceVariant {
+    SourceVariant::PathComponent("iex")
   }
 }
 
@@ -120,12 +133,65 @@ pub enum SIP {}
 
 impl Source for SIP {
   #[inline]
-  fn as_str() -> &'static str {
-    "sip"
+  fn source() -> SourceVariant {
+    SourceVariant::PathComponent("sip")
   }
 }
 
 impl private::Sealed for SIP {}
+
+
+/// A realtime data source that uses a custom URL.
+///
+/// This type provides a way to stream realtime data from a custom URL.
+/// The endpoint at said URL has to follow the `v2` handshake and
+/// message protocol. Provided that is the case, usage could be as
+/// follows:
+/// ```no_run
+/// # use apca::ApiInfo;
+/// # use apca::Client;
+/// # use apca::data::v2::stream::CustomUrl;
+/// # use apca::data::v2::stream::RealtimeData;
+/// // The v1beta3 crypto API happens to be using the same handshake as
+/// // the v2 stock APIs.
+/// #[derive(Default)]
+/// struct Crypto;
+///
+/// impl ToString for Crypto {
+///   fn to_string(&self) -> String {
+///     "wss://stream.data.alpaca.markets/v1beta3/crypto/us".into()
+///   }
+/// }
+///
+/// let api_info = ApiInfo::from_env().unwrap();
+/// let client = Client::new(api_info);
+/// # tokio::runtime::Runtime::new().unwrap().block_on(async move {
+/// let (mut stream, mut subscription) = client
+///   .subscribe::<RealtimeData<CustomUrl<Crypto>>>()
+///   .await
+///   .unwrap();
+/// # })
+///
+/// // Use `subscription` to subscribe to quotes, trades, or bars, then
+/// // handle `stream` as usual.
+/// ```
+#[derive(Clone, Copy, Debug)]
+pub struct CustomUrl<URL> {
+  _phantom: PhantomData<URL>,
+}
+
+impl<URL> Source for CustomUrl<URL>
+where
+  URL: Default + ToString,
+{
+  #[inline]
+  fn source() -> SourceVariant {
+    let url = URL::default();
+    SourceVariant::Url(url.to_string())
+  }
+}
+
+impl<URL> private::Sealed for CustomUrl<URL> {}
 
 
 /// A symbol.
@@ -777,8 +843,14 @@ where
       ..
     } = api_info;
 
-    let mut url = url.clone();
-    url.set_path(&format!("v2/{}", S::as_str()));
+    let url = match S::source() {
+      SourceVariant::PathComponent(component) => {
+        let mut url = url.clone();
+        url.set_path(&format!("v2/{}", component));
+        url
+      },
+      SourceVariant::Url(url) => Url::parse(&url)?,
+    };
 
     let stream = Unfold::new(
       connect(&url)
@@ -1449,33 +1521,51 @@ mod tests {
   #[test(tokio::test)]
   #[serial(realtime_data)]
   async fn stream_quotes() {
-    let api_info = ApiInfo::from_env().unwrap();
-    let client = Client::new(api_info);
-    let (mut stream, mut subscription) = client.subscribe::<RealtimeData<IEX>>().await.unwrap();
+    async fn test<S>()
+    where
+      S: Source,
+    {
+      let api_info = ApiInfo::from_env().unwrap();
+      let client = Client::new(api_info);
+      let (mut stream, mut subscription) = client.subscribe::<RealtimeData<S>>().await.unwrap();
 
-    let mut data = MarketData::default();
-    data.set_quotes(["SPY"]);
+      let mut data = MarketData::default();
+      data.set_quotes(["SPY"]);
 
-    let subscribe = subscription.subscribe(&data).boxed_local();
-    let () = drive(subscribe, &mut stream)
-      .await
-      .unwrap()
-      .unwrap()
-      .unwrap();
+      let subscribe = subscription.subscribe(&data).boxed_local();
+      let () = drive(subscribe, &mut stream)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
 
-    let read = stream
-      .map_err(Error::WebSocket)
-      .try_for_each(|result| async {
-        result
-          .map(|data| {
-            assert!(data.is_quote());
-          })
-          .map_err(Error::Json)
-      });
+      let read = stream
+        .map_err(Error::WebSocket)
+        .try_for_each(|result| async {
+          result
+            .map(|data| {
+              assert!(data.is_quote());
+            })
+            .map_err(Error::Json)
+        });
 
-    if timeout(Duration::from_millis(100), read).await.is_ok() {
-      panic!("realtime data stream got exhausted unexpectedly")
+      if timeout(Duration::from_millis(100), read).await.is_ok() {
+        panic!("realtime data stream got exhausted unexpectedly")
+      }
     }
+
+    test::<IEX>().await;
+
+    #[derive(Default)]
+    struct IexWithUrl;
+
+    impl ToString for IexWithUrl {
+      fn to_string(&self) -> String {
+        "wss://stream.data.alpaca.markets/v2/iex".into()
+      }
+    }
+
+    test::<CustomUrl<IexWithUrl>>().await;
   }
 
   /// Check that we can stream realtime stock trades.
@@ -1546,5 +1636,31 @@ mod tests {
       Error::Str(ref e) if e.starts_with("failed to authenticate with server") => (),
       e => panic!("received unexpected error: {e}"),
     }
+  }
+
+  /// Check that we fail connection as expected on an invalid URL.
+  #[test(tokio::test)]
+  #[serial(realtime_data)]
+  async fn stream_with_invalid_url() {
+    #[derive(Default)]
+    struct Invalid;
+
+    impl ToString for Invalid {
+      fn to_string(&self) -> String {
+        "<invalid-url-is-invalid>".into()
+      }
+    }
+
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let err = client
+      .subscribe::<RealtimeData<CustomUrl<Invalid>>>()
+      .await
+      .unwrap_err();
+
+    match err {
+      Error::Url(..) => (),
+      _ => panic!("Received unexpected error: {err:?}"),
+    };
   }
 }

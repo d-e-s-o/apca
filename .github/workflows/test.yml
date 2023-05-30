@@ -107,4 +107,7 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - run: cargo doc --no-deps
+      - run: |
+          cargo doc --no-deps
+          # Explicitly run doc tests as cargo-llvm-cov currently does not.
+          cargo test --doc
