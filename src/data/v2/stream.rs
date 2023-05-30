@@ -203,7 +203,7 @@ pub struct Bar {
   pub close_price: Num,
   /// The bar's volume.
   #[serde(rename = "v")]
-  pub volume: u64,
+  pub volume: Num,
   /// The bar's time stamp.
   #[serde(rename = "t")]
   pub timestamp: DateTime<Utc>,
@@ -221,13 +221,13 @@ pub struct Quote {
   pub bid_price: Num,
   /// The bid's size.
   #[serde(rename = "bs")]
-  pub bid_size: u64,
+  pub bid_size: Num,
   /// The ask's price.
   #[serde(rename = "ap")]
   pub ask_price: Num,
   /// The ask's size.
   #[serde(rename = "as")]
-  pub ask_size: u64,
+  pub ask_size: Num,
   /// The quote's time stamp.
   #[serde(rename = "t")]
   pub timestamp: DateTime<Utc>,
@@ -248,7 +248,7 @@ pub struct Trade {
   pub trade_price: Num,
   /// The trade's size.
   #[serde(rename = "s")]
-  pub trade_size: u64,
+  pub trade_size: Num,
   /// The trade's time stamp.
   #[serde(rename = "t")]
   pub timestamp: DateTime<Utc>,
@@ -901,7 +901,7 @@ mod tests {
     assert_eq!(bar.high_price, Num::new(38913, 100));
     assert_eq!(bar.low_price, Num::new(388975, 1000));
     assert_eq!(bar.close_price, Num::new(38912, 100));
-    assert_eq!(bar.volume, 49378);
+    assert_eq!(bar.volume, Num::from(49378));
     assert_eq!(
       bar.timestamp,
       DateTime::<Utc>::from_str("2021-02-22T19:15:00Z").unwrap()
@@ -940,9 +940,9 @@ mod tests {
     };
     assert_eq!(quote.symbol, "NVDA");
     assert_eq!(quote.bid_price, Num::new(2588, 10));
-    assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.bid_size, Num::from(2));
     assert_eq!(quote.ask_price, Num::new(25999, 100));
-    assert_eq!(quote.ask_size, 5);
+    assert_eq!(quote.ask_size, Num::from(5));
 
     assert_eq!(
       quote.timestamp,
@@ -967,7 +967,7 @@ mod tests {
     bid_price: Num,
     /// The bid's size.
     #[serde(rename = "bs")]
-    bid_size: u64,
+    bid_size: Num,
     /// The bid's exchange code.
     #[serde(rename = "bx")]
     bid_exchange_code: String,
@@ -976,13 +976,13 @@ mod tests {
     ask_price: Num,
     /// The ask's size.
     #[serde(rename = "as")]
-    ask_size: u64,
+    ask_size: Num,
     /// The ask's exchange code.
     #[serde(rename = "ax")]
     ask_exchange_code: String,
     /// The trade's size.
     #[serde(rename = "s")]
-    trade_size: u64,
+    trade_size: Num,
     /// The quote's time stamp.
     #[serde(rename = "t")]
     timestamp: DateTime<Utc>,
@@ -1022,12 +1022,12 @@ mod tests {
     };
     assert_eq!(quote.symbol, "NVDA");
     assert_eq!(quote.bid_price, Num::new(2588, 10));
-    assert_eq!(quote.bid_size, 2);
+    assert_eq!(quote.bid_size, Num::from(2));
     assert_eq!(quote.bid_exchange_code, "P");
     assert_eq!(quote.ask_price, Num::new(25999, 100));
-    assert_eq!(quote.ask_size, 5);
+    assert_eq!(quote.ask_size, Num::from(5));
     assert_eq!(quote.ask_exchange_code, "A");
-    assert_eq!(quote.trade_size, 3);
+    assert_eq!(quote.trade_size, Num::from(3));
 
     assert_eq!(
       quote.timestamp,
@@ -1064,7 +1064,7 @@ mod tests {
     assert_eq!(trade.symbol, "AAPL");
     assert_eq!(trade.trade_id, 96921);
     assert_eq!(trade.trade_price, Num::new(12655, 100));
-    assert_eq!(trade.trade_size, 1);
+    assert_eq!(trade.trade_size, Num::from(1));
 
     assert_eq!(
       trade.timestamp,

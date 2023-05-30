@@ -2,6 +2,8 @@ Unreleased
 ----------
 - Added support for overwriting default realtime data bar, quote, and
   trade types
+- Changed various `data::v2::stream::{Bar, Quote, Trade}` member from
+  `u64` to `Num`
 - Switched to using new stream authentication request message format
 
 
