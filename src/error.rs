@@ -49,7 +49,7 @@ impl Display for HttpBody {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match from_utf8(&self.0) {
       Ok(s) => fmt.write_str(s)?,
-      Err(b) => write!(fmt, "{b:?}")?,
+      Err(..) => write!(fmt, "{:?}", &self.0)?,
     }
     Ok(())
   }
@@ -68,7 +68,7 @@ pub enum Error {
   ),
   /// We encountered an HTTP status code that either represents a
   /// failure or is not supported.
-  #[error("encountered an unexpected HTTP status: {0}")]
+  #[error("encountered an unexpected HTTP status: {0}: {1}")]
   HttpStatus(HttpStatusCode, #[source] HttpBody),
   /// A JSON conversion error.
   #[error("a JSON conversion failed")]
@@ -94,4 +94,29 @@ pub enum Error {
     #[source]
     WebSocketError,
   ),
+}
+
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+
+  /// Check that we can serialize a [`Side`] object.
+  #[test]
+  fn formatting() {
+    let body = HttpBody(vec![0, 159, 146, 150]);
+    let err = Error::HttpStatus(HttpStatusCode::NOT_FOUND, body);
+    assert_eq!(
+      format!("{err}"),
+      "encountered an unexpected HTTP status: 404 Not Found: [0, 159, 146, 150]"
+    );
+
+    let body = HttpBody("invalid".to_string().as_bytes().to_vec());
+    let err = Error::HttpStatus(HttpStatusCode::NOT_FOUND, body);
+    assert_eq!(
+      format!("{err}"),
+      "encountered an unexpected HTTP status: 404 Not Found: invalid"
+    );
+  }
 }
