@@ -1,9 +1,11 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
 use serde_json::Error as JsonError;
 use serde_urlencoded::ser::Error as UrlEncodeError;
+
+use thiserror::Error;
 
 
 /// An error type comprising various conversion errors we may encounter.
@@ -16,8 +18,6 @@ pub enum ConversionError {
   #[error("failed to URL-encode data")]
   UrlEncode(#[from] UrlEncodeError),
 }
-
-use thiserror::Error;
 
 
 /// An error as reported by API endpoints.
