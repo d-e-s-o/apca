@@ -19,17 +19,24 @@ pub enum ConversionError {
   UrlEncode(#[from] UrlEncodeError),
 }
 
+fn format_code(code: &Option<u64>) -> String {
+  if let Some(code) = code {
+    format!(" ({code})")
+  } else {
+    String::new()
+  }
+}
 
 /// An error as reported by API endpoints.
 // Note that actually this type should probably be specific to the API
 // version in question. However, at this point we only support v2, so we
 // luck out here.
 #[derive(Clone, Debug, Deserialize, Error, Eq, PartialEq)]
-#[error("{message} ({code})")]
+#[error("{message}{}", format_code(.code))]
 pub struct ApiError {
   /// An error code as provided by Alpaca.
   #[serde(rename = "code")]
-  pub code: u64,
+  pub code: Option<u64>,
   /// A message as provided by Alpaca.
   #[serde(rename = "message")]
   pub message: String,
