@@ -22,9 +22,11 @@ A crate for interacting with the Alpaca API.
 include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 
 [features]
-default = ["gzip"]
+default = ["gzip", "native-tls"]
 gzip = ["async-compression/futures-io", "async-compression/gzip"]
-vendored-openssl = ["hyper-tls/vendored"]
+vendored-openssl = ["hyper-tls?/vendored", "dep:hyper-tls"]
+native-tls = ["tungstenite/native-tls", "dep:hyper-tls"]
+rustls = ["hyper/tcp", "dep:hyper-rustls", "websocket-util/rustls", "tungstenite/__rustls-tls"]
 
 [dependencies]
 async-compression = {version = "0.3.12", default-features = false, optional = true}
@@ -34,8 +36,9 @@ futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
-hyper-tls = {version = "0.5", default-features = false}
+hyper-tls = {version = "0.5", default-features = false, optional = true}
 num-decimal = {version = "0.2.4", default-features = false, features = ["num-v04", "serde"]}
+hyper-rustls = {version = "0.24", optional = true}
 serde = {version = "1.0.103", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
@@ -44,7 +47,7 @@ thiserror = "1.0.30"
 tokio = {version = "1.0", default-features = false, features = ["net"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "tokio-tungstenite", version = "0.18", features = ["connect", "native-tls"]}
+tungstenite = {package = "tokio-tungstenite", version = "0.19", features = ["connect"]}
 url = "2.0"
 uuid = {version = "1.0", default-features = false, features = ["serde"]}
 websocket-util = "0.11.0"

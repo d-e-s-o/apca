@@ -48,6 +48,10 @@
 
 //! A crate for interacting with the Alpaca API.
 
+// Do not allow `rustls` and `native-tls` to be used at the same time.
+#[cfg(all(feature = "rustls", feature = "native-tls"))]
+compile_error!("features `rustls` and `native-tls` are mutually exclusive");
+
 #[macro_use]
 extern crate http_endpoint;
 

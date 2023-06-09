@@ -22,7 +22,12 @@ use hyper::client::HttpConnector;
 use hyper::Body;
 use hyper::Client as HttpClient;
 use hyper::Error as HyperError;
+
+#[cfg(feature = "native-tls")]
 use hyper_tls::HttpsConnector;
+
+#[cfg(feature = "rustls")]
+use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 
 use tracing::debug;
 use tracing::field::debug;
@@ -113,7 +118,16 @@ impl Builder {
 
   /// Build the final `Client` object.
   pub fn build(&self, api_info: ApiInfo) -> Client {
+    #[cfg(feature = "native-tls")]
     let https = HttpsConnector::new();
+
+    #[cfg(feature = "rustls")]
+    let https = HttpsConnectorBuilder::new()
+      .with_native_roots()
+      .https_only()
+      .enable_http1()
+      .build();
+
     let client = self.builder.build(https);
 
     Client { api_info, client }
