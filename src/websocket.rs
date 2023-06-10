@@ -1,6 +1,7 @@
 // Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use tungstenite::connect_async_tls_with_config;
 use url::Url;
 
 use tokio::net::TcpStream;
@@ -49,10 +50,56 @@ async fn connect_internal(url: &Url) -> Result<WebSocketStream<MaybeTlsStream<Tc
   async move {
     debug!(message = "connecting", url = display(url));
 
+    // Get a TLS connector depending on the feature settings.
+    #[cfg(feature = "native-tls")]
+    let connector = {
+      use native_tls::TlsConnector;
+
+      // TODO: This is a bit of a hack. We should probably be using
+      // a custom error message. This may be a breaking change though,
+      // so we'll leave it for now.
+      let connector = TlsConnector::new()
+        .map_err(|e| Error::Str("Failed to create TLS connector".into()))?;
+
+      tungstenite::Connector::NativeTls(connector)
+    };
+
+    #[cfg(feature = "rustls")]
+    let connector = {
+      use rustls::ClientConfig;
+      use rustls::RootCertStore;
+      use std::sync::Arc;
+
+      let mut root_store = RootCertStore::empty();
+      root_store.add_server_trust_anchors(
+        webpki_roots::TLS_SERVER_ROOTS
+          .0
+          .iter()
+          .map(|ta| rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
+            ta.subject,
+            ta.spki,
+            ta.name_constraints,
+          ))
+      );
+
+      let client = ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
+
+      tungstenite::Connector::Rustls(Arc::new(client))
+    };
+
     // We just ignore the response & headers that are sent along after
     // the connection is made. Alpaca does not seem to be using them,
     // really.
-    let (stream, response) = connect_async(url).await?;
+    let (stream, response) = connect_async_tls_with_config(
+      url,
+      None,
+      false,
+      Some(connector)
+    ).await?;
+
     debug!("connection successful");
     trace!(response = debug(&response));
 
