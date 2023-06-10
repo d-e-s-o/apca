@@ -24,8 +24,8 @@ include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 [features]
 default = ["gzip", "native-tls"]
 gzip = ["async-compression/futures-io", "async-compression/gzip"]
-native-tls = ["tungstenite/native-tls", "dep:hyper-tls"]
-rustls = ["dep:hyper-rustls", "websocket-util/rustls", "tungstenite/__rustls-tls"]
+native-tls = ["tungstenite/native-tls", "dep:hyper-tls", "dep:native-tls"]
+rustls = ["dep:hyper-rustls", "websocket-util/rustls", "tungstenite/__rustls-tls", "dep:rustls", "dep:webpki-roots"]
 vendored-openssl = ["hyper-tls?/vendored", "native-tls", "tungstenite/native-tls-vendored"]
 
 [dependencies]
@@ -40,7 +40,9 @@ hyper = {version = "1.1", default-features = false, features = ["client", "http1
 hyper-util = {version = "0.1.3", default-features = false, features = ["client", "client-legacy", "http1", "tokio"]}
 hyper-tls = {version = "0.6", default-features = false, optional = true}
 num-decimal = {version = "0.2.4", default-features = false, features = ["num-v04", "serde"]}
+native-tls = {version = "0.2.11", optional = true}
 hyper-rustls = {version = "0.24", optional = true}
+rustls = {version = "0.21.1", optional = true}
 serde = {version = "1.0.103", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
@@ -53,6 +55,7 @@ tungstenite = {package = "tokio-tungstenite", version = "0.23", features = ["con
 url = "2.0"
 uuid = {version = "1.0", default-features = false, features = ["serde"]}
 websocket-util = "0.13"
+webpki-roots = {version = "0.23.1", optional = true}
 
 [dev-dependencies]
 serial_test = {version = "3.0.0", default-features = false}
