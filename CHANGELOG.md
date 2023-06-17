@@ -8,6 +8,7 @@ Unreleased
 - Changed various `data::v2::stream::{Bar, Quote, Trade}` member from
   `u64` to `Num`
 - Switched to using new stream authentication request message format
+- Adjusted publish workflow to also create GitHub release and Git tag
 
 
 0.26.2
