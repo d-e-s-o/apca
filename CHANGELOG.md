@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Exported `api::v2::updates::{Authenticate,Listen}` enums as part of
+  unofficial unstable API
+
+
 0.27.0
 ------
 - Added support for overwriting default realtime data bar, quote, and

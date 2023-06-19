@@ -168,8 +168,10 @@ pub struct Authentication {
 /// A control message authentication request sent over a websocket
 /// channel.
 #[derive(Debug, Deserialize, Serialize)]
+// Part of unofficial unstable API.
+#[doc(hidden)]
 #[serde(tag = "action")]
-enum Authenticate<'d> {
+pub enum Authenticate<'d> {
   /// A request to authenticate with the server after a websocket
   /// connection was established.
   #[serde(rename = "auth")]
@@ -184,8 +186,10 @@ enum Authenticate<'d> {
 
 /// A control message listen request sent over a websocket channel.
 #[derive(Debug, Deserialize, Serialize)]
+// Part of unofficial unstable API.
+#[doc(hidden)]
 #[serde(tag = "action", content = "data")]
-enum Listen<'d> {
+pub enum Listen<'d> {
   /// A request to listen to a particular stream.
   #[serde(rename = "listen")]
   Request(Streams<'d>),
