@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.27.1
+------
 - Exported `api::v2::updates::{Authenticate,Listen}` enums as part of
   unofficial unstable API
 
