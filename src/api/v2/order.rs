@@ -1266,7 +1266,7 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_unsatisfiable_notional_order() {
     let request =
-      OrderReqInit::default().init("SPY", Side::Buy, Amount::notional(Num::new(10_000_000, 3)));
+      OrderReqInit::default().init("SPY", Side::Buy, Amount::notional(Num::from(10_000_000)));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
