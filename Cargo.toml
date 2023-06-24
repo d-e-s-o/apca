@@ -27,7 +27,7 @@ gzip = ["async-compression/futures-io", "async-compression/gzip"]
 vendored-openssl = ["hyper-tls/vendored"]
 
 [dependencies]
-async-compression = {version = "0.3.12", default-features = false, optional = true}
+async-compression = {version = "0.4", default-features = false, optional = true}
 async-trait = "0.1.51"
 chrono = {version = "0.4.19", features = ["serde"]}
 futures = {version = "0.3", default-features = false}

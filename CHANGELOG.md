@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Bumped `async-compression` dependency to `0.4`
+
+
 0.27.1
 ------
 - Exported `api::v2::updates::{Authenticate,Listen}` enums as part of
