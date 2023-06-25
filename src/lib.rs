@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2023 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![allow(clippy::let_unit_value, clippy::unreadable_literal)]
@@ -45,7 +45,49 @@
   rustdoc::broken_intra_doc_links
 )]
 
-//! A crate for interacting with the Alpaca API.
+//! A crate for interacting with the [Alpaca
+//! API](https://alpaca.markets/docs/). In many ways it mirrors the
+//! structure of the upstream API, which is comprised of functionality
+//! for trading (represented here by the [`api`] module) as well as
+//! market data retrieval (provided as part of the [`data`] module).
+//!
+//! Most operations require a [`Client`] object, instantiation of which
+//! in turn happens via a [`ApiInfo`] instance, which captures relevant
+//! configuration data such as credentials and URLs to use. A common
+//! workflow is to just set the `APCA_API_KEY_ID` (to the Alpaca key ID)
+//! and `APCA_API_SECRET_KEY` (to the Alpaca secret key) environment
+//! variables and use default values for everything else.
+//!
+//! ```no_run
+//! use apca::ApiInfo;
+//! use apca::Client;
+//!
+//! // Assumes credentials to be present in the `APCA_API_KEY_ID` and
+//! // `APCA_API_SECRET_KEY` environment variables.
+//! let api_info = ApiInfo::from_env().unwrap();
+//! let client = Client::new(api_info);
+//! # let _client = client;
+//! ```
+//!
+//! With a [`Client`] instance available, we can now start issuing
+//! requests to the upstream Trading API.
+//!
+//! ```no_run
+//! # use apca::ApiInfo;
+//! # use apca::Client;
+//! # let api_info = ApiInfo::from_env().unwrap();
+//! # let client = Client::new(api_info);
+//! use apca::api::v2::account;
+//!
+//! # tokio::runtime::Runtime::new().unwrap().block_on(async move {
+//! // Inquire general information about the account, such as available
+//! // cash and buying power.
+//! let account = client.issue::<account::Get>(&()).await.unwrap();
+//! let currency = account.currency;
+//! println!("cash:\t{} {currency}", account.cash);
+//! println!("buying power:\t{} {currency}", account.buying_power);
+//! # })
+//! ```
 
 #[macro_use]
 extern crate http_endpoint;

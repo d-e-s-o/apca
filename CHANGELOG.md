@@ -1,5 +1,6 @@
 Unreleased
 ----------
+- Expanded crate documentation with a high level overview
 - Bumped `async-compression` dependency to `0.4`
 
 
