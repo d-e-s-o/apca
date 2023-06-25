@@ -1,7 +1,6 @@
 // Copyright (C) 2019-2022 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#![type_length_limit = "536870912"]
 #![allow(clippy::let_unit_value, clippy::unreadable_literal)]
 #![warn(
   bad_style,
