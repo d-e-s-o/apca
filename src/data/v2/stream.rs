@@ -239,7 +239,7 @@ fn normalize(symbols: Cow<'static, [Symbol]>) -> Cow<'static, [Symbol]> {
     Cow::from(symbols)
   }
 
-  if !is_normalized((*symbols).borrow()) {
+  if !is_normalized(&symbols) {
     let symbols = normalize_now(symbols);
     debug_assert!(is_normalized(&symbols));
     symbols
