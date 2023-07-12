@@ -21,12 +21,18 @@ env:
 
 jobs:
   build:
-    name: Build ${{ matrix.profile }}
+    name: Build [${{ matrix.profile }}, ${{ matrix.args }}]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         profile: [dev, release]
+        args: ['']
+        include:
+        - profile: dev
+          args: --no-default-features
+        - profile: dev
+          args: --all-features
     steps:
     - uses: actions/checkout@v3
     - uses: actions-rs/toolchain@v1
@@ -35,7 +41,7 @@ jobs:
         profile: minimal
         override: true
     - name: Build ${{ matrix.profile }}
-      run: cargo build --profile=${{ matrix.profile }} --all-targets --all-features
+      run: cargo build --profile=${{ matrix.profile }} --all-targets ${{ matrix.args }}
   build-minimum:
     name: Build using minimum versions of dependencies
     runs-on: ubuntu-latest
