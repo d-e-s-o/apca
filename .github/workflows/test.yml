@@ -35,7 +35,7 @@ jobs:
         profile: minimal
         override: true
     - name: Build ${{ matrix.profile }}
-      run: cargo build --profile=${{ matrix.profile }} --lib --tests --all-features
+      run: cargo build --profile=${{ matrix.profile }} --all-targets --all-features
   build-minimum:
     name: Build using minimum versions of dependencies
     runs-on: ubuntu-latest
