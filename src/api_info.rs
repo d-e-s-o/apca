@@ -65,7 +65,7 @@ impl ApiInfo {
     key_id: impl ToString,
     secret: impl ToString,
   ) -> Result<Self, Error> {
-    let api_base_url = Url::parse(api_base_url.as_ref())?;
+    let api_base_url = Url::parse(api_base_url.as_ref()).unwrap();
     let api_stream_url = make_api_stream_url(api_base_url.clone())?;
 
     Ok(Self {
@@ -106,7 +106,7 @@ impl ApiInfo {
       .map_err(|_| {
         Error::Str(format!("{ENV_API_BASE_URL} environment variable is not a valid string").into())
       })?;
-    let api_base_url = Url::parse(&api_base_url)?;
+    let api_base_url = Url::parse(&api_base_url).unwrap();
 
     let api_stream_url = var_os(ENV_API_STREAM_URL)
       .map(Result::<_, Error>::Ok)
@@ -122,7 +122,7 @@ impl ApiInfo {
           format!("{ENV_API_STREAM_URL} environment variable is not a valid string").into(),
         )
       })?;
-    let api_stream_url = Url::parse(&api_stream_url)?;
+    let api_stream_url = Url::parse(&api_stream_url).unwrap();
 
     let key_id = var_os(ENV_KEY_ID)
       .ok_or_else(|| Error::Str(format!("{ENV_KEY_ID} environment variable not found").into()))?

@@ -80,13 +80,13 @@ pub enum Error {
   /// An error directly originating in this crate.
   #[error("{0}")]
   Str(Str),
-  /// An URL parsing error.
-  #[error("failed to parse the URL")]
-  Url(
-    #[from]
-    #[source]
-    ParseError,
-  ),
+  ///// An URL parsing error.
+  //#[error("failed to parse the URL")]
+  //Url(
+  //  #[from]
+  //  #[source]
+  //  ParseError,
+  //),
   /// A websocket error.
   #[error("encountered a websocket related error")]
   WebSocket(

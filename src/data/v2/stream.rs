@@ -849,7 +849,7 @@ where
         url.set_path(&format!("v2/{}", component));
         url
       },
-      SourceVariant::Url(url) => Url::parse(&url)?,
+      SourceVariant::Url(url) => Url::parse(&url).unwrap(),
     };
 
     let stream = Unfold::new(
@@ -1659,7 +1659,7 @@ mod tests {
       .unwrap_err();
 
     match err {
-      Error::Url(..) => (),
+      //Error::Url(..) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
