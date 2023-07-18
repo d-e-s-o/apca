@@ -71,3 +71,6 @@ _proc_macro2_unused = { package = "proc-macro2", version = "1.0.60" }
 _openssl_unused = {package = "openssl", version = "0.10.35"}
 # error[E0599]: `Body` is not an iterator
 _http_body_unused = {package = "http-body", version = "0.4.6"}
+
+[patch.crates-io]
+websocket-util = { git = "https://github.com/d-e-s-o/websocket-util", branch = "carlosskii/topic/rustls" }
