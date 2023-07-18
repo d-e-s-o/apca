@@ -61,3 +61,6 @@ websocket-util = {version = "0.11.0", features = ["test"]}
 # of transitive dependencies, for cases where our dependencies have incorrect
 # dependency specifications themselves.
 _rustc_version_unused = { package = "rustc_version", version = "0.2.2" }
+
+[patch.crates-io]
+websocket-util = { git = "https://github.com/d-e-s-o/websocket-util", branch = "carlosskii/topic/rustls" }
