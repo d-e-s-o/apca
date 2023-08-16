@@ -656,7 +656,7 @@ pub struct MarketData {
   /// The aggregate bars to subscribe to.
   #[serde(default)]
   pub bars: Symbols,
-  /// The quotes to subscribe to.
+  /// The news to subscribe to.
   #[serde(default)]
   pub news: Symbols,
   /// The quotes to subscribe to.
