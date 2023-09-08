@@ -47,7 +47,7 @@
 
 //! A crate for interacting with the [Alpaca
 //! API](https://alpaca.markets/docs/). In many ways it mirrors the
-//! structure of the upstream API, which is comprised of functionality
+//! structure of the upstream API, which is composed of functionality
 //! for trading (represented here by the [`api`] module) as well as
 //! market data retrieval (provided as part of the [`data`] module).
 //!
