@@ -3,6 +3,7 @@
 
 use chrono::DateTime;
 use chrono::NaiveDate;
+use chrono::TimeZone as _;
 use chrono::Utc;
 
 use num_decimal::Num;
@@ -27,7 +28,7 @@ where
 {
   let date = NaiveDate::deserialize(deserializer)?;
   // SANITY: We know that our hour, minute, and second are valid.
-  Ok(DateTime::from_utc(date.and_hms_opt(0, 0, 0).unwrap(), Utc))
+  Ok(Utc.from_utc_datetime(&date.and_hms_opt(0, 0, 0).unwrap()))
 }
 
 
