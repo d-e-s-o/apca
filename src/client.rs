@@ -17,9 +17,9 @@ use http_endpoint::Endpoint;
 
 use hyper::body::Bytes;
 use hyper::body::HttpBody as _;
+use hyper::body::Incoming as Body;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
-use hyper::Body;
 use hyper::Client as HttpClient;
 use hyper::Error as HyperError;
 use hyper_tls::HttpsConnector;
