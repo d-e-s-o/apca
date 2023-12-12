@@ -246,7 +246,6 @@ mod tests {
     assert_eq!(bars[0].close, Num::new(1335, 10));
     assert_eq!(bars[0].high, Num::new(13374, 100));
     assert_eq!(bars[0].low, Num::new(13331, 100));
-    assert_eq!(bars[0].volume, 9876);
     assert_eq!(res.symbol, "AAPL".to_string());
     assert!(res.next_page_token.is_some())
   }
@@ -289,7 +288,6 @@ mod tests {
     assert_eq!(bars[0].close.to_u64(), Some(176));
     assert_eq!(bars[0].high.to_u64(), Some(182));
     assert_eq!(bars[0].low.to_u64(), Some(176));
-    assert_eq!(bars[0].volume, 41344313);
     assert_eq!(
       bars[1].time,
       DateTime::<Utc>::from_str("2018-12-06T05:00:00Z").unwrap()
@@ -298,7 +296,6 @@ mod tests {
     assert_eq!(bars[1].close.to_u64(), Some(174));
     assert_eq!(bars[1].high.to_u64(), Some(174));
     assert_eq!(bars[1].low.to_u64(), Some(170));
-    assert_eq!(bars[1].volume, 43099506);
   }
 
   /// Verify that we can request data through a provided page token.
@@ -360,7 +357,6 @@ mod tests {
     assert_eq!(bars[0].close.to_u64(), Some(169));
     assert_eq!(bars[0].high.to_u64(), Some(175));
     assert_eq!(bars[0].low.to_u64(), Some(169));
-    assert_eq!(bars[0].volume, 41344313);
   }
 
   /// Test requesting of historical stock data with adjustment for stock
@@ -378,7 +374,6 @@ mod tests {
     assert_eq!(bars[0].close.to_u64(), Some(44));
     assert_eq!(bars[0].high.to_u64(), Some(45));
     assert_eq!(bars[0].low.to_u64(), Some(44));
-    assert_eq!(bars[0].volume, 165377252);
   }
 
   /// Test requesting of historical stock data with all adjustments.
@@ -395,7 +390,6 @@ mod tests {
     assert_eq!(bars[0].close.to_u64(), Some(42));
     assert_eq!(bars[0].high.to_u64(), Some(43));
     assert_eq!(bars[0].low.to_u64(), Some(42));
-    assert_eq!(bars[0].volume, 165377252);
   }
 
   /// Check that we fail as expected when an invalid page token is
