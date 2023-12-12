@@ -171,8 +171,7 @@ mod tests {
     let request = QuotesReqInit::default().init("ABC123", start, end);
     let err = client.issue::<Get>(&request).await.unwrap_err();
     match err {
-      // 42210000 is the error code reported for "invalid symbol".
-      RequestError::Endpoint(GetError::InvalidInput(Ok(message))) if message.code == 42210000 => (),
+      RequestError::Endpoint(GetError::InvalidInput(Ok(_))) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }

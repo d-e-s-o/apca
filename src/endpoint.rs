@@ -25,11 +25,8 @@ pub enum ConversionError {
 // version in question. However, at this point we only support v2, so we
 // luck out here.
 #[derive(Clone, Debug, Deserialize, Error, Eq, PartialEq)]
-#[error("{message} ({code})")]
+#[error("{message}")]
 pub struct ApiError {
-  /// An error code as provided by Alpaca.
-  #[serde(rename = "code")]
-  pub code: u64,
   /// A message as provided by Alpaca.
   #[serde(rename = "message")]
   pub message: String,

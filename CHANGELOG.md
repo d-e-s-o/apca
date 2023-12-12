@@ -1,3 +1,9 @@
+Unreleased
+----------
+- Removed `ApiError::code` member after endpoint reported errors stopped
+  returning it
+
+
 0.27.2
 ------
 - Expanded crate documentation with a high level overview

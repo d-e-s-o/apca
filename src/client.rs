@@ -376,7 +376,6 @@ mod tests {
     match err {
       RequestError::Endpoint(GetNotFoundError::UnexpectedStatus(status, message)) => {
         let expected = ApiError {
-          code: 40410000,
           message: "endpoint not found".to_string(),
         };
         assert_eq!(message, Ok(expected));
