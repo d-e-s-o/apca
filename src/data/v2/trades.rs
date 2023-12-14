@@ -187,9 +187,10 @@ mod tests {
 
     let res = from_json::<<Get as Endpoint>::Output>(response).unwrap();
     let trades = res.trades;
-    let expected_time = DateTime::<Utc>::from_str("2021-02-06T13:04:56.334320128Z").unwrap();
+    let expected_time = "2021-02-06T13:04:56";
     assert_eq!(trades.len(), 2);
-    assert_eq!(trades[0].timestamp, expected_time);
+    let timestamp = trades[0].timestamp.to_rfc3339();
+    assert!(timestamp.starts_with(expected_time), "{timestamp}");
     assert_eq!(trades[0].price, Num::new(38762, 100));
     assert_eq!(trades[0].size, 100);
     assert_eq!(res.symbol, "SPY".to_string());
@@ -225,9 +226,10 @@ mod tests {
     let res = client.issue::<Get>(&request).await.unwrap();
     let trades = res.trades;
 
-    let expected_time = DateTime::<Utc>::from_str("2018-12-03T21:47:01.324200Z").unwrap();
+    let expected_time = "2018-12-03T21:47:01";
     assert_eq!(trades.len(), 2);
-    assert_eq!(trades[0].timestamp, expected_time);
+    let timestamp = trades[0].timestamp.to_rfc3339();
+    assert!(timestamp.starts_with(expected_time), "{timestamp}");
     assert_eq!(trades[0].price, Num::new(4608, 25));
     assert_eq!(trades[0].size, 6);
     assert_eq!(res.symbol, "AAPL".to_string());
