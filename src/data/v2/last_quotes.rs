@@ -91,7 +91,10 @@ EndpointNoParse! {
   Err => GetError, [
     /// The provided symbol was invalid or not found or the data feed is
     /// not supported.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
+    /* 400 */ BAD_REQUEST => InvalidInput,
+    /// The request was not permitted. Possible reasons include usage of
+    /// the SIP feed without having the corresponding subscription.
+    /* 403 */ FORBIDDEN => NotPermitted,
   ]
 
   fn base_url() -> Option<Str> {
@@ -262,7 +265,7 @@ mod tests {
     // unlimited plan and can access the SIP feed. So really all we can
     // do here is accept both possible outcomes.
     match result {
-      Ok(_) | Err(RequestError::Endpoint(GetError::InvalidInput(_))) => (),
+      Ok(_) | Err(RequestError::Endpoint(GetError::NotPermitted(_))) => (),
       err => panic!("Received unexpected error: {err:?}"),
     }
   }

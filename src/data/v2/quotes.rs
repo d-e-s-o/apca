@@ -103,7 +103,10 @@ Endpoint! {
   ],
   Err => GetError, [
     /// Some of the provided data was invalid or not found.
-    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
+    /* 400 */ BAD_REQUEST => InvalidInput,
+    /// The request was not permitted. Possible reasons include usage of
+    /// the SIP feed without having the corresponding subscription.
+    /* 403 */ FORBIDDEN => NotPermitted,
   ]
 
   fn base_url() -> Option<Str> {
@@ -156,6 +159,25 @@ mod tests {
       assert_ne!(quote.bid_price, Num::from(0));
       assert_ne!(quote.ask_size, 0);
       assert_ne!(quote.bid_size, 0);
+    }
+  }
+
+  /// Verify that we can specify the SIP feed as the data source to use.
+  #[test(tokio::test)]
+  async fn sip_feed() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+
+    let start = DateTime::from_str("2022-01-04T13:35:59Z").unwrap();
+    let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
+    let request = QuotesReqInit::default().init("SPY", start, end);
+    let result = client.issue::<Get>(&request).await;
+    // Unfortunately we can't really know whether the user has the
+    // unlimited plan and can access the SIP feed. So really all we can
+    // do here is accept both possible outcomes.
+    match result {
+      Ok(_) | Err(RequestError::Endpoint(GetError::NotPermitted(_))) => (),
+      err => panic!("Received unexpected error: {err:?}"),
     }
   }
 

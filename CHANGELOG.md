@@ -2,6 +2,7 @@ Unreleased
 ----------
 - Removed `ApiError::code` member after endpoint reported errors stopped
   returning it
+- Added `NotPermitted` variant to various `data::v2` endpoint errors
 
 
 0.27.2
