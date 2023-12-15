@@ -568,8 +568,9 @@ mod tests {
     let result = mock_stream::<OrderUpdates, _, _>(test).await;
     match result {
       Ok(..) => panic!("authentication succeeded unexpectedly"),
-      Err(Error::WebSocket(WebSocketError::Protocol(e)))
-        if e == ProtocolError::ResetWithoutClosingHandshake => {},
+      Err(Error::WebSocket(WebSocketError::Protocol(
+        ProtocolError::ResetWithoutClosingHandshake,
+      ))) => {},
       Err(e) => panic!("received unexpected error: {e}"),
     }
   }
@@ -627,8 +628,7 @@ mod tests {
 
     let err = mock_stream::<OrderUpdates, _, _>(test).await.unwrap_err();
     match err {
-      Error::WebSocket(WebSocketError::Protocol(e))
-        if e == ProtocolError::ResetWithoutClosingHandshake => {},
+      Error::WebSocket(WebSocketError::Protocol(ProtocolError::ResetWithoutClosingHandshake)) => {},
       e => panic!("received unexpected error: {e}"),
     }
   }
