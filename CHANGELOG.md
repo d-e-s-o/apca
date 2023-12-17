@@ -2,7 +2,10 @@ Unreleased
 ----------
 - Removed `ApiError::code` member after endpoint reported errors stopped
   returning it
-- Added `NotPermitted` variant to various `data::v2` endpoint errors
+- Renamed `AuthenticationFailed` variant of endpoint errors to
+  `NotPermitted`
+  - This variant is now used to signal a multitude of conditions,
+    including certain order submission issues
 
 
 0.27.2

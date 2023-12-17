@@ -178,9 +178,6 @@ Endpoint! {
   Err => GetError, [
     /// A query parameter was invalid.
     /* 400 */ BAD_REQUEST => InvalidInput,
-    /// The request was not permitted. Possible reasons include usage of
-    /// the SIP feed without having the corresponding subscription.
-    /* 403 */ FORBIDDEN => NotPermitted,
   ]
 
   fn base_url() -> Option<Str> {

@@ -48,11 +48,16 @@ macro_rules! EndpointNoParse {
         // Every request can result in an authentication failure or fall
         // prey to the rate limit and so we include these variants into
         // all our error definitions.
-        /// Authentication failed for the request.
-        // TODO: This status actually got changed to 403, which now
-        //       shadows other error conditions by specific endpoints
-        //       (e.g., insufficient funds when submitting an order).
-        /* 401 */ UNAUTHORIZED => AuthenticationFailed,
+        /// The request was not permitted.
+        ///
+        /// This can have a multitude of reasons, including invalid
+        /// credentials or the (potentially implicit) request of SIP
+        /// data through the data APIs when only an IEX subscription is
+        /// available.
+        /// Order submission/change failure (e.g., due to insufficient
+        /// funds or time constraint violations) is also expressed this
+        /// way.
+        /* 403 */ FORBIDDEN => NotPermitted,
         /// The rate limit was exceeded, causing the request to be
         /// denied.
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,

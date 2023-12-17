@@ -248,7 +248,6 @@ mod tests {
   /// Check that we get back the expected error when requesting account
   /// data with invalid credentials.
   #[test(tokio::test)]
-  #[ignore]
   async fn request_account_with_invalid_credentials() {
     let api_info = ApiInfo::from_parts(API_BASE_URL, "invalid", "invalid-too").unwrap();
     let client = Client::new(api_info);
@@ -256,7 +255,7 @@ mod tests {
 
     let err = result.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::AuthenticationFailed(_)) => (),
+      RequestError::Endpoint(GetError::NotPermitted(_)) => (),
       e => panic!("received unexpected error: {e:?}"),
     }
   }
