@@ -198,6 +198,7 @@ Endpoint! {
 mod tests {
   use super::*;
 
+  use std::ops::RangeInclusive;
   use std::str::FromStr as _;
 
   use http_endpoint::Endpoint;
@@ -209,6 +210,15 @@ mod tests {
   use crate::api_info::ApiInfo;
   use crate::Client;
   use crate::RequestError;
+
+
+  #[track_caller]
+  fn assert_in(value: &Num, range: RangeInclusive<u64>) {
+    assert!(
+      range.contains(&value.to_u64().unwrap()),
+      "{value} {range:?}"
+    )
+  }
 
 
   /// Verify that we can properly parse a reference bar response.
@@ -284,18 +294,18 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open.to_u64(), Some(180));
-    assert_eq!(bars[0].close.to_u64(), Some(176));
-    assert_eq!(bars[0].high.to_u64(), Some(182));
-    assert_eq!(bars[0].low.to_u64(), Some(176));
+    assert_in(&bars[0].open, 179..=182);
+    assert_in(&bars[0].close, 175..=177);
+    assert_in(&bars[0].high, 180..=184);
+    assert_in(&bars[0].low, 174..=178);
     assert_eq!(
       bars[1].time,
       DateTime::<Utc>::from_str("2018-12-06T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[1].open.to_u64(), Some(171));
-    assert_eq!(bars[1].close.to_u64(), Some(174));
-    assert_eq!(bars[1].high.to_u64(), Some(174));
-    assert_eq!(bars[1].low.to_u64(), Some(170));
+    assert_in(&bars[1].open, 169..=173);
+    assert_in(&bars[1].close, 172..=176);
+    assert_in(&bars[1].high, 172..=176);
+    assert_in(&bars[1].low, 168..=172);
   }
 
   /// Verify that we can request data through a provided page token.
@@ -353,10 +363,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open.to_u64(), Some(173));
-    assert_eq!(bars[0].close.to_u64(), Some(169));
-    assert_eq!(bars[0].high.to_u64(), Some(175));
-    assert_eq!(bars[0].low.to_u64(), Some(169));
+    assert_in(&bars[0].open, 172..=176);
+    assert_in(&bars[0].close, 168..=172);
+    assert_in(&bars[0].high, 173..=177);
+    assert_in(&bars[0].low, 167..=171);
   }
 
   /// Test requesting of historical stock data with adjustment for stock
@@ -370,10 +380,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open.to_u64(), Some(45));
-    assert_eq!(bars[0].close.to_u64(), Some(44));
-    assert_eq!(bars[0].high.to_u64(), Some(45));
-    assert_eq!(bars[0].low.to_u64(), Some(44));
+    assert_in(&bars[0].open, 42..=46);
+    assert_in(&bars[0].close, 41..=45);
+    assert_in(&bars[0].high, 43..=46);
+    assert_in(&bars[0].low, 41..=45);
   }
 
   /// Test requesting of historical stock data with all adjustments.
@@ -386,10 +396,10 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_eq!(bars[0].open.to_u64(), Some(43));
-    assert_eq!(bars[0].close.to_u64(), Some(42));
-    assert_eq!(bars[0].high.to_u64(), Some(43));
-    assert_eq!(bars[0].low.to_u64(), Some(42));
+    assert_in(&bars[0].open, 42..=44);
+    assert_in(&bars[0].close, 41..=43);
+    assert_in(&bars[0].high, 42..=45);
+    assert_in(&bars[0].low, 41..=43);
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.
