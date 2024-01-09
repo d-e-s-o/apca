@@ -59,7 +59,7 @@ jobs:
           profile: minimal
           # Please adjust README and rust-version field in Cargo.toml files when
           # bumping version.
-          toolchain: 1.59.0
+          toolchain: 1.63.0
           default: true
       - name: Build
         run: cargo build --features=vendored-openssl --locked

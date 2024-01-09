@@ -6,6 +6,7 @@ Unreleased
   `NotPermitted`
   - This variant is now used to signal a multitude of conditions,
     including certain order submission issues
+- Bumped minimum supported Rust version to `1.63`
 
 
 0.27.2
