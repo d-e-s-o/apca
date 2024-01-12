@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.28.0
+------
 - Removed `ApiError::code` member after endpoint reported errors stopped
   returning it
 - Renamed `AuthenticationFailed` variant of endpoint errors to
