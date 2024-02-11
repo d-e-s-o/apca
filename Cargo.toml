@@ -34,7 +34,7 @@ futures = {version = "0.3", default-features = false}
 http = {version = "0.2", default-features = false}
 http-endpoint = "0.5"
 hyper = {version = "0.14", features = ["client", "http1", "stream"]}
-hyper-tls = {version = "0.5", default-features = false}
+hyper-tls = {version = "0.6", default-features = false}
 num-decimal = {version = "0.2.4", default-features = false, features = ["num-v04", "serde"]}
 serde = {version = "1.0.103", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
