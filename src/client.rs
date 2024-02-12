@@ -13,13 +13,13 @@ use http::HeaderMap;
 use http::HeaderValue;
 use http::Request;
 use http::Response;
+use http_body_util::combinators::BoxBody;
 use http_endpoint::Endpoint;
 
+use hyper::body::Body as _;
 use hyper::body::Bytes;
-use hyper::body::HttpBody as _;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
-use hyper::Body;
 use hyper::Client as HttpClient;
 use hyper::Error as HyperError;
 use hyper_tls::HttpsConnector;
@@ -69,7 +69,7 @@ impl<'h> Debug for DebugHeaders<'h> {
 /// A type providing a debug representation of an HTTP request, with
 /// sensitive data being masked out.
 struct DebugRequest<'r> {
-  request: &'r Request<Body>,
+  request: &'r Request<BoxBody>,
 }
 
 impl<'r> Debug for DebugRequest<'r> {
@@ -92,7 +92,7 @@ impl<'r> Debug for DebugRequest<'r> {
 
 
 /// Emit a debug representation of an HTTP request.
-fn debug_request(request: &Request<Body>) -> DebugValue<DebugRequest<'_>> {
+fn debug_request(request: &Request<BoxBody>) -> DebugValue<DebugRequest<'_>> {
   debug(DebugRequest { request })
 }
 
@@ -152,7 +152,7 @@ impl Default for Builder {
 #[derive(Debug)]
 pub struct Client {
   api_info: ApiInfo,
-  client: HttpClient<HttpsConnector<HttpConnector>, Body>,
+  client: HttpClient<HttpsConnector<HttpConnector>, BoxBody>,
 }
 
 impl Client {
@@ -171,7 +171,7 @@ impl Client {
 
   /// Add "gzip" as an accepted encoding to the request.
   #[cfg(feature = "gzip")]
-  fn maybe_add_gzip_header(request: &mut Request<Body>) {
+  fn maybe_add_gzip_header(request: &mut Request<BoxBody>) {
     use http::header::ACCEPT_ENCODING;
 
     let _ = request
@@ -181,10 +181,10 @@ impl Client {
 
   /// An implementation stub not actually doing anything.
   #[cfg(not(feature = "gzip"))]
-  fn maybe_add_gzip_header(_request: &mut Request<Body>) {}
+  fn maybe_add_gzip_header(_request: &mut Request<BoxBody>) {}
 
   /// Create a `Request` to the endpoint.
-  fn request<R>(&self, input: &R::Input) -> Result<Request<Body>, R::Error>
+  fn request<R>(&self, input: &R::Input) -> Result<Request<BoxBody>, R::Error>
   where
     R: Endpoint,
   {
@@ -201,7 +201,7 @@ impl Client {
       // Add required authentication information.
       .header(HDR_KEY_ID, self.api_info.key_id.as_str())
       .header(HDR_SECRET, self.api_info.secret.as_str())
-      .body(Body::from(
+      .body(BoxBody::from(
         R::body(input)?.unwrap_or(Cow::Borrowed(&[0; 0])),
       ))?;
 
@@ -209,7 +209,7 @@ impl Client {
     Ok(request)
   }
 
-  async fn retrieve_raw_body(response: Body) -> Result<Bytes, HyperError> {
+  async fn retrieve_raw_body(response: BoxBody) -> Result<Bytes, HyperError> {
     // We unconditionally wait for the full body to be received
     // before even evaluating the header. That is mostly done for
     // simplicity and it shouldn't really matter anyway because most
@@ -225,7 +225,7 @@ impl Client {
   /// Retrieve the HTTP body, possible uncompressing it if it was gzip
   /// encoded.
   #[cfg(feature = "gzip")]
-  async fn retrieve_body<E>(response: Response<Body>) -> Result<Bytes, RequestError<E>> {
+  async fn retrieve_body<E>(response: Response<BoxBody>) -> Result<Bytes, RequestError<E>> {
     use async_compression::futures::bufread::GzipDecoder;
     use futures::AsyncReadExt as _;
     use http::header::CONTENT_ENCODING;
@@ -248,7 +248,7 @@ impl Client {
 
   /// Retrieve the HTTP body.
   #[cfg(not(feature = "gzip"))]
-  async fn retrieve_body<E>(response: Response<Body>) -> Result<Bytes, RequestError<E>> {
+  async fn retrieve_body<E>(response: Response<BoxBody>) -> Result<Bytes, RequestError<E>> {
     let bytes = Self::retrieve_raw_body(response.into_body()).await?;
     Ok(bytes)
   }
@@ -276,7 +276,7 @@ impl Client {
 
   /// Issue a request.
   #[allow(clippy::cognitive_complexity)]
-  async fn issue_<R>(&self, request: Request<Body>) -> Result<R::Output, RequestError<R::Error>>
+  async fn issue_<R>(&self, request: Request<BoxBody>) -> Result<R::Output, RequestError<R::Error>>
   where
     R: Endpoint,
   {
