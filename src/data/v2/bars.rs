@@ -156,6 +156,9 @@ pub struct Bar {
   /// The trading volume.
   #[serde(rename = "v")]
   pub volume: usize,
+  /// The volume weighted average price.
+  #[serde(rename = "vw")]
+  pub weighted_average: Num,
   /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   #[serde(skip)]
@@ -248,7 +251,9 @@ mod tests {
         "h": 133.74,
         "l": 133.31,
         "c": 133.5,
-        "v": 9876
+        "v": 9876,
+        "vw": 133.4
+
       },
       {
         "t": "2021-02-01T16:02:00Z",
@@ -256,7 +261,9 @@ mod tests {
         "h": 133.58,
         "l": 133.44,
         "c": 133.58,
-        "v": 3567
+        "v": 3567,
+        "vw": 133.6
+
       }
     ],
     "symbol": "AAPL",
@@ -272,6 +279,7 @@ mod tests {
     assert_eq!(bars[0].close, Num::new(1335, 10));
     assert_eq!(bars[0].high, Num::new(13374, 100));
     assert_eq!(bars[0].low, Num::new(13331, 100));
+    assert_eq!(bars[0].weighted_average, Num::new(1334, 10));
     assert_eq!(res.symbol, "AAPL".to_string());
     assert!(res.next_page_token.is_some())
   }
@@ -314,6 +322,8 @@ mod tests {
     assert_in(&bars[0].close, 175..=177);
     assert_in(&bars[0].high, 180..=184);
     assert_in(&bars[0].low, 174..=178);
+    assert_in(&bars[0].weighted_average, 174..=179);
+
     assert_eq!(
       bars[1].time,
       DateTime::<Utc>::from_str("2018-12-06T05:00:00Z").unwrap()
@@ -322,6 +332,7 @@ mod tests {
     assert_in(&bars[1].close, 172..=176);
     assert_in(&bars[1].high, 172..=176);
     assert_in(&bars[1].low, 168..=172);
+    assert_in(&bars[1].weighted_average, 167..=173);
   }
 
   /// Verify that we can request data through a provided page token.
@@ -383,6 +394,7 @@ mod tests {
     assert_in(&bars[0].close, 168..=172);
     assert_in(&bars[0].high, 173..=177);
     assert_in(&bars[0].low, 167..=171);
+    assert_in(&bars[0].weighted_average, 166..=170);
   }
 
   /// Test requesting of historical stock data with adjustment for stock
@@ -400,6 +412,7 @@ mod tests {
     assert_in(&bars[0].close, 41..=45);
     assert_in(&bars[0].high, 43..=46);
     assert_in(&bars[0].low, 41..=45);
+    assert_in(&bars[0].weighted_average, 41..=46);
   }
 
   /// Test requesting of historical stock data with all adjustments.
@@ -416,6 +429,7 @@ mod tests {
     assert_in(&bars[0].close, 41..=43);
     assert_in(&bars[0].high, 42..=45);
     assert_in(&bars[0].low, 41..=43);
+    assert_in(&bars[0].weighted_average, 41..=45);
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.

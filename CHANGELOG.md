@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Added `weighted_average` member to `data::v2::bars::Bar` type
+
+
 0.29.0
 ------
 - Renamed various request related types to follow more uniform naming
