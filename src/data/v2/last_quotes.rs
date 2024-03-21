@@ -232,7 +232,7 @@ mod tests {
     // Just as a rough sanity check, we require that the reported time
     // is some time after two weeks before today. That should safely
     // account for any combination of holidays, weekends, etc.
-    assert!(quotes[0].1.time >= Utc::now() - Duration::weeks(2));
+    assert!(quotes[0].1.time >= Utc::now() - Duration::try_weeks(2).unwrap());
   }
 
   /// Retrieve multiple symbols at once.
@@ -247,11 +247,11 @@ mod tests {
 
     // We always guarantee lexical order of quotes by symbol.
     assert_eq!(quotes[0].0, "AAPL");
-    assert!(quotes[0].1.time >= Utc::now() - Duration::weeks(2));
+    assert!(quotes[0].1.time >= Utc::now() - Duration::try_weeks(2).unwrap());
     assert_eq!(quotes[1].0, "MSFT");
-    assert!(quotes[1].1.time >= Utc::now() - Duration::weeks(2));
+    assert!(quotes[1].1.time >= Utc::now() - Duration::try_weeks(2).unwrap());
     assert_eq!(quotes[2].0, "SPY");
-    assert!(quotes[2].1.time >= Utc::now() - Duration::weeks(2));
+    assert!(quotes[2].1.time >= Utc::now() - Duration::try_weeks(2).unwrap());
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.

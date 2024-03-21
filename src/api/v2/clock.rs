@@ -99,8 +99,8 @@ mod tests {
     // current time reported by Alpaca is within one hour of our local
     // time (mainly to rule out wrong time zone handling).
     let now = Utc::now();
-    assert!(now > clock.current - Duration::hours(1));
-    assert!(now < clock.current + Duration::hours(1));
+    assert!(now > clock.current - Duration::try_hours(1).unwrap());
+    assert!(now < clock.current + Duration::try_hours(1).unwrap());
 
     assert!(clock.current < clock.next_open);
     assert!(clock.current < clock.next_close);
