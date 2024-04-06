@@ -15,7 +15,6 @@ use crate::data::DATA_BASE_URL;
 use crate::util::vec_from_str;
 use crate::Str;
 
-
 /// An enumeration of the various supported time frames.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[non_exhaustive]
@@ -30,7 +29,6 @@ pub enum TimeFrame {
   #[serde(rename = "1Day")]
   OneDay,
 }
-
 
 /// An enumeration of the possible adjustments.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -49,7 +47,6 @@ pub enum Adjustment {
   #[serde(rename = "all")]
   All,
 }
-
 
 /// A GET request to be issued to the /v2/stocks/{symbol}/bars endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -89,7 +86,6 @@ pub struct ListReq {
   #[serde(skip)]
   pub _non_exhaustive: (),
 }
-
 
 /// A helper for initializing [`ListReq`] objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -134,7 +130,6 @@ impl ListReqInit {
   }
 }
 
-
 /// A market data bar as returned by the /v2/stocks/{symbol}/bars endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct Bar {
@@ -158,13 +153,12 @@ pub struct Bar {
   pub volume: usize,
   /// The volume weighted average price.
   #[serde(rename = "vw")]
-  pub vwap: Num,
+  pub weighted_average: Num,
   /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   #[serde(skip)]
   pub _non_exhaustive: (),
 }
-
 
 /// A collection of bars as returned by the API. This is one page of
 /// bars.
@@ -185,7 +179,6 @@ pub struct Bars {
   #[serde(skip)]
   pub _non_exhaustive: (),
 }
-
 
 Endpoint! {
   /// The representation of a GET request to the /v2/stocks/{symbol}/bars endpoint.
@@ -212,7 +205,6 @@ Endpoint! {
   }
 }
 
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -230,7 +222,6 @@ mod tests {
   use crate::Client;
   use crate::RequestError;
 
-
   #[track_caller]
   fn assert_in(value: &Num, range: RangeInclusive<u64>) {
     assert!(
@@ -238,7 +229,6 @@ mod tests {
       "{value} {range:?}"
     )
   }
-
 
   /// Verify that we can properly parse a reference bar response.
   #[test]
@@ -279,7 +269,7 @@ mod tests {
     assert_eq!(bars[0].close, Num::new(1335, 10));
     assert_eq!(bars[0].high, Num::new(13374, 100));
     assert_eq!(bars[0].low, Num::new(13331, 100));
-    assert_eq!(bars[0].vwap, Num::new(1331, 100));
+    assert_eq!(bars[0].weighted_average, Num::new(1334, 10));
     assert_eq!(res.symbol, "AAPL".to_string());
     assert!(res.next_page_token.is_some())
   }
@@ -322,7 +312,7 @@ mod tests {
     assert_in(&bars[0].close, 175..=177);
     assert_in(&bars[0].high, 180..=184);
     assert_in(&bars[0].low, 174..=178);
-    assert_in(&bars[0].vwap, 174..=176);
+    assert_in(&bars[0].weighted_average, 174..=179);
 
     assert_eq!(
       bars[1].time,
@@ -332,8 +322,7 @@ mod tests {
     assert_in(&bars[1].close, 172..=176);
     assert_in(&bars[1].high, 172..=176);
     assert_in(&bars[1].low, 168..=172);
-    assert_in(&bars[1].vwap, 167..=170);
-
+    assert_in(&bars[1].weighted_average, 167..=173);
   }
 
   /// Verify that we can request data through a provided page token.
@@ -395,7 +384,7 @@ mod tests {
     assert_in(&bars[0].close, 168..=172);
     assert_in(&bars[0].high, 173..=177);
     assert_in(&bars[0].low, 167..=171);
-    assert_in(&bars[0].vwap, 166..=170);
+    assert_in(&bars[0].weighted_average, 166..=170);
   }
 
   /// Test requesting of historical stock data with adjustment for stock
@@ -413,7 +402,7 @@ mod tests {
     assert_in(&bars[0].close, 41..=45);
     assert_in(&bars[0].high, 43..=46);
     assert_in(&bars[0].low, 41..=45);
-    assert_in(&bars[0].vwap, 41..=46);    
+    assert_in(&bars[0].weighted_average, 41..=46);
   }
 
   /// Test requesting of historical stock data with all adjustments.
@@ -430,7 +419,7 @@ mod tests {
     assert_in(&bars[0].close, 41..=43);
     assert_in(&bars[0].high, 42..=45);
     assert_in(&bars[0].low, 41..=43);
-    assert_in(&bars[0].vwap, 41..=45);
+    assert_in(&bars[0].weighted_average, 41..=45);
   }
 
   /// Verify that we can specify the SIP feed as the data source to use.
