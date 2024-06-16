@@ -41,7 +41,7 @@ serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
 thiserror = "1.0.30"
-tokio = {version = "1.0", default-features = false, features = ["net"]}
+tokio = {version = "1.13", default-features = false, features = ["net"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
 tungstenite = {package = "tokio-tungstenite", version = "0.20", features = ["connect", "native-tls"]}
@@ -52,11 +52,18 @@ websocket-util = "0.12.0"
 [dev-dependencies]
 serial_test = {version = "2.0.0", default-features = false}
 test-log = {version = "0.2.14", default-features = false, features = ["trace"]}
-tokio = {version = "1.0", default-features = false, features = ["rt-multi-thread", "macros"]}
+tokio = {version = "1.13", default-features = false, features = ["rt-multi-thread", "macros"]}
 uuid = {version = "1.0", default-features = false, features = ["v4"]}
 websocket-util = {version = "0.12.0", features = ["test"]}
 
 # A set of unused dependencies that we require to force correct minimum versions
 # of transitive dependencies, for cases where our dependencies have incorrect
 # dependency specifications themselves.
+# error[E0277]: the trait bound `Version: From<({integer}, {integer}, {integer})>` is not satisfied
 _rustc_version_unused = { package = "rustc_version", version = "0.2.2" }
+# error[E0308]: mismatched types
+_num_bigint_unused = { package = "num-bigint", version = "0.4.2" }
+# error[E0635]: unknown feature `proc_macro_span_shrink`
+_proc_macro2_unused = { package = "proc-macro2", version = "1.0.60" }
+# error: pasting "RUST_VERSION_OPENSSL_" and "(" does not give a valid preprocessing token
+_openssl_unused = {package = "openssl", version = "0.10.35"}
