@@ -1,4 +1,4 @@
-# Copyright (C) 2023 The apca Developers
+# Copyright (C) 2023-2024 The apca Developers
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Publish
@@ -8,7 +8,6 @@ on:
 
 jobs:
   version:
-    name: Retrieve version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -38,12 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - uses: dtolnay/rust-toolchain@stable
     - name: Dry-run package creation
       run: cargo package --no-verify
     - name: Create git tag
