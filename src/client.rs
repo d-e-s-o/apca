@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -15,8 +15,8 @@ use http::Request;
 use http::Response;
 use http_endpoint::Endpoint;
 
-use hyper::body::to_bytes;
 use hyper::body::Bytes;
+use hyper::body::HttpBody as _;
 use hyper::client::Builder as HttpClientBuilder;
 use hyper::client::HttpConnector;
 use hyper::Body;
@@ -219,7 +219,7 @@ impl Client {
     //       to cause trouble: when we receive, for example, the
     //       list of all orders it now needs to be stored in memory
     //       in its entirety. That may blow things.
-    to_bytes(response).await
+    Ok(response.collect().await?.to_bytes())
   }
 
   /// Retrieve the HTTP body, possible uncompressing it if it was gzip

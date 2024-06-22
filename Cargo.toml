@@ -67,3 +67,5 @@ _num_bigint_unused = { package = "num-bigint", version = "0.4.2" }
 _proc_macro2_unused = { package = "proc-macro2", version = "1.0.60" }
 # error: pasting "RUST_VERSION_OPENSSL_" and "(" does not give a valid preprocessing token
 _openssl_unused = {package = "openssl", version = "0.10.35"}
+# error[E0599]: `Body` is not an iterator
+_http_body_unused = {package = "http-body", version = "0.4.6"}
