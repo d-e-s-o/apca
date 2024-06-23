@@ -39,6 +39,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.profile }}-${{ matrix.args }}
     - name: Build ${{ matrix.profile }}
       run: cargo build --profile=${{ matrix.profile }} --all-targets ${{ matrix.args }}
   build-minimum:
@@ -55,6 +58,7 @@ jobs:
           # Please adjust README and rust-version field in Cargo.toml files when
           # bumping version.
           toolchain: 1.63.0
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --features=vendored-openssl --locked
   test:
@@ -64,6 +68,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
+    - uses: Swatinem/rust-cache@v2
     - name: Test and gather coverage
       run: cargo llvm-cov --lcov --output-path lcov.info --ignore-filename-regex=src/api/v2/de.rs
       env:
@@ -81,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --no-deps --all-targets --all-features -- -A unknown_lints -D warnings
   rustfmt:
     name: Check code formatting
@@ -99,6 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - run: |
           cargo doc --no-deps
           # Explicitly run doc tests as cargo-llvm-cov currently does not.
