@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 The apca Developers
+// Copyright (C) 2021-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -42,6 +42,9 @@ pub struct Watchlist {
   /// The watchlist's ID.
   #[serde(rename = "id")]
   pub id: Id,
+  /// The watchlist's user-defined name.
+  #[serde(rename = "name")]
+  pub name: String,
   /// The account's ID.
   #[serde(rename = "account_id")]
   pub account_id: account::Id,
@@ -171,9 +174,10 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let expected_symbols = vec!["AAPL".to_string(), "AMZN".to_string()];
+    let id = Uuid::new_v4().to_string();
     let created = client
       .issue::<Post>(&CreateReq {
-        name: Uuid::new_v4().to_string(),
+        name: id.clone(),
         symbols: expected_symbols.clone(),
       })
       .await
@@ -191,6 +195,7 @@ mod tests {
 
     // Also check that the reported account ID matches our account.
     let account = client.issue::<account::Get>(&()).await.unwrap();
+    assert_eq!(watchlist.name, id);
     assert_eq!(watchlist.account_id, account.id);
   }
 
