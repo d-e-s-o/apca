@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 The apca Developers
+// Copyright (C) 2021-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -12,11 +12,14 @@ use crate::Str;
 
 
 /// A watchlist item.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 pub struct WatchlistItem {
   /// The watchlist's ID.
   #[serde(rename = "id")]
   pub id: watchlist::Id,
+  /// The watchlist's user-defined name.
+  #[serde(rename = "name")]
+  pub name: String,
   /// The account's ID.
   #[serde(rename = "account_id")]
   pub account_id: account::Id,
@@ -63,9 +66,10 @@ mod tests {
   async fn list_watchlists() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
+    let id = Uuid::new_v4().to_string();
     let created = client
       .issue::<watchlist::Post>(&CreateReq {
-        name: Uuid::new_v4().to_string(),
+        name: id.clone(),
         symbols: vec!["AAPL".to_string()],
       })
       .await
@@ -78,7 +82,11 @@ mod tests {
       .unwrap();
 
     let watchlists = result.unwrap();
-    let mut ids = watchlists.iter().map(|w| w.id);
-    assert!(ids.any(|x| x == created.id))
+    assert!(
+      watchlists
+        .iter()
+        .any(|l| l.id == created.id && l.name == id),
+      "{watchlists:#?} : {id}"
+    )
   }
 }
