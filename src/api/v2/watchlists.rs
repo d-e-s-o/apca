@@ -68,7 +68,7 @@ mod tests {
     let client = Client::new(api_info);
     let id = Uuid::new_v4().to_string();
     let created = client
-      .issue::<watchlist::Post>(&CreateReq {
+      .issue::<watchlist::Create>(&CreateReq {
         name: id.clone(),
         symbols: vec!["AAPL".to_string()],
       })

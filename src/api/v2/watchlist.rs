@@ -78,7 +78,7 @@ pub type UpdateReq = CreateReq;
 
 Endpoint! {
   /// The representation of a POST request to the /v2/watchlists endpoint.
-  pub Post(CreateReq),
+  pub Create(CreateReq),
   Ok => Watchlist, [
       /// The watchlist was created successfully.
       /* 200 */ OK,
@@ -215,7 +215,7 @@ mod tests {
     let expected_symbols = vec!["AAPL".to_string(), "AMZN".to_string()];
     let id = Uuid::new_v4().to_string();
     let created = client
-      .issue::<Post>(&CreateReq {
+      .issue::<Create>(&CreateReq {
         name: id.clone(),
         symbols: expected_symbols.clone(),
       })
@@ -247,7 +247,7 @@ mod tests {
 
     let name = "the-name";
     let created = client
-      .issue::<Post>(&CreateReq {
+      .issue::<Create>(&CreateReq {
         name: name.to_string(),
         symbols: vec!["SPY".to_string()],
       })
@@ -255,7 +255,7 @@ mod tests {
       .unwrap();
 
     let result = client
-      .issue::<Post>(&CreateReq {
+      .issue::<Create>(&CreateReq {
         name: name.to_string(),
         symbols: vec!["SPY".to_string()],
       })
@@ -277,7 +277,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let created = client
-      .issue::<Post>(&CreateReq {
+      .issue::<Create>(&CreateReq {
         name: Uuid::new_v4().to_string(),
         symbols: vec!["AAPL".to_string()],
       })
@@ -300,7 +300,7 @@ mod tests {
     let symbols = vec!["AAPL".to_string()];
     let id = Uuid::new_v4().to_string();
     let created = client
-      .issue::<Post>(&CreateReq {
+      .issue::<Create>(&CreateReq {
         name: id.clone(),
         symbols: symbols.clone(),
       })
