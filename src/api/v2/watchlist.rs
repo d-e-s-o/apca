@@ -60,7 +60,7 @@ pub struct Watchlist {
 }
 
 
-/// A create watchlist request item
+/// A request to create a watch list.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct CreateReq {
   /// The watchlist's name.
@@ -70,6 +70,10 @@ pub struct CreateReq {
   #[serde(rename = "symbols")]
   pub symbols: Vec<String>,
 }
+
+
+/// A request to update a watch list.
+pub type UpdateReq = CreateReq;
 
 
 Endpoint! {
@@ -118,6 +122,41 @@ Endpoint! {
 
   fn path(input: &Self::Input) -> Str {
     format!("/v2/watchlists/{}", input.as_simple()).into()
+  }
+}
+
+
+Endpoint! {
+  /// The representation of a PUT request to the
+  /// /v2/watchlists/{watchlist-id} endpoint.
+  pub Update((Id, UpdateReq)),
+  Ok => Watchlist, [
+    /// The watchlist object with the given ID was retrieved successfully.
+    /* 200 */ OK,
+  ],
+  Err => UpdateError, [
+    /// No watchlist was found with the given ID.
+    /* 404 */ NOT_FOUND => NotFound,
+    /// The watchlist name was not unique or other parts of the input
+    /// are not valid.
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
+  ]
+
+  fn path(input: &Self::Input) -> Str {
+    let (id, _) = input;
+    format!("/v2/watchlists/{}", id.as_simple()).into()
+  }
+
+  #[inline]
+  fn method() -> Method {
+      Method::PUT
+  }
+
+  fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
+    let (_, request) = input;
+    let json = to_json(request)?;
+    let bytes = Bytes::from(json);
+    Ok(Some(bytes))
   }
 }
 
@@ -251,6 +290,42 @@ mod tests {
       RequestError::Endpoint(GetError::NotFound(_)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
+  }
+
+  /// Check that we can update a watchlist.
+  #[test(tokio::test)]
+  async fn update() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let symbols = vec!["AAPL".to_string()];
+    let id = Uuid::new_v4().to_string();
+    let created = client
+      .issue::<Post>(&CreateReq {
+        name: id.clone(),
+        symbols: symbols.clone(),
+      })
+      .await
+      .unwrap();
+
+    let id2 = Uuid::new_v4().to_string();
+    let symbols = vec!["AMZN".to_string(), "SPY".to_string()];
+
+    let req = UpdateReq {
+      name: id2.clone(),
+      symbols: symbols.clone(),
+    };
+
+    let result = client.issue::<Update>(&(created.id, req)).await;
+    let () = client.issue::<Delete>(&created.id).await.unwrap();
+
+    let watchlist = result.unwrap();
+    assert_eq!(watchlist.name, id2.to_string());
+    let symbols = watchlist
+      .assets
+      .iter()
+      .map(|asset| &asset.symbol)
+      .collect::<Vec<_>>();
+    assert_eq!(symbols, vec!["AMZN", "SPY"]);
   }
 
   /// Verify that we report the appropriate error when attempting to

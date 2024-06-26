@@ -7,6 +7,7 @@
   - This variant is now used to signal a multitude of conditions,
     including certain order submission issues
 - Added `name` attribute to `api::v2::watchlist::Watchlist` type
+- Added support for updating a watchlist
 - Bumped minimum supported Rust version to `1.63`
 - Bumped `websocket-util` dependency to `0.12`
 - Bumped `tokio-tungstenite` dependency to `0.20`
