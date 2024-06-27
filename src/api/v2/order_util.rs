@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use num_decimal::Num;
@@ -16,24 +16,24 @@ use crate::RequestError;
 pub(crate) async fn order_stock<S>(
   client: &Client,
   symbol: S,
-) -> Result<order::Order, RequestError<order::PostError>>
+) -> Result<order::Order, RequestError<order::CreateError>>
 where
   S: Into<String>,
 {
-  let request = order::OrderReqInit {
+  let request = order::CreateReqInit {
     type_: Type::Limit,
     limit_price: Some(Num::from(1)),
     ..Default::default()
   }
   .init(symbol, Side::Buy, Amount::quantity(1));
 
-  client.issue::<order::Post>(&request).await
+  client.issue::<order::Create>(&request).await
 }
 
 
 /// Create a limit order for a single share of AAPL.
 pub(crate) async fn order_aapl(
   client: &Client,
-) -> Result<order::Order, RequestError<order::PostError>> {
+) -> Result<order::Order, RequestError<order::CreateError>> {
   order_stock(client, "AAPL").await
 }

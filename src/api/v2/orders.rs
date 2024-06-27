@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2022 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -219,7 +219,7 @@ mod tests {
   #[test(tokio::test)]
   #[ignore]
   async fn list_nested_order() {
-    let request = order::OrderReqInit {
+    let request = order::CreateReqInit {
       class: order::Class::OneTriggersOther,
       type_: order::Type::Limit,
       limit_price: Some(Num::from(2)),
@@ -231,7 +231,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<order::Post>(&request).await.unwrap();
+    let order = client.issue::<order::Create>(&request).await.unwrap();
     assert_eq!(order.legs.len(), 1);
 
     let request = OrdersReq {

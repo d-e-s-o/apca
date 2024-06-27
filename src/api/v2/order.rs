@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -376,47 +376,47 @@ impl Amount {
 }
 
 
-/// A helper for initializing `OrderReq` objects.
+/// A helper for initializing `CreateReq` objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct OrderReqInit {
-  /// See `OrderReq::class`.
+pub struct CreateReqInit {
+  /// See `CreateReq::class`.
   pub class: Class,
-  /// See `OrderReq::type_`.
+  /// See `CreateReq::type_`.
   pub type_: Type,
-  /// See `OrderReq::time_in_force`.
+  /// See `CreateReq::time_in_force`.
   pub time_in_force: TimeInForce,
-  /// See `OrderReq::limit_price`.
+  /// See `CreateReq::limit_price`.
   pub limit_price: Option<Num>,
-  /// See `OrderReq::stop_price`.
+  /// See `CreateReq::stop_price`.
   pub stop_price: Option<Num>,
-  /// See `OrderReq::trail_price`.
+  /// See `CreateReq::trail_price`.
   pub trail_price: Option<Num>,
-  /// See `OrderReq::trail_percent`.
+  /// See `CreateReq::trail_percent`.
   pub trail_percent: Option<Num>,
-  /// See `OrderReq::take_profit`.
+  /// See `CreateReq::take_profit`.
   pub take_profit: Option<TakeProfit>,
-  /// See `OrderReq::stop_loss`.
+  /// See `CreateReq::stop_loss`.
   pub stop_loss: Option<StopLoss>,
-  /// See `OrderReq::extended_hours`.
+  /// See `CreateReq::extended_hours`.
   pub extended_hours: bool,
-  /// See `OrderReq::client_order_id`.
+  /// See `CreateReq::client_order_id`.
   pub client_order_id: Option<String>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl OrderReqInit {
-  /// Create an `OrderReq` from an `OrderReqInit`.
+impl CreateReqInit {
+  /// Create a `CreateReq` from a `CreateReqInit`.
   ///
   /// The provided symbol is assumed to be a "simple" symbol and not any
   /// of the composite forms of the [`Symbol`][asset::Symbol] enum. That
   /// is, it is not being parsed but directly treated as the
   /// [`Sym`][asset::Symbol::Sym] variant.
-  pub fn init<S>(self, symbol: S, side: Side, amount: Amount) -> OrderReq
+  pub fn init<S>(self, symbol: S, side: Side, amount: Amount) -> CreateReq
   where
     S: Into<String>,
   {
-    OrderReq {
+    CreateReq {
       symbol: asset::Symbol::Sym(symbol.into()),
       amount,
       side,
@@ -438,7 +438,7 @@ impl OrderReqInit {
 
 /// A POST request to be made to the /v2/orders endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct OrderReq {
+pub struct CreateReq {
   /// Symbol or asset ID to identify the asset to trade.
   #[serde(rename = "symbol")]
   pub symbol: asset::Symbol,
@@ -513,7 +513,7 @@ pub struct ChangeReqInit {
 }
 
 impl ChangeReqInit {
-  /// Create an `ChangeReq` from an `ChangeReqInit`.
+  /// Create a `ChangeReq` from a `ChangeReqInit`.
   pub fn init(self) -> ChangeReq {
     ChangeReq {
       quantity: self.quantity,
@@ -711,12 +711,12 @@ Endpoint! {
 
 Endpoint! {
   /// The representation of a POST request to the /v2/orders endpoint.
-  pub Post(OrderReq),
+  pub Create(CreateReq),
   Ok => Order, [
     /// The order was submitted successfully.
     /* 200 */ OK,
   ],
-  Err => PostError, [
+  Err => CreateError, [
     /// Some data in the request was invalid.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
@@ -978,10 +978,10 @@ mod tests {
     assert_eq!(order.class, Class::Simple);
   }
 
-  /// Check that we can serialize and deserialize an [`OrderReq`].
+  /// Check that we can serialize and deserialize a [`CreateReq`].
   #[test]
   fn serialize_deserialize_order_request() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::TrailingStop,
       trail_price: Some(Num::from(50)),
       ..Default::default()
@@ -989,7 +989,7 @@ mod tests {
     .init("SPY", Side::Buy, Amount::quantity(1));
 
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<OrderReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<CreateReq>(&json).unwrap(), request);
   }
 
   /// Check that we can serialize and deserialize a [`ChangeReq`].
@@ -1010,9 +1010,9 @@ mod tests {
   /// Verify that we can submit a limit order.
   #[test(tokio::test)]
   async fn submit_limit_order() {
-    async fn test(extended_hours: bool) -> Result<(), RequestError<PostError>> {
+    async fn test(extended_hours: bool) -> Result<(), RequestError<CreateError>> {
       let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
-      let request = OrderReq {
+      let request = CreateReq {
         symbol,
         amount: Amount::quantity(1),
         side: Side::Buy,
@@ -1032,7 +1032,7 @@ mod tests {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
-      let order = client.issue::<Post>(&request).await?;
+      let order = client.issue::<Create>(&request).await?;
       client.issue::<Delete>(&order.id).await.unwrap();
 
       assert_eq!(order.symbol, "SPY");
@@ -1056,7 +1056,7 @@ mod tests {
     // So we need to treat this case specially.
     let result = test(true).await;
     match result {
-      Ok(()) | Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
+      Ok(()) | Err(RequestError::Endpoint(CreateError::NotPermitted(..))) => (),
       err => panic!("unexpected error: {err:?}"),
     };
   }
@@ -1064,7 +1064,7 @@ mod tests {
   /// Check that we can properly submit a trailing stop price order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_price_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::TrailingStop,
       trail_price: Some(Num::from(50)),
       ..Default::default()
@@ -1074,7 +1074,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
     assert_eq!(order.symbol, "SPY");
@@ -1092,7 +1092,7 @@ mod tests {
   /// Check that we can properly submit a trailing stop percent order.
   #[test(tokio::test)]
   async fn submit_trailing_stop_percent_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::TrailingStop,
       trail_percent: Some(Num::from(10)),
       ..Default::default()
@@ -1102,7 +1102,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
     assert_eq!(order.symbol, "SPY");
@@ -1119,7 +1119,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn submit_bracket_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       class: Class::Bracket,
       type_: Type::Limit,
       limit_price: Some(Num::from(2)),
@@ -1132,7 +1132,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
     for leg in &order.legs {
@@ -1155,7 +1155,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn submit_one_triggers_other_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       class: Class::OneTriggersOther,
       type_: Type::Limit,
       limit_price: Some(Num::from(2)),
@@ -1167,7 +1167,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
     for leg in &order.legs {
@@ -1194,7 +1194,7 @@ mod tests {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
 
-      let request = OrderReqInit {
+      let request = CreateReqInit {
         type_: Type::Limit,
         class: Class::Simple,
         time_in_force,
@@ -1203,7 +1203,7 @@ mod tests {
       }
       .init("AAPL", Side::Buy, Amount::quantity(1));
 
-      match client.issue::<Post>(&request).await {
+      match client.issue::<Create>(&request).await {
         Ok(order) => {
           client.issue::<Delete>(&order.id).await.unwrap();
 
@@ -1211,7 +1211,7 @@ mod tests {
         },
         // Submission of those orders may fail at certain times of the
         // day as per the Alpaca documentation. So ignore those errors.
-        Err(RequestError::Endpoint(PostError::NotPermitted(..))) => (),
+        Err(RequestError::Endpoint(CreateError::NotPermitted(..))) => (),
         Err(err) => panic!("Received unexpected error: {err:?}"),
       }
     }
@@ -1229,18 +1229,18 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::Limit,
       limit_price: Some(Num::from(1000)),
       ..Default::default()
     }
     .init("AAPL", Side::Buy, Amount::quantity(100_000));
 
-    let result = client.issue::<Post>(&request).await;
+    let result = client.issue::<Create>(&request).await;
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
+      RequestError::Endpoint(CreateError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -1249,16 +1249,16 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_unsatisfiable_notional_order() {
     let request =
-      OrderReqInit::default().init("SPY", Side::Buy, Amount::notional(Num::from(10_000_000)));
+      CreateReqInit::default().init("SPY", Side::Buy, Amount::notional(Num::from(10_000_000)));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let result = client.issue::<Post>(&request).await;
+    let result = client.issue::<Create>(&request).await;
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
+      RequestError::Endpoint(CreateError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -1267,16 +1267,16 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_unsatisfiable_fractional_order() {
     let qty = Num::from(1_000_000) + Num::new(1, 2);
-    let request = OrderReqInit::default().init("SPY", Side::Buy, Amount::quantity(qty));
+    let request = CreateReqInit::default().init("SPY", Side::Buy, Amount::quantity(qty));
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let result = client.issue::<Post>(&request).await;
+    let result = client.issue::<Create>(&request).await;
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::NotPermitted(..)) => (),
+      RequestError::Endpoint(CreateError::NotPermitted(..)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -1302,21 +1302,21 @@ mod tests {
   async fn retrieve_order_by_id() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let posted = order_aapl(&client).await.unwrap();
-    let result = client.issue::<Get>(&posted.id).await;
-    client.issue::<Delete>(&posted.id).await.unwrap();
+    let submitted = order_aapl(&client).await.unwrap();
+    let result = client.issue::<Get>(&submitted.id).await;
+    client.issue::<Delete>(&submitted.id).await.unwrap();
     let gotten = result.unwrap();
 
     // We can't simply compare the two orders for equality, because some
     // time stamps as well as the status may differ.
-    assert_eq!(posted.id, gotten.id);
-    assert_eq!(posted.asset_class, gotten.asset_class);
-    assert_eq!(posted.asset_id, gotten.asset_id);
-    assert_eq!(posted.symbol, gotten.symbol);
-    assert_eq!(posted.amount, gotten.amount);
-    assert_eq!(posted.type_, gotten.type_);
-    assert_eq!(posted.side, gotten.side);
-    assert_eq!(posted.time_in_force, gotten.time_in_force);
+    assert_eq!(submitted.id, gotten.id);
+    assert_eq!(submitted.asset_class, gotten.asset_class);
+    assert_eq!(submitted.asset_id, gotten.asset_id);
+    assert_eq!(submitted.symbol, gotten.symbol);
+    assert_eq!(submitted.amount, gotten.amount);
+    assert_eq!(submitted.type_, gotten.type_);
+    assert_eq!(submitted.side, gotten.side);
+    assert_eq!(submitted.time_in_force, gotten.time_in_force);
   }
 
   #[test(tokio::test)]
@@ -1335,7 +1335,7 @@ mod tests {
 
   #[test(tokio::test)]
   async fn extended_hours_market_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       extended_hours: true,
       ..Default::default()
     }
@@ -1346,11 +1346,11 @@ mod tests {
 
     // We are submitting a market order with extended_hours, that is
     // invalid as per the Alpaca documentation.
-    let result = client.issue::<Post>(&request).await;
+    let result = client.issue::<Create>(&request).await;
     let err = result.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::InvalidInput(..)) => (),
+      RequestError::Endpoint(CreateError::InvalidInput(..)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -1358,7 +1358,7 @@ mod tests {
   /// Check that we can change an existing order.
   #[test(tokio::test)]
   async fn change_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::Limit,
       limit_price: Some(Num::from(1)),
       ..Default::default()
@@ -1367,7 +1367,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
 
     let request = ChangeReqInit {
       quantity: Some(Num::from(2)),
@@ -1406,7 +1406,7 @@ mod tests {
   /// Test changing of a trailing stop order.
   #[test(tokio::test)]
   async fn change_trail_stop_order() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::TrailingStop,
       trail_price: Some(Num::from(20)),
       ..Default::default()
@@ -1415,7 +1415,7 @@ mod tests {
 
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
     assert_eq!(order.trail_price, Some(Num::from(20)));
 
     let request = ChangeReqInit {
@@ -1451,7 +1451,7 @@ mod tests {
     // be reused again.
     let client_order_id = Uuid::new_v4().as_simple().to_string();
 
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::Limit,
       limit_price: Some(Num::from(1)),
       client_order_id: Some(client_order_id.clone()),
@@ -1463,7 +1463,7 @@ mod tests {
     let client = Client::new(api_info);
 
     let (issued, retrieved) = client
-      .issue::<Post>(&request)
+      .issue::<Create>(&request)
       .and_then(|order| async {
         let retrieved = client.issue::<GetByClientId>(&client_order_id).await;
         client.issue::<Delete>(&order.id).await.unwrap();
@@ -1478,10 +1478,10 @@ mod tests {
 
     // We should not be able to submit another order with the same
     // client ID.
-    let err = client.issue::<Post>(&request).await.unwrap_err();
+    let err = client.issue::<Create>(&request).await.unwrap_err();
 
     match err {
-      RequestError::Endpoint(PostError::InvalidInput(..)) => (),
+      RequestError::Endpoint(CreateError::InvalidInput(..)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -1489,7 +1489,7 @@ mod tests {
   /// Test that we can change the client order ID of an order.
   #[test(tokio::test)]
   async fn change_client_order_id() {
-    let request = OrderReqInit {
+    let request = CreateReqInit {
       type_: Type::Limit,
       limit_price: Some(Num::from(1)),
       ..Default::default()
@@ -1499,7 +1499,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let order = client.issue::<Post>(&request).await.unwrap();
+    let order = client.issue::<Create>(&request).await.unwrap();
 
     let client_order_id = Uuid::new_v4().as_simple().to_string();
     let request = ChangeReqInit {

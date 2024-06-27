@@ -40,7 +40,7 @@ then submit a limit order for `AAPL` with a limit price of USD 100:
 let api_info = ApiInfo::from_env().unwrap();
 let client = Client::new(api_info);
 
-let request = order::OrderReqInit {
+let request = order::CreateReqInit {
   type_: Type::Limit,
   limit_price: Some(Num::from(100)),
   ..Default::default()
@@ -48,7 +48,7 @@ let request = order::OrderReqInit {
 .init("AAPL", Side::Buy, order::Amount::quantity(1));
 
 let order = client
-  .issue::<order::Post>(&request)
+  .issue::<order::Create>(&request)
   .await
   .unwrap();
 ```
