@@ -742,12 +742,12 @@ Endpoint! {
 Endpoint! {
   /// The representation of a PATCH request to the /v2/orders/{order-id}
   /// endpoint.
-  pub Patch((Id, ChangeReq)),
+  pub Change((Id, ChangeReq)),
   Ok => Order, [
     /// The order object for the given ID was changed successfully.
     /* 200 */ OK,
   ],
-  Err => PatchError, [
+  Err => ChangeError, [
     /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
     /// Some data in the request was invalid.
@@ -1377,7 +1377,7 @@ mod tests {
     }
     .init();
 
-    let result = client.issue::<Patch>(&(order.id, request)).await;
+    let result = client.issue::<Change>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
       replaced.id
     } else {
@@ -1393,8 +1393,8 @@ mod tests {
         assert_eq!(order.limit_price, Some(Num::from(2)));
         assert_eq!(order.stop_price, None);
       },
-      Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => {
-        // When the market is closed a patch request will never succeed
+      Err(RequestError::Endpoint(ChangeError::InvalidInput(..))) => {
+        // When the market is closed a change request will never succeed
         // and always report an error along the lines of:
         // "unable to replace order, order isn't sent to exchange yet".
         // We can't do much more than accept this behavior.
@@ -1424,7 +1424,7 @@ mod tests {
     }
     .init();
 
-    let result = client.issue::<Patch>(&(order.id, request)).await;
+    let result = client.issue::<Change>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
       replaced.id
     } else {
@@ -1437,7 +1437,7 @@ mod tests {
       Ok(order) => {
         assert_eq!(order.trail_price, Some(Num::from(30)));
       },
-      Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
+      Err(RequestError::Endpoint(ChangeError::InvalidInput(..))) => (),
       e => panic!("received unexpected error: {e:?}"),
     }
   }
@@ -1508,8 +1508,8 @@ mod tests {
     }
     .init();
 
-    let patch_result = client.issue::<Patch>(&(order.id, request)).await;
-    let id = if let Ok(replaced) = &patch_result {
+    let change_result = client.issue::<Change>(&(order.id, request)).await;
+    let id = if let Ok(replaced) = &change_result {
       replaced.id
     } else {
       order.id
@@ -1518,14 +1518,14 @@ mod tests {
     let get_result = client.issue::<GetByClientId>(&client_order_id).await;
     let () = client.issue::<Delete>(&id).await.unwrap();
 
-    match patch_result {
+    match change_result {
       Ok(..) => {
         let order = get_result.unwrap();
         assert_eq!(order.symbol, "SPY");
         assert_eq!(order.type_, Type::Limit);
         assert_eq!(order.limit_price, Some(Num::from(1)));
       },
-      Err(RequestError::Endpoint(PatchError::InvalidInput(..))) => (),
+      Err(RequestError::Endpoint(ChangeError::InvalidInput(..))) => (),
       e => panic!("received unexpected error: {e:?}"),
     }
   }
