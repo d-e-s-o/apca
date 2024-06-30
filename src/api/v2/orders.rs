@@ -29,7 +29,7 @@ pub enum Status {
 // Note that we do not expose or supply all parameters that the Alpaca
 // API supports.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct OrdersReq {
+pub struct ListReq {
   /// A list of simple symbols used as filters for the returned orders.
   #[serde(
     rename = "symbols",
@@ -51,7 +51,7 @@ pub struct OrdersReq {
   pub nested: bool,
 }
 
-impl Default for OrdersReq {
+impl Default for ListReq {
   fn default() -> Self {
     Self {
       symbols: Vec::new(),
@@ -68,12 +68,12 @@ impl Default for OrdersReq {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/orders endpoint.
-  pub Get(OrdersReq),
+  pub List(ListReq),
   Ok => Vec<Order>, [
     /// The list of orders was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, []
+  Err => ListError, []
 
   #[inline]
   fn path(_input: &Self::Input) -> Str {
@@ -112,10 +112,10 @@ mod tests {
   use crate::Client;
 
 
-  /// Make sure that we can serialize and deserialize an `OrdersReq`.
+  /// Make sure that we can serialize and deserialize an `ListReq`.
   #[test]
   fn serialize_deserialize_request() {
-    let mut request = OrdersReq {
+    let mut request = ListReq {
       symbols: vec!["ABC".into()],
       status: Status::Closed,
       limit: Some(42),
@@ -123,18 +123,18 @@ mod tests {
     };
 
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<OrdersReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
 
     request.symbols.clear();
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<OrdersReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
   }
 
-  /// Make sure that we can serialize and deserialize an `OrdersReq`
+  /// Make sure that we can serialize and deserialize an `ListReq`
   /// from a query string.
   #[test]
   fn serialize_deserialize_query_request() {
-    let mut request = OrdersReq {
+    let mut request = ListReq {
       symbols: vec!["ABC".into()],
       status: Status::Closed,
       limit: Some(42),
@@ -142,11 +142,11 @@ mod tests {
     };
 
     let query = to_query(&request).unwrap();
-    assert_eq!(from_query::<OrdersReq>(&query).unwrap(), request);
+    assert_eq!(from_query::<ListReq>(&query).unwrap(), request);
 
     request.symbols.clear();
     let query = to_query(&request).unwrap();
-    assert_eq!(from_query::<OrdersReq>(&query).unwrap(), request);
+    assert_eq!(from_query::<ListReq>(&query).unwrap(), request);
   }
 
   /// Cancel an order and wait for the corresponding cancellation event
@@ -182,17 +182,17 @@ mod tests {
     async fn test(status: Status) {
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);
-      let request = OrdersReq {
+      let request = ListReq {
         status,
         ..Default::default()
       };
 
       let order = order_aapl(&client).await.unwrap();
-      let result = client.issue::<Get>(&request).await;
+      let result = client.issue::<List>(&request).await;
       cancel_order(&client, order.id).await;
 
       let before = result.unwrap();
-      let after = client.issue::<Get>(&request).await.unwrap();
+      let after = client.issue::<List>(&request).await.unwrap();
 
       match status {
         Status::Open => {
@@ -234,11 +234,11 @@ mod tests {
     let order = client.issue::<order::Create>(&request).await.unwrap();
     assert_eq!(order.legs.len(), 1);
 
-    let request = OrdersReq {
+    let request = ListReq {
       status: Status::Open,
       ..Default::default()
     };
-    let list = client.issue::<Get>(&request).await.unwrap();
+    let list = client.issue::<List>(&request).await.unwrap();
     client.issue::<order::Delete>(&order.id).await.unwrap();
 
     let mut filtered = list.into_iter().filter(|o| o.id == order.id);
@@ -258,24 +258,24 @@ mod tests {
     // orders. This allows the test to function based on the current
     // state of the account rather than requiring preconditions to be
     // met.
-    let request = OrdersReq::default();
-    let orders = client.issue::<Get>(&request).await.unwrap();
+    let request = ListReq::default();
+    let orders = client.issue::<List>(&request).await.unwrap();
     let num_goog = orders.iter().filter(|x| x.symbol == "GOOG").count();
     let num_ibm = orders.iter().filter(|x| x.symbol == "IBM").count();
 
     let buy_order = order_stock(&client, "GOOG")
       .await
       .expect("Failed to create GOOG order");
-    let request = OrdersReq {
+    let request = ListReq {
       symbols: vec!["IBM".to_string()],
       ..Default::default()
     };
-    let ibm_orders = client.issue::<Get>(&request).await;
-    let request = OrdersReq {
+    let ibm_orders = client.issue::<List>(&request).await;
+    let request = ListReq {
       symbols: vec!["GOOG".to_string()],
       ..Default::default()
     };
-    let goog_orders = client.issue::<Get>(&request).await;
+    let goog_orders = client.issue::<List>(&request).await;
 
     cancel_order(&client, buy_order.id).await;
 
