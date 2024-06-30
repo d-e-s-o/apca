@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 The apca Developers
+// Copyright (C) 2022-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Range;
@@ -65,7 +65,7 @@ pub struct OpenClose {
 
 /// A GET request to be made to the /v2/calendar endpoint.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct CalendarReq {
+pub struct GetReq {
   /// The (inclusive) start date of the range for which to retrieve
   /// calendar data.
   #[serde(rename = "start")]
@@ -78,7 +78,7 @@ pub struct CalendarReq {
   pub end: NaiveDate,
 }
 
-impl From<Range<NaiveDate>> for CalendarReq {
+impl From<Range<NaiveDate>> for GetReq {
   fn from(range: Range<NaiveDate>) -> Self {
     Self {
       start: range.start,
@@ -90,7 +90,7 @@ impl From<Range<NaiveDate>> for CalendarReq {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/calendar endpoint.
-  pub Get(CalendarReq),
+  pub Get(GetReq),
   Ok => Vec<OpenClose>, [
     /// The market open and close times were retrieved successfully.
     /* 200 */ OK,
@@ -147,13 +147,13 @@ mod tests {
   /// Check that we can serialize and deserialize a [`CalendarReq`].
   #[test]
   fn serialize_deserialize_calendar_request() {
-    let request = CalendarReq {
+    let request = GetReq {
       start: NaiveDate::from_ymd_opt(2020, 4, 6).unwrap(),
       end: NaiveDate::from_ymd_opt(2020, 4, 10).unwrap(),
     };
 
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<CalendarReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<GetReq>(&json).unwrap(), request);
   }
 
   /// Check that we can retrieve the market calendar for a specific time
@@ -166,7 +166,7 @@ mod tests {
     let start = NaiveDate::from_ymd_opt(2020, 4, 6).unwrap();
     let end = NaiveDate::from_ymd_opt(2020, 4, 10).unwrap();
     let calendar = client
-      .issue::<Get>(&CalendarReq::from(start..end))
+      .issue::<Get>(&GetReq::from(start..end))
       .await
       .unwrap();
 
