@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -11,22 +11,22 @@ use crate::api::v2::asset::Status;
 use crate::Str;
 
 
-/// A helper for initializing `AssetsReq` objects.
+/// A helper for initializing `ListReq` objects.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct AssetsReqInit {
-  /// See `AssetsReq::status`.
+pub struct ListReqInit {
+  /// See `ListReq::status`.
   pub status: Status,
-  /// See `AssetsReq::class`.
+  /// See `ListReq::class`.
   pub class: Class,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl AssetsReqInit {
-  /// Create an `AssetsReq` from an `AssetsReqInit`.
+impl ListReqInit {
+  /// Create an `ListReq` from an `ListReqInit`.
   #[inline]
-  pub fn init(self) -> AssetsReq {
-    AssetsReq {
+  pub fn init(self) -> ListReq {
+    ListReq {
       status: self.status,
       class: self.class,
     }
@@ -36,7 +36,7 @@ impl AssetsReqInit {
 
 /// A GET request to be made to the /v2/assets endpoint.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct AssetsReq {
+pub struct ListReq {
   /// The status of assets to include in the response.
   #[serde(rename = "status")]
   pub status: Status,
@@ -48,12 +48,12 @@ pub struct AssetsReq {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/assets endpoint.
-  pub Get(AssetsReq),
+  pub List(ListReq),
   Ok => Vec<Asset>, [
     /// The list of assets was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, []
+  Err => ListError, []
 
   #[inline]
   fn path(_input: &Self::Input) -> Str {
@@ -80,10 +80,10 @@ mod tests {
   use crate::Client;
 
 
-  /// Check that we can serialize and deserialize a [`AssetsReq`].
+  /// Check that we can serialize and deserialize a [`ListReq`].
   #[test]
-  fn serialize_deserialize_assets_request() {
-    let request = AssetsReqInit {
+  fn serialize_deserialize_list_request() {
+    let request = ListReqInit {
       status: Status::Active,
       class: Class::UsEquity,
       ..Default::default()
@@ -91,7 +91,7 @@ mod tests {
     .init();
 
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<AssetsReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
   }
 
 
@@ -100,8 +100,8 @@ mod tests {
   async fn list_us_stock_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = AssetsReqInit::default().init();
-    let assets = client.issue::<Get>(&request).await.unwrap();
+    let request = ListReqInit::default().init();
+    let assets = client.issue::<List>(&request).await.unwrap();
 
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
     assert_eq!(asset.class, Class::UsEquity);
@@ -115,13 +115,13 @@ mod tests {
   async fn list_crypto_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = AssetsReqInit {
+    let request = ListReqInit {
       class: Class::Crypto,
       ..Default::default()
     }
     .init();
 
-    let assets = client.issue::<Get>(&request).await.unwrap();
+    let assets = client.issue::<List>(&request).await.unwrap();
 
     let asset = assets.iter().find(|x| x.symbol == "BTC/USD").unwrap();
     assert_eq!(asset.class, Class::Crypto);
