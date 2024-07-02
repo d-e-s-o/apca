@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2022 The apca Developers
+// Copyright (C) 2020-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use http::Method;
@@ -60,12 +60,12 @@ Endpoint! {
 Endpoint! {
   /// The representation of a PATCH request to the
   /// /v2/account/configurations endpoint.
-  pub Patch(Configuration),
+  pub Change(Configuration),
   Ok => Configuration, [
     /// The account configuration was updated successfully.
     /* 200 */ OK,
   ],
-  Err => PatchError, [
+  Err => ChangeError, [
     /// One of the new values is invalid/unacceptable.
     /* 400 */ BAD_REQUEST => InvalidValues,
   ]
@@ -128,18 +128,18 @@ mod tests {
       TradeConfirmation::None => TradeConfirmation::Email,
     };
 
-    let patched = Configuration {
+    let changed = Configuration {
       trade_confirmation: new_confirmation,
       ..config
     };
-    let patch_result = client.issue::<Patch>(&patched).await;
+    let change_result = client.issue::<Change>(&changed).await;
     // Also retrieve the configuration again.
     let get_result = client.issue::<Get>(&()).await;
     // Revert back to the original setting.
-    let reverted = client.issue::<Patch>(&config).await.unwrap();
+    let reverted = client.issue::<Change>(&config).await.unwrap();
 
-    assert_eq!(patch_result.unwrap(), patched);
-    assert_eq!(get_result.unwrap(), patched);
+    assert_eq!(change_result.unwrap(), changed);
+    assert_eq!(get_result.unwrap(), changed);
     assert_eq!(reverted, config);
   }
 }
