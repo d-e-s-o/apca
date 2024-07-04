@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 The apca Developers
+// Copyright (C) 2022-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -18,14 +18,14 @@ use crate::Str;
 
 /// A GET request to be issued to the /v2/stocks/{symbol}/trades endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct TradesReq {
+pub struct ListReq {
   /// The symbol for which to retrieve market data.
   #[serde(skip)]
   pub symbol: String,
   /// The maximum number of trades to be returned for each symbol.
   ///
   /// It can be between 1 and 10000. Defaults to 1000 if the provided
-  /// value is None.
+  /// value is `None`.
   #[serde(rename = "limit")]
   pub limit: Option<usize>,
   /// Filter trades equal to or after this time.
@@ -46,27 +46,27 @@ pub struct TradesReq {
 }
 
 
-/// A helper for initializing [`TradesReq`] objects.
+/// A helper for initializing [`ListReq`] objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct TradesReqInit {
-  /// See `TradesReq::limit`.
+pub struct ListReqInit {
+  /// See `ListReq::limit`.
   pub limit: Option<usize>,
-  /// See `TradesReq::feed`.
+  /// See `ListReq::feed`.
   pub feed: Option<Feed>,
-  /// See `TradesReq::page_token`.
+  /// See `ListReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl TradesReqInit {
-  /// Create a [`TradesReq`] from a `TradesReqInit`.
+impl ListReqInit {
+  /// Create a [`ListReq`] from a `ListReqInit`.
   #[inline]
-  pub fn init<S>(self, symbol: S, start: DateTime<Utc>, end: DateTime<Utc>) -> TradesReq
+  pub fn init<S>(self, symbol: S, start: DateTime<Utc>, end: DateTime<Utc>) -> ListReq
   where
     S: Into<String>,
   {
-    TradesReq {
+    ListReq {
       symbol: symbol.into(),
       start,
       end,
@@ -110,12 +110,12 @@ pub struct Trades {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/stocks/{symbol}/trades endpoint.
-  pub Get(TradesReq),
+  pub List(ListReq),
   Ok => Trades, [
     /// The market data was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, [
+  Err => ListError, [
     /// A query parameter was invalid.
     /* 400 */ BAD_REQUEST => InvalidInput,
   ]
@@ -185,7 +185,7 @@ mod tests {
     "next_page_token": "MjAyMS0wMi0wNlQxMzowOTo0Mlo7MQ=="
 }"#;
 
-    let res = from_json::<<Get as Endpoint>::Output>(response).unwrap();
+    let res = from_json::<<List as Endpoint>::Output>(response).unwrap();
     let trades = res.trades;
     let expected_time = "2021-02-06T13:04:56";
     assert_eq!(trades.len(), 2);
@@ -204,9 +204,9 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
     let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-    let request = TradesReqInit::default().init("AAPL", start, end);
+    let request = ListReqInit::default().init("AAPL", start, end);
 
-    let res = client.issue::<Get>(&request).await.unwrap();
+    let res = client.issue::<List>(&request).await.unwrap();
     assert_eq!(res.trades, Vec::new())
   }
 
@@ -217,13 +217,13 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-06T21:47:00Z").unwrap();
-    let request = TradesReqInit {
+    let request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
     .init("AAPL", start, end);
 
-    let res = client.issue::<Get>(&request).await.unwrap();
+    let res = client.issue::<List>(&request).await.unwrap();
     let trades = res.trades;
 
     let expected_time = "2018-12-03T21:47:01";
@@ -243,19 +243,19 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2020-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2020-12-07T21:47:00Z").unwrap();
-    let mut request = TradesReqInit {
+    let mut request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
     .init("AAPL", start, end);
 
-    let mut res = client.issue::<Get>(&request).await.unwrap();
+    let mut res = client.issue::<List>(&request).await.unwrap();
     let trades = res.trades;
 
     assert_eq!(trades.len(), 2);
     request.page_token = res.next_page_token;
 
-    res = client.issue::<Get>(&request).await.unwrap();
+    res = client.issue::<List>(&request).await.unwrap();
     let new_trades = res.trades;
 
     assert_eq!(new_trades.len(), 2);
@@ -270,18 +270,18 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-06T21:47:00Z").unwrap();
-    let request = TradesReqInit {
+    let request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
     .init("AAPL", start, end);
 
-    let result = client.issue::<Get>(&request).await;
+    let result = client.issue::<List>(&request).await;
     // Unfortunately we can't really know whether the user has the
     // unlimited plan and can access the SIP feed. So really all we can
     // do here is accept both possible outcomes.
     match result {
-      Ok(_) | Err(RequestError::Endpoint(GetError::NotPermitted(_))) => (),
+      Ok(_) | Err(RequestError::Endpoint(ListError::NotPermitted(_))) => (),
       err => panic!("Received unexpected error: {err:?}"),
     }
   }
@@ -295,15 +295,15 @@ mod tests {
 
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
-    let request = TradesReqInit {
+    let request = ListReqInit {
       page_token: Some("123456789abcdefghi".to_string()),
       ..Default::default()
     }
     .init("SPY", start, end);
 
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      RequestError::Endpoint(ListError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -317,11 +317,11 @@ mod tests {
 
     let start = DateTime::from_str("2022-02-01T00:00:00Z").unwrap();
     let end = DateTime::from_str("2022-02-20T00:00:00Z").unwrap();
-    let request = TradesReqInit::default().init("ABC123", start, end);
+    let request = ListReqInit::default().init("ABC123", start, end);
 
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(Ok(_))) => (),
+      RequestError::Endpoint(ListError::InvalidInput(Ok(_))) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
