@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2021 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::api::v2::position::Position;
@@ -7,12 +7,12 @@ use crate::Str;
 
 Endpoint! {
   /// The representation of a GET request to the /v2/positions endpoint.
-  pub Get(()),
+  pub List(()),
   Ok => Vec<Position>, [
     /// The list of positions was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, [ ]
+  Err => ListError, []
 
   #[inline]
   fn path(_input: &Self::Input) -> Str {
@@ -43,6 +43,6 @@ mod tests {
     // reporting any errors.
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let _ = client.issue::<Get>(&()).await.unwrap();
+    let _ = client.issue::<List>(&()).await.unwrap();
   }
 }
