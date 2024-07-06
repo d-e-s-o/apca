@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 The apca Developers
+// Copyright (C) 2021-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
@@ -21,7 +21,7 @@ use crate::Str;
 
 /// A GET request to be made to the /v2/stocks/quotes/latest endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct LastQuotesReq {
+pub struct GetReq {
   /// The symbols to retrieve the last quote for.
   #[serde(rename = "symbols", serialize_with = "string_slice_to_str")]
   pub symbols: Vec<String>,
@@ -31,25 +31,25 @@ pub struct LastQuotesReq {
 }
 
 
-/// A helper for initializing [`LastQuotesReq`] objects.
+/// A helper for initializing [`GetReq`] objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[allow(missing_copy_implementations)]
-pub struct LastQuotesReqInit {
-  /// See `LastQuotesReq::feed`.
+pub struct GetReqInit {
+  /// See `GetReq::feed`.
   pub feed: Option<Feed>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl LastQuotesReqInit {
-  /// Create a [`LastQuotesReq`] from a `LastQuotesReqInit`.
+impl GetReqInit {
+  /// Create a [`GetReq`] from a `GetReqInit`.
   #[inline]
-  pub fn init<I, S>(self, symbols: I) -> LastQuotesReq
+  pub fn init<I, S>(self, symbols: I) -> GetReq
   where
     I: IntoIterator<Item = S>,
     S: Into<String>,
   {
-    LastQuotesReq {
+    GetReq {
       symbols: symbols.into_iter().map(S::into).collect(),
       feed: self.feed,
     }
@@ -83,7 +83,7 @@ pub struct Quote {
 EndpointNoParse! {
   /// The representation of a GET request to the
   /// /v2/stocks/quotes/latest endpoint.
-  pub Get(LastQuotesReq),
+  pub Get(GetReq),
   Ok => Vec<(String, Quote)>, [
     /// The last quotes were retrieved successfully.
     /* 200 */ OK,
@@ -216,7 +216,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuotesReqInit::default().init(["SPY"]);
+    let req = GetReqInit::default().init(["SPY"]);
     let quotes = client.issue::<Get>(&req).await.unwrap();
     assert_eq!(quotes.len(), 1);
     assert_eq!(quotes[0].0, "SPY");
@@ -232,7 +232,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuotesReqInit::default().init(["MSFT", "SPY", "AAPL"]);
+    let req = GetReqInit::default().init(["MSFT", "SPY", "AAPL"]);
     let quotes = client.issue::<Get>(&req).await.unwrap();
     assert_eq!(quotes.len(), 3);
 
@@ -251,7 +251,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuotesReqInit {
+    let req = GetReqInit {
       feed: Some(Feed::SIP),
       ..Default::default()
     }
@@ -274,7 +274,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuotesReqInit::default().init(["ABC123"]);
+    let req = GetReqInit::default().init(["ABC123"]);
     let err = client.issue::<Get>(&req).await.unwrap_err();
     match err {
       RequestError::Endpoint(GetError::InvalidInput(_)) => (),
@@ -289,7 +289,7 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
 
-    let req = LastQuotesReqInit::default().init(["SPY", "NOSUCHSYMBOL"]);
+    let req = GetReqInit::default().init(["SPY", "NOSUCHSYMBOL"]);
     let quotes = client.issue::<Get>(&req).await.unwrap();
     assert_eq!(quotes.len(), 1);
   }
