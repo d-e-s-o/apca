@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2023 The apca Developers
+// Copyright (C) 2022-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -33,27 +33,27 @@ pub struct Quotes {
 }
 
 
-/// A helper for initializing [`QuotesReq`] objects.
+/// A helper for initializing [`ListReq`] objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct QuotesReqInit {
-  /// See `QuotesReq::limit`.
+pub struct ListReqInit {
+  /// See `ListReq::limit`.
   pub limit: Option<usize>,
-  /// See `QuotesReq::feed`.
+  /// See `ListReq::feed`.
   pub feed: Option<Feed>,
-  /// See `QuotesReq::page_token`.
+  /// See `ListReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl QuotesReqInit {
-  /// Create a [`QuotesReq`] from a `QuotesReqInit`.
+impl ListReqInit {
+  /// Create a [`ListReq`] from a `ListReqInit`.
   #[inline]
-  pub fn init<S>(self, symbol: S, start: DateTime<Utc>, end: DateTime<Utc>) -> QuotesReq
+  pub fn init<S>(self, symbol: S, start: DateTime<Utc>, end: DateTime<Utc>) -> ListReq
   where
     S: Into<String>,
   {
-    QuotesReq {
+    ListReq {
       symbol: symbol.into(),
       start,
       end,
@@ -68,7 +68,7 @@ impl QuotesReqInit {
 /// A GET request to be made to the /v2/stocks/{symbol}/quotes endpoint.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct QuotesReq {
+pub struct ListReq {
   /// The symbol to retrieve quotes for.
   #[serde(skip)]
   pub symbol: String,
@@ -96,12 +96,12 @@ pub struct QuotesReq {
 Endpoint! {
   /// The representation of a GET request to the
   /// /v2/stocks/{symbol}/quotes endpoint.
-  pub Get(QuotesReq),
+  pub List(ListReq),
   Ok => Quotes, [
     /// The quote information was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, [
+  Err => ListError, [
     /// Some of the provided data was invalid or not found.
     /* 400 */ BAD_REQUEST => InvalidInput,
   ]
@@ -144,8 +144,8 @@ mod tests {
 
     let start = DateTime::from_str("2022-01-04T13:35:59Z").unwrap();
     let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
-    let request = QuotesReqInit::default().init("SPY", start, end);
-    let quotes = client.issue::<Get>(&request).await.unwrap();
+    let request = ListReqInit::default().init("SPY", start, end);
+    let quotes = client.issue::<List>(&request).await.unwrap();
 
     assert_eq!(&quotes.symbol, "SPY");
 
@@ -167,13 +167,13 @@ mod tests {
 
     let start = DateTime::from_str("2022-01-04T13:35:59Z").unwrap();
     let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
-    let request = QuotesReqInit::default().init("SPY", start, end);
-    let result = client.issue::<Get>(&request).await;
+    let request = ListReqInit::default().init("SPY", start, end);
+    let result = client.issue::<List>(&request).await;
     // Unfortunately we can't really know whether the user has the
     // unlimited plan and can access the SIP feed. So really all we can
     // do here is accept both possible outcomes.
     match result {
-      Ok(_) | Err(RequestError::Endpoint(GetError::NotPermitted(_))) => (),
+      Ok(_) | Err(RequestError::Endpoint(ListError::NotPermitted(_))) => (),
       err => panic!("Received unexpected error: {err:?}"),
     }
   }
@@ -187,10 +187,10 @@ mod tests {
 
     let start = DateTime::from_str("2022-01-04T13:35:59Z").unwrap();
     let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
-    let request = QuotesReqInit::default().init("ABC123", start, end);
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let request = ListReqInit::default().init("ABC123", start, end);
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(Ok(_))) => (),
+      RequestError::Endpoint(ListError::InvalidInput(Ok(_))) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -204,15 +204,15 @@ mod tests {
 
     let start = DateTime::from_str("2022-01-04T13:35:59Z").unwrap();
     let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
-    let request = QuotesReqInit {
+    let request = ListReqInit {
       page_token: Some("123456789abcdefghi".to_string()),
       ..Default::default()
     }
     .init("SPY", start, end);
 
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      RequestError::Endpoint(ListError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -225,7 +225,7 @@ mod tests {
 
     let start = DateTime::from_str("2022-01-04T13:35:00Z").unwrap();
     let end = DateTime::from_str("2022-01-04T13:36:00Z").unwrap();
-    let mut request = QuotesReqInit {
+    let mut request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
@@ -234,7 +234,7 @@ mod tests {
     let mut last_quotes = None;
     // We assume that there are at least three pages of two quotes.
     for _ in 0..3 {
-      let quotes = client.issue::<Get>(&request).await.unwrap();
+      let quotes = client.issue::<List>(&request).await.unwrap();
       assert_ne!(Some(quotes.clone()), last_quotes);
 
       request.page_token = quotes.next_page_token.clone();
