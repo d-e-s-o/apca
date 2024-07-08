@@ -2,6 +2,8 @@
 ------
 - Removed `ApiError::code` member after endpoint reported errors stopped
   returning it
+- Renamed various request related types to follow more uniform naming
+  scheme
 - Renamed `AuthenticationFailed` variant of endpoint errors to
   `NotPermitted`
   - This variant is now used to signal a multitude of conditions,

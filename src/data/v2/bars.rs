@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 The apca Developers
+// Copyright (C) 2021-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -51,7 +51,7 @@ pub enum Adjustment {
 
 /// A GET request to be issued to the /v2/stocks/{symbol}/bars endpoint.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct BarsReq {
+pub struct ListReq {
   /// The symbol for which to retrieve market data.
   #[serde(skip)]
   pub symbol: String,
@@ -85,23 +85,23 @@ pub struct BarsReq {
 }
 
 
-/// A helper for initializing [`BarsReq`] objects.
+/// A helper for initializing [`ListReq`] objects.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct BarsReqInit {
-  /// See `BarsReq::limit`.
+pub struct ListReqInit {
+  /// See `ListReq::limit`.
   pub limit: Option<usize>,
-  /// See `BarsReq::adjustment`.
+  /// See `ListReq::adjustment`.
   pub adjustment: Option<Adjustment>,
-  /// See `BarsReq::feed`.
+  /// See `ListReq::feed`.
   pub feed: Option<Feed>,
-  /// See `BarsReq::page_token`.
+  /// See `ListReq::page_token`.
   pub page_token: Option<String>,
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
 
-impl BarsReqInit {
-  /// Create a [`BarsReq`] from a `BarsReqInit`.
+impl ListReqInit {
+  /// Create a [`ListReq`] from a `ListReqInit`.
   #[inline]
   pub fn init<S>(
     self,
@@ -109,11 +109,11 @@ impl BarsReqInit {
     start: DateTime<Utc>,
     end: DateTime<Utc>,
     timeframe: TimeFrame,
-  ) -> BarsReq
+  ) -> ListReq
   where
     S: Into<String>,
   {
-    BarsReq {
+    ListReq {
       symbol: symbol.into(),
       start,
       end,
@@ -170,12 +170,12 @@ pub struct Bars {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/stocks/{symbol}/bars endpoint.
-  pub Get(BarsReq),
+  pub List(ListReq),
   Ok => Bars, [
     /// The market data was retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, [
+  Err => ListError, [
     /// A query parameter was invalid.
     /* 400 */ BAD_REQUEST => InvalidInput,
   ]
@@ -247,7 +247,7 @@ mod tests {
     "next_page_token": "MjAyMS0wMi0wMVQxNDowMjowMFo7MQ=="
 }"#;
 
-    let res = from_json::<<Get as Endpoint>::Output>(response).unwrap();
+    let res = from_json::<<List as Endpoint>::Output>(response).unwrap();
     let bars = res.bars;
     let expected_time = DateTime::<Utc>::from_str("2021-02-01T16:01:00Z").unwrap();
     assert_eq!(bars.len(), 2);
@@ -267,9 +267,9 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
     let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-    let request = BarsReqInit::default().init("AAPL", start, end, TimeFrame::OneDay);
+    let request = ListReqInit::default().init("AAPL", start, end, TimeFrame::OneDay);
 
-    let res = client.issue::<Get>(&request).await.unwrap();
+    let res = client.issue::<List>(&request).await.unwrap();
     assert_eq!(res.bars, Vec::new())
   }
 
@@ -280,13 +280,13 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-06T21:47:00Z").unwrap();
-    let request = BarsReqInit {
+    let request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
     .init("AAPL", start, end, TimeFrame::OneDay);
 
-    let res = client.issue::<Get>(&request).await.unwrap();
+    let res = client.issue::<List>(&request).await.unwrap();
     let bars = res.bars;
 
     assert_eq!(bars.len(), 2);
@@ -315,19 +315,19 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
-    let mut request = BarsReqInit {
+    let mut request = ListReqInit {
       limit: Some(2),
       ..Default::default()
     }
     .init("AAPL", start, end, TimeFrame::OneDay);
 
-    let mut res = client.issue::<Get>(&request).await.unwrap();
+    let mut res = client.issue::<List>(&request).await.unwrap();
     let bars = res.bars;
 
     assert_eq!(bars.len(), 2);
     request.page_token = res.next_page_token;
 
-    res = client.issue::<Get>(&request).await.unwrap();
+    res = client.issue::<List>(&request).await.unwrap();
     let new_bars = res.bars;
 
     assert_eq!(new_bars.len(), 1);
@@ -342,13 +342,13 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-04T21:47:00Z").unwrap();
-    let request = BarsReqInit {
+    let request = ListReqInit {
       adjustment: Some(adjustment),
       ..Default::default()
     }
     .init("AAPL", start, end, TimeFrame::OneDay);
 
-    client.issue::<Get>(&request).await.unwrap()
+    client.issue::<List>(&request).await.unwrap()
   }
 
   /// Test requesting of historical stock data with adjustment for
@@ -409,19 +409,19 @@ mod tests {
     let client = Client::new(api_info);
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
-    let request = BarsReqInit {
+    let request = ListReqInit {
       limit: Some(2),
       feed: Some(Feed::SIP),
       ..Default::default()
     }
     .init("AAPL", start, end, TimeFrame::OneDay);
 
-    let result = client.issue::<Get>(&request).await;
+    let result = client.issue::<List>(&request).await;
     // Unfortunately we can't really know whether the user has the
     // unlimited plan and can access the SIP feed. So really all we can
     // do here is accept both possible outcomes.
     match result {
-      Ok(_) | Err(RequestError::Endpoint(GetError::NotPermitted(_))) => (),
+      Ok(_) | Err(RequestError::Endpoint(ListError::NotPermitted(_))) => (),
       err => panic!("Received unexpected error: {err:?}"),
     }
   }
@@ -435,15 +435,15 @@ mod tests {
 
     let start = DateTime::from_str("2018-12-03T21:47:00Z").unwrap();
     let end = DateTime::from_str("2018-12-07T21:47:00Z").unwrap();
-    let request = BarsReqInit {
+    let request = ListReqInit {
       page_token: Some("123456789abcdefghi".to_string()),
       ..Default::default()
     }
     .init("SPY", start, end, TimeFrame::OneMinute);
 
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(_)) => (),
+      RequestError::Endpoint(ListError::InvalidInput(_)) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
@@ -457,11 +457,11 @@ mod tests {
 
     let start = DateTime::from_str("2022-02-01T00:00:00Z").unwrap();
     let end = DateTime::from_str("2022-02-20T00:00:00Z").unwrap();
-    let request = BarsReqInit::default().init("ABC123", start, end, TimeFrame::OneDay);
+    let request = ListReqInit::default().init("ABC123", start, end, TimeFrame::OneDay);
 
-    let err = client.issue::<Get>(&request).await.unwrap_err();
+    let err = client.issue::<List>(&request).await.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::InvalidInput(Ok(_))) => (),
+      RequestError::Endpoint(ListError::InvalidInput(Ok(_))) => (),
       _ => panic!("Received unexpected error: {err:?}"),
     };
   }
