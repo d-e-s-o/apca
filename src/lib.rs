@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #![allow(clippy::let_unit_value, clippy::unreadable_literal)]
@@ -6,7 +6,6 @@
   bad_style,
   dead_code,
   future_incompatible,
-  illegal_floating_point_literal_pattern,
   improper_ctypes,
   late_bound_lifetime_arguments,
   missing_copy_implementations,

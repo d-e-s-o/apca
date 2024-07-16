@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2023 The apca Developers
+// Copyright (C) 2021-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Borrow as _;
@@ -899,6 +899,7 @@ where
 }
 
 
+#[allow(clippy::to_string_trait_impl)]
 #[cfg(test)]
 mod tests {
   use super::*;

@@ -248,7 +248,7 @@ mod tests {
       let quotes = client.issue::<List>(&request).await.unwrap();
       assert_ne!(Some(quotes.clone()), last_quotes);
 
-      request.page_token = quotes.next_page_token.clone();
+      request.page_token.clone_from(&quotes.next_page_token);
       last_quotes = Some(quotes);
     }
   }
