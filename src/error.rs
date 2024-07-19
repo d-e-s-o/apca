@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Debug;
@@ -31,6 +31,13 @@ pub enum RequestError<E> {
     #[from]
     #[source]
     HyperError,
+  ),
+  /// An error reported by the `hyper-util` crate.
+  #[error("the hyper-util crate reported an error")]
+  HyperUtil(
+    #[from]
+    #[source]
+    hyper_util::client::legacy::Error,
   ),
   /// An error reported while reading data.
   #[error("failed to read data")]
