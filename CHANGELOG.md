@@ -1,6 +1,7 @@
 Unreleased
 ----------
 - Added `weighted_average` member to `data::v2::bars::Bar` type
+- Bumped `hyper` dependency to `1.0`
 - Bumped `websocket-util` dependency to `0.13`
 - Bumped `tokio-tungstenite` dependency to `0.23`
 
