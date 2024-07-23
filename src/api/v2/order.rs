@@ -493,42 +493,8 @@ pub struct CreateReq {
 }
 
 
-/// A helper for initializing `ChangeReq` objects.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct ChangeReqInit {
-  /// See `ChangeReq::quantity`.
-  pub quantity: Option<Num>,
-  /// See `ChangeReq::time_in_force`.
-  pub time_in_force: Option<TimeInForce>,
-  /// See `ChangeReq::limit_price`.
-  pub limit_price: Option<Num>,
-  /// See `ChangeReq::stop_price`.
-  pub stop_price: Option<Num>,
-  /// See `ChangeReq::trail`.
-  pub trail: Option<Num>,
-  /// See `ChangeReq::client_order_id`.
-  pub client_order_id: Option<String>,
-  #[doc(hidden)]
-  pub _non_exhaustive: (),
-}
-
-impl ChangeReqInit {
-  /// Create a `ChangeReq` from a `ChangeReqInit`.
-  pub fn init(self) -> ChangeReq {
-    ChangeReq {
-      quantity: self.quantity,
-      time_in_force: self.time_in_force,
-      limit_price: self.limit_price,
-      stop_price: self.stop_price,
-      trail: self.trail,
-      client_order_id: self.client_order_id,
-    }
-  }
-}
-
-
 /// A PATCH request to be made to the /v2/orders/{order-id} endpoint.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ChangeReq {
   /// Number of shares to trade.
   #[serde(rename = "qty")]
@@ -995,13 +961,12 @@ mod tests {
   /// Check that we can serialize and deserialize a [`ChangeReq`].
   #[test]
   fn serialize_deserialize_change_request() {
-    let request = ChangeReqInit {
+    let request = ChangeReq {
       quantity: Some(Num::from(37)),
       time_in_force: Some(TimeInForce::UntilCanceled),
       trail: Some(Num::from(42)),
       ..Default::default()
-    }
-    .init();
+    };
 
     let json = to_json(&request).unwrap();
     assert_eq!(from_json::<ChangeReq>(&json).unwrap(), request);
@@ -1369,13 +1334,12 @@ mod tests {
     let client = Client::new(api_info);
     let order = client.issue::<Create>(&request).await.unwrap();
 
-    let request = ChangeReqInit {
+    let request = ChangeReq {
       quantity: Some(Num::from(2)),
       time_in_force: Some(TimeInForce::UntilCanceled),
       limit_price: Some(Num::from(2)),
       ..Default::default()
-    }
-    .init();
+    };
 
     let result = client.issue::<Change>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
@@ -1418,11 +1382,10 @@ mod tests {
     let order = client.issue::<Create>(&request).await.unwrap();
     assert_eq!(order.trail_price, Some(Num::from(20)));
 
-    let request = ChangeReqInit {
+    let request = ChangeReq {
       trail: Some(Num::from(30)),
       ..Default::default()
-    }
-    .init();
+    };
 
     let result = client.issue::<Change>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &result {
@@ -1502,11 +1465,10 @@ mod tests {
     let order = client.issue::<Create>(&request).await.unwrap();
 
     let client_order_id = Uuid::new_v4().as_simple().to_string();
-    let request = ChangeReqInit {
+    let request = ChangeReq {
       client_order_id: Some(client_order_id.clone()),
       ..Default::default()
-    }
-    .init();
+    };
 
     let change_result = client.issue::<Change>(&(order.id, request)).await;
     let id = if let Ok(replaced) = &change_result {

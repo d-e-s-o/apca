@@ -8,6 +8,8 @@
   `NotPermitted`
   - This variant is now used to signal a multitude of conditions,
     including certain order submission issues
+- Removed `api::v2::order::ChangeReqInit` type in favor of `Default`
+  impl for `ChangeReq`
 - Added `name` attribute to `api::v2::watchlist::Watchlist` type
 - Added support for updating a watchlist
 - Bumped minimum supported Rust version to `1.63`
