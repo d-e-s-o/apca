@@ -11,31 +11,8 @@ use crate::api::v2::asset::Status;
 use crate::Str;
 
 
-/// A helper for initializing `ListReq` objects.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct ListReqInit {
-  /// See `ListReq::status`.
-  pub status: Status,
-  /// See `ListReq::class`.
-  pub class: Class,
-  #[doc(hidden)]
-  pub _non_exhaustive: (),
-}
-
-impl ListReqInit {
-  /// Create an `ListReq` from an `ListReqInit`.
-  #[inline]
-  pub fn init(self) -> ListReq {
-    ListReq {
-      status: self.status,
-      class: self.class,
-    }
-  }
-}
-
-
 /// A GET request to be made to the /v2/assets endpoint.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ListReq {
   /// The status of assets to include in the response.
   #[serde(rename = "status")]
@@ -83,12 +60,11 @@ mod tests {
   /// Check that we can serialize and deserialize a [`ListReq`].
   #[test]
   fn serialize_deserialize_list_request() {
-    let request = ListReqInit {
+    let request = ListReq {
       status: Status::Active,
       class: Class::UsEquity,
       ..Default::default()
-    }
-    .init();
+    };
 
     let json = to_json(&request).unwrap();
     assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
@@ -100,7 +76,7 @@ mod tests {
   async fn list_us_stock_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = ListReqInit::default().init();
+    let request = ListReq::default();
     let assets = client.issue::<List>(&request).await.unwrap();
 
     let asset = assets.iter().find(|x| x.symbol == "AAPL").unwrap();
@@ -115,11 +91,10 @@ mod tests {
   async fn list_crypto_assets() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let request = ListReqInit {
+    let request = ListReq {
       class: Class::Crypto,
       ..Default::default()
-    }
-    .init();
+    };
 
     let assets = client.issue::<List>(&request).await.unwrap();
 

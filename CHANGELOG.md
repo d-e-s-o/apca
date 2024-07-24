@@ -1,17 +1,21 @@
+Unreleased
+----------
+- Renamed various request related types to follow more uniform naming
+  scheme
+- Removed `api::v2::{order::ChangeReqInit,assets::ListReqInit}` types in
+  favor of `Default` impl for corresponding request types
+- Added `name` attribute to `api::v2::watchlist::Watchlist` type
+- Added support for updating a watchlist
+
+
 0.28.0
 ------
 - Removed `ApiError::code` member after endpoint reported errors stopped
   returning it
-- Renamed various request related types to follow more uniform naming
-  scheme
 - Renamed `AuthenticationFailed` variant of endpoint errors to
   `NotPermitted`
   - This variant is now used to signal a multitude of conditions,
     including certain order submission issues
-- Removed `api::v2::order::ChangeReqInit` type in favor of `Default`
-  impl for `ChangeReq`
-- Added `name` attribute to `api::v2::watchlist::Watchlist` type
-- Added support for updating a watchlist
 - Bumped minimum supported Rust version to `1.63`
 - Bumped `websocket-util` dependency to `0.12`
 - Bumped `tokio-tungstenite` dependency to `0.20`
