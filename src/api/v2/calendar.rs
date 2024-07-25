@@ -65,7 +65,7 @@ pub struct OpenClose {
 
 /// A GET request to be made to the /v2/calendar endpoint.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct GetReq {
+pub struct ListReq {
   /// The (inclusive) start date of the range for which to retrieve
   /// calendar data.
   #[serde(rename = "start")]
@@ -78,7 +78,7 @@ pub struct GetReq {
   pub end: NaiveDate,
 }
 
-impl From<Range<NaiveDate>> for GetReq {
+impl From<Range<NaiveDate>> for ListReq {
   fn from(range: Range<NaiveDate>) -> Self {
     Self {
       start: range.start,
@@ -90,12 +90,12 @@ impl From<Range<NaiveDate>> for GetReq {
 
 Endpoint! {
   /// The representation of a GET request to the /v2/calendar endpoint.
-  pub Get(GetReq),
+  pub List(ListReq),
   Ok => Vec<OpenClose>, [
     /// The market open and close times were retrieved successfully.
     /* 200 */ OK,
   ],
-  Err => GetError, []
+  Err => ListError, []
 
   fn path(_input: &Self::Input) -> Str {
     "/v2/calendar".into()
@@ -147,13 +147,13 @@ mod tests {
   /// Check that we can serialize and deserialize a [`CalendarReq`].
   #[test]
   fn serialize_deserialize_calendar_request() {
-    let request = GetReq {
+    let request = ListReq {
       start: NaiveDate::from_ymd_opt(2020, 4, 6).unwrap(),
       end: NaiveDate::from_ymd_opt(2020, 4, 10).unwrap(),
     };
 
     let json = to_json(&request).unwrap();
-    assert_eq!(from_json::<GetReq>(&json).unwrap(), request);
+    assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
   }
 
   /// Check that we can retrieve the market calendar for a specific time
@@ -166,7 +166,7 @@ mod tests {
     let start = NaiveDate::from_ymd_opt(2020, 4, 6).unwrap();
     let end = NaiveDate::from_ymd_opt(2020, 4, 10).unwrap();
     let calendar = client
-      .issue::<Get>(&GetReq::from(start..end))
+      .issue::<List>(&ListReq::from(start..end))
       .await
       .unwrap();
 
