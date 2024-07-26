@@ -76,6 +76,10 @@ pub struct ListReq {
   // is not.
   #[serde(rename = "end")]
   pub end: NaiveDate,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 impl From<Range<NaiveDate>> for ListReq {
@@ -83,6 +87,31 @@ impl From<Range<NaiveDate>> for ListReq {
     Self {
       start: range.start,
       end: range.end,
+      _non_exhaustive: (),
+    }
+  }
+}
+
+
+/// A helper for initializing [`ListReq`] objects.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[allow(missing_copy_implementations)]
+pub struct ListReqInit {
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl ListReqInit {
+  /// Create a [`ListReq`] from a `ListReqInit`.
+  #[inline]
+  pub fn init(self, start: NaiveDate, end: NaiveDate) -> ListReq {
+    let Self { _non_exhaustive } = self;
+
+    ListReq {
+      start,
+      end,
+      _non_exhaustive: (),
     }
   }
 }
@@ -147,10 +176,9 @@ mod tests {
   /// Check that we can serialize and deserialize a [`CalendarReq`].
   #[test]
   fn serialize_deserialize_calendar_request() {
-    let request = ListReq {
-      start: NaiveDate::from_ymd_opt(2020, 4, 6).unwrap(),
-      end: NaiveDate::from_ymd_opt(2020, 4, 10).unwrap(),
-    };
+    let start = NaiveDate::from_ymd_opt(2020, 4, 6).unwrap();
+    let end = NaiveDate::from_ymd_opt(2020, 4, 10).unwrap();
+    let request = ListReqInit::default().init(start, end);
 
     let json = to_json(&request).unwrap();
     assert_eq!(from_json::<ListReq>(&json).unwrap(), request);
