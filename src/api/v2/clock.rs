@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -25,6 +25,10 @@ pub struct Clock {
   /// The next market closing time stamp.
   #[serde(rename = "next_close")]
   pub next_close: DateTime<Utc>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

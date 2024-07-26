@@ -43,6 +43,7 @@ impl Deref for Id {
 
 /// The status an order can have.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Status {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution. This is the usual initial state of an order.
@@ -162,6 +163,7 @@ impl Not for Side {
 
 /// The class an order belongs to.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Class {
   /// Any non-bracket order (i.e., regular market, limit, or stop loss
   /// orders).
@@ -196,6 +198,7 @@ impl Default for Class {
 /// The type of an order.
 // Note that we currently do not support `stop_limit` orders.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Type {
   /// A market order.
   #[serde(rename = "market")]
@@ -224,6 +227,7 @@ impl Default for Type {
 
 /// A description of the time for which an order is valid.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum TimeInForce {
   /// The order is good for the day, and it will be canceled
   /// automatically at the end of Regular Trading Hours if unfilled.
@@ -270,6 +274,7 @@ struct TakeProfitSerde {
 /// one-triggers-other order.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(from = "TakeProfitSerde", into = "TakeProfitSerde")]
+#[non_exhaustive]
 pub enum TakeProfit {
   /// The limit price to use.
   Limit(Num),
@@ -304,6 +309,7 @@ struct StopLossSerde {
 /// one-triggers-other order.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(from = "StopLossSerde", into = "StopLossSerde")]
+#[non_exhaustive]
 pub enum StopLoss {
   /// The stop loss price to use.
   Stop(Num),
@@ -401,6 +407,7 @@ pub struct CreateReqInit {
   pub extended_hours: bool,
   /// See `CreateReq::client_order_id`.
   pub client_order_id: Option<String>,
+  /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -431,6 +438,7 @@ impl CreateReqInit {
       client_order_id: self.client_order_id,
       trail_price: self.trail_price,
       trail_percent: self.trail_percent,
+      _non_exhaustive: (),
     }
   }
 }
@@ -490,6 +498,10 @@ pub struct CreateReq {
   /// The documented maximum length is 48 characters.
   #[serde(rename = "client_order_id")]
   pub client_order_id: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -514,6 +526,10 @@ pub struct ChangeReq {
   /// Client unique order ID (free form string).
   #[serde(rename = "client_order_id")]
   pub client_order_id: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -617,6 +633,10 @@ pub struct Order {
   /// take profit part of a bracket-style order.
   #[serde(rename = "legs", deserialize_with = "vec_from_str")]
   pub legs: Vec<Order>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -976,23 +996,16 @@ mod tests {
   #[test(tokio::test)]
   async fn submit_limit_order() {
     async fn test(extended_hours: bool) -> Result<(), RequestError<CreateError>> {
-      let symbol = Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
-      let request = CreateReq {
-        symbol,
-        amount: Amount::quantity(1),
-        side: Side::Buy,
-        class: Class::default(),
+      let mut request = CreateReqInit {
         type_: Type::Limit,
-        time_in_force: TimeInForce::default(),
         limit_price: Some(Num::from(1)),
-        stop_price: None,
-        trail_price: None,
-        trail_percent: None,
-        take_profit: None,
-        stop_loss: None,
         extended_hours,
-        client_order_id: None,
-      };
+        ..Default::default()
+      }
+      .init("SPY", Side::Buy, Amount::quantity(1));
+
+      request.symbol =
+        Symbol::SymExchgCls("SPY".to_string(), Exchange::Arca, asset::Class::UsEquity);
 
       let api_info = ApiInfo::from_env().unwrap();
       let client = Client::new(api_info);

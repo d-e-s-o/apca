@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::borrow::Cow;
@@ -41,6 +41,7 @@ use crate::Error;
 
 /// The status of an order, as reported as part of a `OrderUpdate`.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum OrderStatus {
   /// The order has been received by Alpaca, and routed to exchanges for
   /// execution.

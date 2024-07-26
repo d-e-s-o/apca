@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -32,6 +32,7 @@ impl Deref for Id {
 
 /// An enumeration of the various states an account can be in.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Status {
   /// The account is onboarding.
   #[serde(rename = "ONBOARDING")]
@@ -141,6 +142,10 @@ pub struct Account {
   /// five trading days (including today).
   #[serde(rename = "daytrade_count")]
   pub daytrade_count: u64,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

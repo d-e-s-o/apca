@@ -13,6 +13,7 @@ use crate::Str;
 
 /// An enum representing the possible trade confirmation settings.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum TradeConfirmation {
   /// Send an e-mail to confirm trades.
   #[serde(rename = "all")]
@@ -26,7 +27,6 @@ pub enum TradeConfirmation {
 /// A response as returned by the /v2/account/configurations endpoint.
 // TODO: Not all fields are hooked up yet.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[non_exhaustive]
 pub struct Configuration {
   /// Whether and how trades are confirmed.
   #[serde(rename = "trade_confirm_email")]
@@ -37,6 +37,10 @@ pub struct Configuration {
   /// If enabled, the account can only submit buy orders.
   #[serde(rename = "no_shorting")]
   pub no_shorting: bool,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

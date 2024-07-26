@@ -57,6 +57,10 @@ pub struct Watchlist {
   /// The list of watched assets.
   #[serde(rename = "assets")]
   pub assets: Vec<asset::Asset>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

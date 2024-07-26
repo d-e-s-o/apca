@@ -18,6 +18,7 @@ use crate::Str;
 
 /// An enumeration of the various supported time frames.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum TimeFrame {
   /// A time frame of one minute.
   #[serde(rename = "1Min")]
@@ -31,8 +32,9 @@ pub enum TimeFrame {
 }
 
 
-/// An enumeration of the adjustment
+/// An enumeration of the possible adjustments.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Adjustment {
   /// No adjustment, i.e., raw data.
   #[serde(rename = "raw")]
@@ -82,6 +84,10 @@ pub struct ListReq {
   /// If provided we will pass a page token to continue where we left off.
   #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -96,6 +102,7 @@ pub struct ListReqInit {
   pub feed: Option<Feed>,
   /// See `ListReq::page_token`.
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -122,6 +129,7 @@ impl ListReqInit {
       adjustment: self.adjustment,
       feed: self.feed,
       page_token: self.page_token,
+      _non_exhaustive: (),
     }
   }
 }
@@ -129,7 +137,6 @@ impl ListReqInit {
 
 /// A market data bar as returned by the /v2/stocks/{symbol}/bars endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Bar {
   /// The beginning time of this bar.
   #[serde(rename = "t")]
@@ -149,22 +156,31 @@ pub struct Bar {
   /// The trading volume.
   #[serde(rename = "v")]
   pub volume: usize,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
 /// A collection of bars as returned by the API. This is one page of
 /// bars.
 #[derive(Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Bars {
   /// The list of returned bars.
-  #[serde(deserialize_with = "vec_from_str")]
+  #[serde(rename = "bars", deserialize_with = "vec_from_str")]
   pub bars: Vec<Bar>,
   /// The symbol the bars correspond to.
+  #[serde(rename = "symbol")]
   pub symbol: String,
   /// The token to provide to a request to get the next page of bars for
   /// this request.
+  #[serde(rename = "next_page_token")]
   pub next_page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

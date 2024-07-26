@@ -41,14 +41,18 @@ pub struct ListReq {
   /// The status of orders to list.
   #[serde(rename = "status")]
   pub status: Status,
-  /// The maximum number of orders in response. Defaults to 50 and max
-  /// is 500.
+  /// The maximum number of orders contained in the response. Defaults
+  /// to 50 and max is 500.
   #[serde(rename = "limit")]
   pub limit: Option<usize>,
   /// If false the result will not roll up multi-leg orders under the
   /// legs field of the primary order.
   #[serde(rename = "nested")]
   pub nested: bool,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 impl Default for ListReq {
@@ -61,6 +65,7 @@ impl Default for ListReq {
       // returned. As such, having them included is very non-intrusive
       // and should be a reasonable default.
       nested: true,
+      _non_exhaustive: (),
     }
   }
 }
@@ -120,6 +125,7 @@ mod tests {
       status: Status::Closed,
       limit: Some(42),
       nested: true,
+      ..Default::default()
     };
 
     let json = to_json(&request).unwrap();
@@ -139,6 +145,7 @@ mod tests {
       status: Status::Closed,
       limit: Some(42),
       nested: true,
+      ..Default::default()
     };
 
     let query = to_query(&request).unwrap();

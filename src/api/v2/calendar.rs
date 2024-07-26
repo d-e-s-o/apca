@@ -60,6 +60,10 @@ pub struct OpenClose {
     serialize_with = "serialize_naive_time"
   )]
   pub close: NaiveTime,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -156,6 +160,7 @@ mod tests {
       date: NaiveDate::from_ymd_opt(2020, 4, 9).unwrap(),
       open: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
       close: NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
+      _non_exhaustive: (),
     };
 
     let json = to_json(&open_close).unwrap();
@@ -203,6 +208,7 @@ mod tests {
         date: NaiveDate::from_ymd_opt(2020, 4, day).unwrap(),
         open: NaiveTime::from_hms_opt(9, 30, 0).unwrap(),
         close: NaiveTime::from_hms_opt(16, 0, 0).unwrap(),
+        _non_exhaustive: (),
       })
       .collect::<Vec<_>>();
 

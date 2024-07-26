@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::convert::TryFrom;
@@ -89,6 +89,7 @@ impl FromStr for Class {
 
 /// The status an asset can have.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum Status {
   /// The asset is active.
   #[serde(rename = "active")]
@@ -118,6 +119,7 @@ impl Default for Status {
 
 /// An enumeration of all possible symbol parsing errors.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum ParseSymbolError {
   /// The symbol contains an invalid character.
   InvalidSymbol(char),
@@ -147,6 +149,7 @@ impl Display for ParseSymbolError {
 /// A symbol and the various ways to represent it.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(try_from = "&str")]
+#[non_exhaustive]
 pub enum Symbol {
   /// The symbol. Note that this is not a unique way to identify an
   /// asset (the same symbol may be used in different exchanges or asset
@@ -315,7 +318,6 @@ impl FromStr for Exchange {
 
 /// The representation of an asset as used by Alpaca.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[non_exhaustive]
 pub struct Asset {
   /// The asset's ID.
   #[serde(rename = "id")]
@@ -349,6 +351,9 @@ pub struct Asset {
   /// Whether the asset is fractionable or not.
   #[serde(rename = "fractionable")]
   pub fractionable: bool,
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

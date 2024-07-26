@@ -43,6 +43,10 @@ pub struct ListReq {
   /// If provided we will pass a page token to continue where we left off.
   #[serde(rename = "page_token", skip_serializing_if = "Option::is_none")]
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -55,6 +59,7 @@ pub struct ListReqInit {
   pub feed: Option<Feed>,
   /// See `ListReq::page_token`.
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -73,6 +78,7 @@ impl ListReqInit {
       limit: self.limit,
       feed: self.feed,
       page_token: self.page_token,
+      _non_exhaustive: (),
     }
   }
 }
@@ -80,7 +86,6 @@ impl ListReqInit {
 
 /// A market data trade as returned by the /v2/stocks/{symbol}/trades endpoint.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Trade {
   /// Time of the trade.
   #[serde(rename = "t")]
@@ -91,20 +96,29 @@ pub struct Trade {
   /// The size of the trade.
   #[serde(rename = "s")]
   pub size: usize,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
 /// A collection of trades as returned by the API. This is one page of trades.
 #[derive(Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Trades {
   /// The list of returned trades.
-  #[serde(deserialize_with = "vec_from_str")]
+  #[serde(rename = "trades", deserialize_with = "vec_from_str")]
   pub trades: Vec<Trade>,
   /// The symbol the trades correspond to.
+  #[serde(rename = "symbol")]
   pub symbol: String,
   /// The token to provide to a request to get the next page of trades for this request.
+  #[serde(rename = "next_page_token")]
   pub next_page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

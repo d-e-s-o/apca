@@ -28,6 +28,10 @@ pub struct GetReq {
   /// The data feed to use.
   #[serde(rename = "feed")]
   pub feed: Option<Feed>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -37,6 +41,7 @@ pub struct GetReq {
 pub struct GetReqInit {
   /// See `GetReq::feed`.
   pub feed: Option<Feed>,
+  /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -52,6 +57,7 @@ impl GetReqInit {
     GetReq {
       symbols: symbols.into_iter().map(S::into).collect(),
       feed: self.feed,
+      _non_exhaustive: (),
     }
   }
 }
@@ -60,7 +66,6 @@ impl GetReqInit {
 /// A quote as returned by the /v2/stocks/quotes/latest endpoint.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Quote {
   /// The time stamp of this quote.
   #[serde(rename = "t")]
@@ -77,6 +82,10 @@ pub struct Quote {
   /// The bid size.
   #[serde(rename = "bs")]
   pub bid_size: u64,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2023 The apca Developers
+// Copyright (C) 2020-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -34,6 +34,7 @@ where
 
 /// An enum representing the various non-trade activities.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
 pub enum ActivityType {
   /// Order fills (both partial and full fills).
   ///
@@ -149,6 +150,7 @@ pub enum ActivityType {
 
 /// An enumeration describing the side of a trade activity.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum Side {
   /// A buy of an asset.
   #[serde(rename = "buy")]
@@ -165,7 +167,6 @@ pub enum Side {
 /// A trade related activity.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct TradeActivity {
   /// An ID for the activity. Can be sent as `page_token` in requests to
   /// facilitate the paging of results.
@@ -196,6 +197,10 @@ pub struct TradeActivity {
   /// The per-share price that the trade was executed at.
   #[serde(rename = "price")]
   pub price: Num,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -207,7 +212,6 @@ pub struct TradeActivity {
 /// `NonTradeActivity` instead.
 // TODO: Not all fields are hooked up.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct NonTradeActivityImpl<T> {
   /// An ID for the activity. Can be sent as `page_token` in requests to
   /// facilitate the paging of results.
@@ -244,12 +248,17 @@ pub struct NonTradeActivityImpl<T> {
   /// A description of the activity.
   #[serde(rename = "description")]
   pub description: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 impl<T> NonTradeActivityImpl<T> {
   fn into_other<U>(self, activity_type: U) -> NonTradeActivityImpl<U> {
     let Self {
       id,
+      type_: _,
       date,
       net_amount,
       symbol,
@@ -257,7 +266,7 @@ impl<T> NonTradeActivityImpl<T> {
       price,
       per_share_amount,
       description,
-      ..
+      _non_exhaustive: (),
     } = self;
 
     NonTradeActivityImpl::<U> {
@@ -270,6 +279,7 @@ impl<T> NonTradeActivityImpl<T> {
       price,
       per_share_amount,
       description,
+      _non_exhaustive: (),
     }
   }
 }
@@ -400,6 +410,10 @@ pub struct ActivityReq {
   /// The ID of the end of your current page of results.
   #[serde(rename = "page_token")]
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

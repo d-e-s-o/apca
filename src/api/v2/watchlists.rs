@@ -29,6 +29,10 @@ pub struct WatchlistItem {
   /// Timestamp this watchlist was last updated at.
   #[serde(rename = "updated_at")]
   pub updated_at: DateTime<Utc>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

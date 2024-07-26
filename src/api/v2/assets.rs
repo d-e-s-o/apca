@@ -20,6 +20,10 @@ pub struct ListReq {
   /// The asset class of which to include assets in the response.
   #[serde(rename = "asset_class")]
   pub class: Class,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

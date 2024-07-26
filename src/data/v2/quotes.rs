@@ -20,16 +20,21 @@ pub use super::last_quotes::Quote;
 /// A collection of quotes as returned by the API. This is one page of
 /// quotes.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[non_exhaustive]
 pub struct Quotes {
   /// The list of returned quotes.
-  #[serde(deserialize_with = "vec_from_str")]
+  #[serde(rename = "quotes", deserialize_with = "vec_from_str")]
   pub quotes: Vec<Quote>,
   /// The symbol the quotes correspond to.
+  #[serde(rename = "symbol")]
   pub symbol: String,
   /// The token to provide to a request to get the next page of quotes
   /// for this request.
+  #[serde(rename = "next_page_token")]
   pub next_page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 
@@ -42,6 +47,7 @@ pub struct ListReqInit {
   pub feed: Option<Feed>,
   /// See `ListReq::page_token`.
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   pub _non_exhaustive: (),
 }
@@ -60,6 +66,7 @@ impl ListReqInit {
       limit: self.limit,
       feed: self.feed,
       page_token: self.page_token,
+      _non_exhaustive: (),
     }
   }
 }
@@ -90,6 +97,10 @@ pub struct ListReq {
   /// Pagination token to continue from.
   #[serde(rename = "page_token")]
   pub page_token: Option<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

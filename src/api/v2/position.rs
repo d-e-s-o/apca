@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2024 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Not;
@@ -96,6 +96,10 @@ pub struct Position {
   /// The percent change from last day price (as a factor of 1).
   #[serde(rename = "change_today")]
   pub change_today: Option<Num>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  #[serde(skip)]
+  pub _non_exhaustive: (),
 }
 
 

@@ -5,6 +5,7 @@ Unreleased
 - Added `api::v2::calendar::ListReqInit` type
 - Removed `api::v2::{order::ChangeReqInit,assets::ListReqInit}` types in
   favor of `Default` impl for corresponding request types
+- Made various types non-exhaustive
 - Added `name` attribute to `api::v2::watchlist::Watchlist` type
 - Added support for updating a watchlist
 
