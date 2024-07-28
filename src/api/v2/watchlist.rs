@@ -73,11 +73,47 @@ pub struct CreateReq {
   /// The symbols to watch.
   #[serde(rename = "symbols")]
   pub symbols: Vec<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+
+/// A helper for initializing [`CreateReq`] objects.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct CreateReqInit {
+  /// The symbols to watch.
+  pub symbols: Vec<String>,
+  /// The type is non-exhaustive and open to extension.
+  #[doc(hidden)]
+  pub _non_exhaustive: (),
+}
+
+impl CreateReqInit {
+  /// Create a [`CreateReq`] from a `CreateReqInit`.
+  #[inline]
+  pub fn init<S>(self, name: S) -> CreateReq
+  where
+    S: Into<String>,
+  {
+    let Self {
+      symbols,
+      _non_exhaustive: (),
+    } = self;
+
+    CreateReq {
+      name: name.into(),
+      symbols,
+      _non_exhaustive: (),
+    }
+  }
 }
 
 
 /// A request to update a watch list.
 pub type UpdateReq = CreateReq;
+/// A helper for initializing [`UpdateReq`] objects.
+pub type UpdateReqInit = CreateReqInit;
 
 
 Endpoint! {
@@ -218,13 +254,13 @@ mod tests {
     let client = Client::new(api_info);
     let expected_symbols = vec!["AAPL".to_string(), "AMZN".to_string()];
     let id = Uuid::new_v4().to_string();
-    let created = client
-      .issue::<Create>(&CreateReq {
-        name: id.clone(),
-        symbols: expected_symbols.clone(),
-      })
-      .await
-      .unwrap();
+    let request = CreateReqInit {
+      symbols: expected_symbols.clone(),
+      ..Default::default()
+    }
+    .init(id.clone());
+
+    let created = client.issue::<Create>(&request).await.unwrap();
     let result = client.issue::<Get>(&created.id).await;
     client.issue::<Delete>(&created.id).await.unwrap();
 
@@ -250,20 +286,14 @@ mod tests {
     let client = Client::new(api_info);
 
     let name = "the-name";
-    let created = client
-      .issue::<Create>(&CreateReq {
-        name: name.to_string(),
-        symbols: vec!["SPY".to_string()],
-      })
-      .await
-      .unwrap();
+    let request = CreateReqInit {
+      symbols: vec!["SPY".to_string()],
+      ..Default::default()
+    }
+    .init(name);
 
-    let result = client
-      .issue::<Create>(&CreateReq {
-        name: name.to_string(),
-        symbols: vec!["SPY".to_string()],
-      })
-      .await;
+    let created = client.issue::<Create>(&request).await.unwrap();
+    let result = client.issue::<Create>(&request).await;
 
     client.issue::<Delete>(&created.id).await.unwrap();
 
@@ -280,14 +310,15 @@ mod tests {
   async fn get_non_existent() {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
-    let created = client
-      .issue::<Create>(&CreateReq {
-        name: Uuid::new_v4().to_string(),
-        symbols: vec!["AAPL".to_string()],
-      })
-      .await
-      .unwrap();
-    client.issue::<Delete>(&created.id).await.unwrap();
+
+    let request = CreateReqInit {
+      symbols: vec!["AAPL".to_string()],
+      ..Default::default()
+    }
+    .init(Uuid::new_v4().to_string());
+
+    let created = client.issue::<Create>(&request).await.unwrap();
+    let () = client.issue::<Delete>(&created.id).await.unwrap();
 
     let err = client.issue::<Get>(&created.id).await.unwrap_err();
     match err {
@@ -303,21 +334,22 @@ mod tests {
     let client = Client::new(api_info);
     let symbols = vec!["AAPL".to_string()];
     let id = Uuid::new_v4().to_string();
-    let created = client
-      .issue::<Create>(&CreateReq {
-        name: id.clone(),
-        symbols: symbols.clone(),
-      })
-      .await
-      .unwrap();
+    let request = CreateReqInit {
+      symbols: symbols.clone(),
+      ..Default::default()
+    }
+    .init(&id);
+
+    let created = client.issue::<Create>(&request).await.unwrap();
 
     let id2 = Uuid::new_v4().to_string();
     let symbols = vec!["AMZN".to_string(), "SPY".to_string()];
 
-    let req = UpdateReq {
-      name: id2.clone(),
+    let req = UpdateReqInit {
       symbols: symbols.clone(),
-    };
+      ..Default::default()
+    }
+    .init(&id2);
 
     let result = client.issue::<Update>(&(created.id, req)).await;
     let () = client.issue::<Delete>(&created.id).await.unwrap();

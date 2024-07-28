@@ -59,7 +59,7 @@ mod tests {
   use uuid::Uuid;
 
   use crate::api::v2::watchlist;
-  use crate::api::v2::watchlist::CreateReq;
+  use crate::api::v2::watchlist::CreateReqInit;
   use crate::api_info::ApiInfo;
   use crate::Client;
   use test_log::test;
@@ -71,13 +71,13 @@ mod tests {
     let api_info = ApiInfo::from_env().unwrap();
     let client = Client::new(api_info);
     let id = Uuid::new_v4().to_string();
-    let created = client
-      .issue::<watchlist::Create>(&CreateReq {
-        name: id.clone(),
-        symbols: vec!["AAPL".to_string()],
-      })
-      .await
-      .unwrap();
+    let request = CreateReqInit {
+      symbols: vec!["AAPL".to_string()],
+      ..Default::default()
+    }
+    .init(&id);
+
+    let created = client.issue::<watchlist::Create>(&request).await.unwrap();
 
     let result = client.issue::<Get>(&()).await;
     client
