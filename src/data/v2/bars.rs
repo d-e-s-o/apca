@@ -28,10 +28,10 @@ pub enum TimeFrame {
     /// A time frame of one day.
     #[serde(rename = "1Day")]
     OneDay,
-    /// A time frame of one day.
+    /// A time frame of one week.
     #[serde(rename = "1Week")]
     OneWeek,
-    /// A time frame of one day.
+    /// A time frame of one month.
     #[serde(rename = "1Month")]
     OneMonth,
 }
