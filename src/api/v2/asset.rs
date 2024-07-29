@@ -97,6 +97,12 @@ pub enum Status {
   /// The asset is inactive.
   #[serde(rename = "inactive")]
   Inactive,
+  /// Any other asset status that we have not accounted for.
+  ///
+  /// Note that having any such unknown asset class should be considered
+  /// a bug.
+  #[serde(other, rename(serialize = "unknown"))]
+  Unknown,
 }
 
 impl AsRef<str> for Status {
@@ -105,6 +111,7 @@ impl AsRef<str> for Status {
     match *self {
       Status::Active => "active",
       Status::Inactive => "inactive",
+      Status::Unknown => "unknown",
     }
   }
 }
