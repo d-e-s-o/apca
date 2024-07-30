@@ -120,6 +120,7 @@ pub enum Status {
   /// Any other status that we have not accounted for.
   ///
   /// Note that having any such status should be considered a bug.
+  #[doc(hidden)]
   #[serde(other, rename(serialize = "unknown"))]
   Unknown,
 }

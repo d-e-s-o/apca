@@ -143,7 +143,8 @@ pub enum ActivityType {
   /// Any other activity type that we have not accounted for.
   ///
   /// Note that having any such type should be considered a bug.
-  #[serde(other)]
+  #[doc(hidden)]
+  #[serde(other, rename(serialize = "unknown"))]
   Unknown,
 }
 

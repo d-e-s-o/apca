@@ -46,6 +46,7 @@ pub enum Class {
   ///
   /// Note that having any such unknown asset class should be considered
   /// a bug.
+  #[doc(hidden)]
   #[serde(other, rename(serialize = "unknown"))]
   Unknown,
 }
@@ -101,6 +102,7 @@ pub enum Status {
   ///
   /// Note that having any such unknown asset class should be considered
   /// a bug.
+  #[doc(hidden)]
   #[serde(other, rename(serialize = "unknown"))]
   Unknown,
 }
@@ -278,7 +280,8 @@ pub enum Exchange {
   ///
   /// Note that having any such unknown exchange should be considered a
   /// bug.
-  #[serde(other)]
+  #[doc(hidden)]
+  #[serde(other, rename(serialize = "unknown"))]
   Unknown,
 }
 
