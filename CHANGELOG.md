@@ -1,5 +1,5 @@
-Unreleased
-----------
+0.29.0
+------
 - Renamed various request related types to follow more uniform naming
   scheme
 - Added `api::v2::{calendar::ListReqInit,watchlist::CreateReqInit}`
