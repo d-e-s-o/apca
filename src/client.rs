@@ -51,7 +51,7 @@ struct DebugHeaders<'h> {
   headers: &'h HeaderMap<HeaderValue>,
 }
 
-impl<'h> Debug for DebugHeaders<'h> {
+impl Debug for DebugHeaders<'_> {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     static MASKED: HeaderValue = HeaderValue::from_static("<masked>");
 
@@ -74,7 +74,7 @@ struct DebugRequest<'r> {
   request: &'r Request<Full<Bytes>>,
 }
 
-impl<'r> Debug for DebugRequest<'r> {
+impl Debug for DebugRequest<'_> {
   fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
     // Note that we do not print URL and version, because we assume they
     // are already included as identifiers in the span of the usage
