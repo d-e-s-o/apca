@@ -375,7 +375,7 @@ pub enum Data<B = Bar, Q = Quote, T = Trade> {
   Trade(T),
 }
 
-impl Data {
+impl<B, Q, T> Data<B, Q, T> {
   /// Check whether this object is of the `Bar` variant.
   #[inline]
   pub fn is_bar(&self) -> bool {
@@ -940,6 +940,20 @@ mod tests {
   const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[],"trades":[]}"#;
   const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
+
+  /// Exercise the `Sip::source` method.
+  #[test]
+  fn sip_source() {
+    assert_ne!(format!("{:?}", SIP::source()), "");
+  }
+
+  /// Exercise the various `is_*` methods of the `Data` enum.
+  #[test]
+  fn data_classification() {
+    assert!(Data::<(), Quote, Trade>::Bar(()).is_bar());
+    assert!(Data::<Bar, (), Trade>::Quote(()).is_quote());
+    assert!(Data::<Bar, Quote, ()>::Trade(()).is_trade());
+  }
 
   /// Test that the [`Symbols::is_empty`] method works as expected.
   #[test]
