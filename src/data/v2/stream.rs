@@ -920,6 +920,8 @@ mod tests {
 
   use tokio::time::timeout;
 
+  use tungstenite::tungstenite::Utf8Bytes;
+
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::Message;
 
@@ -1373,20 +1375,26 @@ mod tests {
   #[test(tokio::test)]
   async fn authenticate_and_subscribe() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
-      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(CONN_RESP)))
+        .await?;
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(SUB_REQ)),
       );
-      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(SUB_RESP)))
+        .await?;
       stream.send(Message::Close(None)).await?;
       Ok(())
     }
@@ -1416,20 +1424,26 @@ mod tests {
   #[test(tokio::test)]
   async fn subscribe_error() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
-      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(CONN_RESP)))
+        .await?;
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_ERR_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(SUB_ERR_REQ)),
       );
-      stream.send(Message::Text(SUB_ERR_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(SUB_ERR_RESP)))
+        .await?;
       stream.send(Message::Close(None)).await?;
       Ok(())
     }
