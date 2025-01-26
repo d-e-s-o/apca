@@ -375,7 +375,7 @@ pub enum Data<B = Bar, Q = Quote, T = Trade> {
   Trade(T),
 }
 
-impl Data {
+impl<B, Q, T> Data<B, Q, T> {
   /// Check whether this object is of the `Bar` variant.
   #[inline]
   pub fn is_bar(&self) -> bool {
@@ -920,6 +920,8 @@ mod tests {
 
   use tokio::time::timeout;
 
+  use tungstenite::tungstenite::Utf8Bytes;
+
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::Message;
 
@@ -940,6 +942,20 @@ mod tests {
   const SUB_ERR_REQ: &str = r#"{"action":"subscribe","bars":[],"quotes":[],"trades":[]}"#;
   const SUB_ERR_RESP: &str = r#"[{"T":"error","code":400,"msg":"invalid syntax"}]"#;
 
+
+  /// Exercise the `Sip::source` method.
+  #[test]
+  fn sip_source() {
+    assert_ne!(format!("{:?}", SIP::source()), "");
+  }
+
+  /// Exercise the various `is_*` methods of the `Data` enum.
+  #[test]
+  fn data_classification() {
+    assert!(Data::<(), Quote, Trade>::Bar(()).is_bar());
+    assert!(Data::<Bar, (), Trade>::Quote(()).is_quote());
+    assert!(Data::<Bar, Quote, ()>::Trade(()).is_trade());
+  }
 
   /// Test that the [`Symbols::is_empty`] method works as expected.
   #[test]
@@ -1359,20 +1375,26 @@ mod tests {
   #[test(tokio::test)]
   async fn authenticate_and_subscribe() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
-      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(CONN_RESP)))
+        .await?;
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(SUB_REQ)),
       );
-      stream.send(Message::Text(SUB_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(SUB_RESP)))
+        .await?;
       stream.send(Message::Close(None)).await?;
       Ok(())
     }
@@ -1402,20 +1424,26 @@ mod tests {
   #[test(tokio::test)]
   async fn subscribe_error() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
-      stream.send(Message::Text(CONN_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(CONN_RESP)))
+        .await?;
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(SUB_ERR_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(SUB_ERR_REQ)),
       );
-      stream.send(Message::Text(SUB_ERR_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(SUB_ERR_RESP)))
+        .await?;
       stream.send(Message::Close(None)).await?;
       Ok(())
     }

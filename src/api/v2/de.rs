@@ -73,7 +73,7 @@ pub(crate) enum Content<'de> {
   Map(Vec<(Content<'de>, Content<'de>)>),
 }
 
-impl<'de> Content<'de> {
+impl Content<'_> {
   #[cold]
   fn unexpected(&self) -> Unexpected<'_> {
     match *self {
@@ -116,7 +116,7 @@ struct ContentVisitor<'de> {
   value: PhantomData<Content<'de>>,
 }
 
-impl<'de> ContentVisitor<'de> {
+impl ContentVisitor<'_> {
   fn new() -> Self {
     ContentVisitor { value: PhantomData }
   }
@@ -843,7 +843,7 @@ pub(crate) struct TaggedContentVisitor<'de, T> {
   value: PhantomData<TaggedContent<'de, T>>,
 }
 
-impl<'de, T> TaggedContentVisitor<'de, T> {
+impl<T> TaggedContentVisitor<'_, T> {
   pub(crate) fn new(name: &'static str) -> Self {
     TaggedContentVisitor {
       tag_name: name,
@@ -931,7 +931,7 @@ struct TagOrContentVisitor<'de> {
   value: PhantomData<TagOrContent<'de>>,
 }
 
-impl<'de> TagOrContentVisitor<'de> {
+impl TagOrContentVisitor<'_> {
   fn new(name: &'static str) -> Self {
     TagOrContentVisitor {
       name,

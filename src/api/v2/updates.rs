@@ -438,6 +438,9 @@ mod tests {
 
   use test_log::test;
 
+  use tungstenite::tungstenite::Bytes;
+  use tungstenite::tungstenite::Utf8Bytes;
+
   use websocket_util::test::WebSocketStream;
   use websocket_util::tungstenite::error::ProtocolError;
   use websocket_util::tungstenite::Message;
@@ -563,7 +566,7 @@ mod tests {
   async fn broken_stream() {
     async fn test(mut stream: WebSocketStream) -> Result<(), WebSocketError> {
       let msg = stream.next().await.unwrap()?;
-      assert_eq!(msg, Message::Text(AUTH_REQ.to_string()));
+      assert_eq!(msg, Message::Text(Utf8Bytes::from_static(AUTH_REQ)));
       Ok(())
     }
 
@@ -585,14 +588,16 @@ mod tests {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(STREAM_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(STREAM_REQ)),
       );
       // Just respond with a Close.
       stream.send(Message::Close(None)).await?;
@@ -615,16 +620,20 @@ mod tests {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(STREAM_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(STREAM_REQ)),
       );
-      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(STREAM_RESP)))
+        .await?;
       Ok(())
     }
 
@@ -643,12 +652,14 @@ mod tests {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       stream
-        .send(Message::Text("{ foobarbaz }".to_string()))
+        .send(Message::Text(Utf8Bytes::from_static("{ foobarbaz }")))
         .await?;
       Ok(())
     }
@@ -670,23 +681,27 @@ mod tests {
         // Authentication.
         assert_eq!(
           stream.next().await.unwrap()?,
-          Message::Text(AUTH_REQ.to_string()),
+          Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
         );
-        stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+        stream
+          .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+          .await?;
 
         // Subscription.
         assert_eq!(
           stream.next().await.unwrap()?,
-          Message::Text(STREAM_REQ.to_string()),
+          Message::Text(Utf8Bytes::from_static(STREAM_REQ)),
         );
-        stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+        stream
+          .send(Message::Text(Utf8Bytes::from_static(STREAM_RESP)))
+          .await?;
 
         // Wait until the connection was established before sending any
         // additional messages.
         let () = receiver.await.unwrap();
 
         stream
-          .send(Message::Text("{ foobarbaz }".to_string()))
+          .send(Message::Text(Utf8Bytes::from_static("{ foobarbaz }")))
           .await?;
         stream.send(Message::Close(None)).await?;
         Ok(())
@@ -710,21 +725,25 @@ mod tests {
       // Authentication.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(AUTH_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(AUTH_REQ)),
       );
-      stream.send(Message::Text(AUTH_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(AUTH_RESP)))
+        .await?;
 
       // Subscription.
       assert_eq!(
         stream.next().await.unwrap()?,
-        Message::Text(STREAM_REQ.to_string()),
+        Message::Text(Utf8Bytes::from_static(STREAM_REQ)),
       );
-      stream.send(Message::Text(STREAM_RESP.to_string())).await?;
+      stream
+        .send(Message::Text(Utf8Bytes::from_static(STREAM_RESP)))
+        .await?;
 
       // Ping.
-      stream.send(Message::Ping(Vec::new())).await?;
+      stream.send(Message::Ping(Bytes::new())).await?;
       // Expect Pong.
-      assert_eq!(stream.next().await.unwrap()?, Message::Pong(Vec::new()),);
+      assert_eq!(stream.next().await.unwrap()?, Message::Pong(Bytes::new()),);
 
       stream.send(Message::Close(None)).await?;
       Ok(())

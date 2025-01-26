@@ -1,6 +1,6 @@
 [package]
 name = "apca"
-version = "0.29.0"
+version = "0.30.0"
 edition = "2021"
 rust-version = "1.63"
 authors = ["Daniel Mueller <deso@posteo.net>"]
@@ -42,21 +42,21 @@ serde = {version = "1.0.103", features = ["derive"]}
 serde_json = {version = "1.0", default-features = false, features = ["std"]}
 serde_urlencoded = {version = "0.7", default-features = false}
 serde_variant = {version = "0.1", default-features = false}
-thiserror = "1.0.30"
+thiserror = "2.0"
 tokio = {version = "1.13", default-features = false, features = ["net"]}
 tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
 tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "tokio-tungstenite", version = "0.23", features = ["connect", "native-tls", "url"]}
+tungstenite = {package = "tokio-tungstenite", version = "0.26", features = ["connect", "native-tls", "url"]}
 url = "2.0"
 uuid = {version = "1.0", default-features = false, features = ["serde"]}
-websocket-util = "0.13"
+websocket-util = "0.14"
 
 [dev-dependencies]
 serial_test = {version = "3.0.0", default-features = false}
 test-log = {version = "0.2.14", default-features = false, features = ["trace"]}
 tokio = {version = "1.13", default-features = false, features = ["rt-multi-thread", "macros"]}
 uuid = {version = "1.0", default-features = false, features = ["v4"]}
-websocket-util = {version = "0.13", features = ["test"]}
+websocket-util = {version = "0.14", features = ["test"]}
 
 # A set of unused dependencies that we require to force correct minimum versions
 # of transitive dependencies, for cases where our dependencies have incorrect
