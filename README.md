@@ -1,3 +1,4 @@
+[<img src="https://api.gitsponsors.com/api/badge/img?id=257476648" height="20">](https://api.gitsponsors.com/api/badge/link?p=u1XjXfeiH/1FQ2+aW07mOyew0k+ay0/65AtYCi/YsPxuOaYJiisYYsZi0DyDazaa)
 [![pipeline](https://github.com/d-e-s-o/apca/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/d-e-s-o/apca/actions/workflows/test.yml)
 [![coverage](https://codecov.io/gh/d-e-s-o/apca/branch/main/graph/badge.svg)](https://codecov.io/gh/d-e-s-o/apca)
 [![crates.io](https://img.shields.io/crates/v/apca.svg)](https://crates.io/crates/apca)
