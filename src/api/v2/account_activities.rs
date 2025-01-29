@@ -1,4 +1,4 @@
-// Copyright (C) 2020-2024 The apca Developers
+// Copyright (C) 2020-2025 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -346,13 +346,10 @@ impl<'de> Deserialize<'de> for Activity {
   where
     D: Deserializer<'de>,
   {
-    let tagged = match Deserializer::deserialize_any(
+    let tagged = Deserializer::deserialize_any(
       deserializer,
       TaggedContentVisitor::<ActivityType>::new("activity_type"),
-    ) {
-      Ok(val) => val,
-      Err(err) => return Err(err),
-    };
+    )?;
 
     let content = ContentDeserializer::new(tagged.content);
     match tagged.tag {
