@@ -15,7 +15,6 @@ use uuid::Uuid;
 
 use crate::Str;
 
-
 /// A type representing an account ID.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(pub Uuid);
@@ -28,7 +27,6 @@ impl Deref for Id {
     &self.0
   }
 }
-
 
 /// An enumeration of the various states an account can be in.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -63,7 +61,6 @@ pub enum Status {
   Unknown,
 }
 
-
 /// An object as returned by the /v2/account endpoint.
 // TODO: The `sma` field is not yet hooked up.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -71,15 +68,30 @@ pub struct Account {
   /// Account ID.
   #[serde(rename = "id")]
   pub id: Id,
+  /// Admin configurations for the account.
+  #[serde(rename = "admin_configurations")]
+  pub admin_configurations: serde_json::Value,
+  /// User configurations for the account.
+  #[serde(rename = "user_configurations")]
+  pub user_configurations: Option<serde_json::Value>,
+  /// Account number.
+  #[serde(rename = "account_number")]
+  pub account_number: String,
   /// The account's status.
   #[serde(rename = "status")]
   pub status: Status,
+  /// The account's crypto status.
+  #[serde(rename = "crypto_status")]
+  pub crypto_status: String,
   /// The currency the account uses.
   #[serde(rename = "currency")]
   pub currency: String,
   /// Cash balance.
   #[serde(rename = "cash")]
   pub cash: Num,
+  /// Portfolio value (equity + cash)
+  #[serde(rename = "portfolio_value")]
+  pub portfolio_value: Num,
   /// Whether or not the account has been flagged as a pattern day
   /// trader.
   #[serde(rename = "pattern_day_trader")]
@@ -133,22 +145,69 @@ pub struct Account {
   /// - 4: (last_equity - (last) maintenance_margin) * 4
   #[serde(rename = "buying_power")]
   pub buying_power: Num,
+  /// Regulatory buying power.
+  #[serde(rename = "regt_buying_power")]
+  pub regt_buying_power: Num,
+  /// Day trading buying power.
+  #[serde(rename = "daytrading_buying_power")]
+  pub daytrading_buying_power: Num,
+  /// Options buying power.
+  #[serde(rename = "options_buying_power")]
+  pub options_buying_power: Num,
+  /// Effective buying power.
+  #[serde(rename = "effective_buying_power")]
+  pub effective_buying_power: Num,
+  /// Non-marginable buying power.
+  #[serde(rename = "non_marginable_buying_power")]
+  pub non_marginable_buying_power: Num,
+  /// Beginning of day day trading buying power.
+  #[serde(rename = "bod_dtbp")]
+  pub bod_dtbp: Num,
+  /// Accrued fees.
+  #[serde(rename = "accrued_fees")]
+  pub accrued_fees: Num,
+  /// Pending transfer in.
+  #[serde(rename = "pending_transfer_in", default)]
+  pub pending_transfer_in: Num,
+  /// Position market value.
+  #[serde(rename = "position_market_value")]
+  pub position_market_value: Num,
   /// Initial margin requirement (this value is continuously updated).
   #[serde(rename = "initial_margin")]
   pub initial_margin: Num,
   /// Maintenance margin requirement (this value is continuously updated).
   #[serde(rename = "maintenance_margin")]
   pub maintenance_margin: Num,
+  /// Last maintenance margin.
+  #[serde(rename = "last_maintenance_margin")]
+  pub last_maintenance_margin: Num,
+  /// Special Memorandum Account (SMA) balance
+  #[serde(rename = "sma")]
+  pub sma: Num,
   /// The current number of day trades that have been made in the last
   /// five trading days (including today).
   #[serde(rename = "daytrade_count")]
   pub daytrade_count: u64,
+  /// Balance as of date.
+  #[serde(rename = "balance_asof")]
+  pub balance_asof: String,
+  /// Crypto tier.
+  #[serde(rename = "crypto_tier")]
+  pub crypto_tier: u64,
+  /// Options trading level.
+  #[serde(rename = "options_trading_level")]
+  pub options_trading_level: u64,
+  /// Intraday adjustments.
+  #[serde(rename = "intraday_adjustments")]
+  pub intraday_adjustments: Num,
+  /// Pending regulatory TAF fees.
+  #[serde(rename = "pending_reg_taf_fees")]
+  pub pending_reg_taf_fees: Num,
   /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   #[serde(skip)]
   pub _non_exhaustive: (),
 }
-
 
 Endpoint! {
   /// The representation of a GET request to the /v2/account endpoint.
@@ -164,7 +223,6 @@ Endpoint! {
     "/v2/account".into()
   }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -182,17 +240,28 @@ mod tests {
   use crate::Client;
   use crate::RequestError;
 
-
   /// Make sure that we can deserialize and serialize the reference
   /// account object.
   #[test]
   fn deserialize_serialize_reference_account() {
     let json = r#"{
   "id": "904837e3-3b76-47ec-b432-046db621571b",
+  "admin_configurations": {},
+  "user_configurations": null,
+  "account_number": "PALPACA_123",
   "status": "ACTIVE",
+  "crypto_status": "ACTIVE",
   "currency": "USD",
   "buying_power": "0.0",
+  "regt_buying_power": "0.0",
+  "daytrading_buying_power": "0.0",
+  "options_buying_power": "0.0",
+  "effective_buying_power": "0.0",
+  "non_marginable_buying_power": "0.0",
+  "bod_dtbp": "0.0",
   "cash": "1000.00",
+  "accrued_fees": "0.0",
+  "pending_transfer_in": "0.0",
   "portfolio_value": "5000.00",
   "pattern_day_trader": false,
   "trade_suspended_by_user": false,
@@ -204,12 +273,19 @@ mod tests {
   "multiplier": "2",
   "long_market_value": "7000.00",
   "short_market_value": "-3000.00",
+  "position_market_value": "4000.00",
   "equity": "5000.00",
   "last_equity": "5000.00",
   "initial_margin": "5000.00",
   "maintenance_margin": "3000.00",
+  "last_maintenance_margin": "3000.00",
+  "sma": "0.0",
   "daytrade_count": 0,
-  "sma": "0.0"
+  "balance_asof": "2018-10-01",
+  "crypto_tier": 1,
+  "options_trading_level": 2,
+  "intraday_adjustments": "0.0",
+  "pending_reg_taf_fees": "0.0"
 }"#;
 
     let acc =
@@ -231,6 +307,25 @@ mod tests {
     assert_eq!(acc.last_equity, Num::from(5000));
     assert_eq!(acc.maintenance_margin, Num::from(3000));
     assert_eq!(acc.daytrade_count, 0);
+
+    // Test new fields
+    assert_eq!(acc.account_number, "PALPACA_123");
+    assert_eq!(acc.crypto_status, "ACTIVE");
+    assert_eq!(acc.regt_buying_power, Num::from(0));
+    assert_eq!(acc.daytrading_buying_power, Num::from(0));
+    assert_eq!(acc.options_buying_power, Num::from(0));
+    assert_eq!(acc.effective_buying_power, Num::from(0));
+    assert_eq!(acc.non_marginable_buying_power, Num::from(0));
+    assert_eq!(acc.bod_dtbp, Num::from(0));
+    assert_eq!(acc.accrued_fees, Num::from(0));
+    assert_eq!(acc.pending_transfer_in, Num::from(0));
+    assert_eq!(acc.position_market_value, Num::from(4000));
+    assert_eq!(acc.last_maintenance_margin, Num::from(3000));
+    assert_eq!(acc.balance_asof, "2018-10-01");
+    assert_eq!(acc.crypto_tier, 1);
+    assert_eq!(acc.options_trading_level, 2);
+    assert_eq!(acc.intraday_adjustments, Num::from(0));
+    assert_eq!(acc.pending_reg_taf_fees, Num::from(0));
   }
 
   /// Test that we can retrieve information about the account.
