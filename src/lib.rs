@@ -115,4 +115,6 @@ pub use crate::error::Error;
 pub use crate::error::RequestError;
 pub use crate::subscribable::Subscribable;
 
+pub use num_decimal;
+
 type Str = Cow<'static, str>;
