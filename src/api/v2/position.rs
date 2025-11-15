@@ -118,7 +118,7 @@ Endpoint! {
 
   #[inline]
   fn path(input: &Self::Input) -> Str {
-    format!("/v2/positions/{input}").into()
+    format!("/v2/positions/{}", input.to_string().replace("/","")).into()
   }
 }
 
@@ -303,6 +303,35 @@ mod tests {
       },
       Err(err) => match err {
         RequestError::Endpoint(GetError::NotFound(..)) => (),
+        _ => panic!("Received unexpected error: {err:?}"),
+      },
+    }
+  }
+
+  /// Check that we can retrieve an open crypto position, if one exists.
+  #[test(tokio::test)]
+  async fn retrieve_crypto_position() {
+    let api_info = ApiInfo::from_env().unwrap();
+    let client = Client::new(api_info);
+    let symbol = asset::Symbol::Sym("AAVE/USD".to_string());
+    let result = client.issue::<Get>(&symbol).await;
+
+    // We don't know whether there is an open position and we can't
+    // simply create one as the order may take a long time to fill.
+    // So really the best thing we can do is to make sure that we
+    // either get a valid response or an indication that no position has been found.
+    match result {
+      Ok(pos) => {
+        assert_eq!(pos.symbol, "AAVEUSD");
+        assert_eq!(pos.asset_class, asset::Class::Crypto);
+      },
+      Err(err) => match err {
+        // Simply expecting NotFound is not enough to assert that the endpoint was called with
+        // the correct argument. At the moment of this change this end point will return
+        // NotFound for any symbol containing forward slash.
+        RequestError::Endpoint(GetError::NotFound(api_error)) => {
+          assert_eq!(api_error.unwrap().message, "position does not exist")
+        },
         _ => panic!("Received unexpected error: {err:?}"),
       },
     }
