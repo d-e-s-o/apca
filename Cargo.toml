@@ -1,8 +1,8 @@
 [package]
 name = "apca"
 version = "0.30.0"
-edition = "2021"
-rust-version = "1.63"
+edition = "2024"
+rust-version = "1.92.0"
 authors = ["Daniel Mueller <deso@posteo.net>"]
 license = "GPL-3.0-or-later"
 homepage = "https://github.com/d-e-s-o/apca"
@@ -24,32 +24,31 @@ include = ["src/**/*", "LICENSE", "README.*", "CHANGELOG.*"]
 [features]
 default = ["gzip"]
 gzip = ["async-compression/futures-io", "async-compression/gzip"]
-vendored-openssl = ["hyper-tls/vendored", "tungstenite/native-tls-vendored"]
 
 [dependencies]
-async-compression = {version = "0.4", default-features = false, optional = true}
-async-trait = "0.1.51"
-chrono = {version = "0.4.19", features = ["serde"]}
-futures = {version = "0.3", default-features = false}
-http = {version = "1.1", default-features = false}
-http-body-util = {version = "0.1", default-features = false}
-http-endpoint = {version = "0.6", default-features = false}
-hyper = {version = "1.1", default-features = false, features = ["client", "http1"]}
-hyper-util = {version = "0.1.3", default-features = false, features = ["client", "client-legacy", "http1", "tokio"]}
-hyper-tls = {version = "0.6", default-features = false}
-num-decimal = {version = "0.2.4", default-features = false, features = ["num-v04", "serde"]}
-serde = {version = "1.0.103", features = ["derive"]}
-serde_json = {version = "1.0", default-features = false, features = ["std"]}
-serde_urlencoded = {version = "0.7", default-features = false}
-serde_variant = {version = "0.1", default-features = false}
-thiserror = "2.0"
-tokio = {version = "1.13", default-features = false, features = ["net"]}
-tracing = {version = "0.1", default-features = false, features = ["attributes", "std"]}
-tracing-futures = {version = "0.2", default-features = false, features = ["std-future"]}
-tungstenite = {package = "tokio-tungstenite", version = "0.26", features = ["connect", "native-tls", "url"]}
-url = "2.0"
-uuid = {version = "1.0", default-features = false, features = ["serde"]}
-websocket-util = "0.14"
+async-compression = {version = "0.4.39", default-features = false, optional = true}
+async-trait = "0.1.89"
+chrono = {version = "0.4.43", features = ["serde"]}
+futures = {version = "0.3.31", default-features = false}
+http = {version = "1.4.0", default-features = false}
+http-body-util = {version = "0.1.3", default-features = false}
+http-endpoint = {version = "0.6.0", default-features = false}
+hyper = {version = "1.8.1", default-features = false, features = ["client", "http1"]}
+hyper-util = {version = "0.1.20", default-features = false, features = ["client", "client-legacy", "http1", "tokio"]}
+hyper-tls = {version = "0.6.0", default-features = false}
+num-decimal = {version = "0.2.5", default-features = false, features = ["num-v04", "serde"]}
+serde = {version = "1.0.228", features = ["derive"]}
+serde_json = {version = "1.0.149", default-features = false, features = ["std"]}
+serde_urlencoded = {version = "0.7.1", default-features = false}
+serde_variant = {version = "0.1.3", default-features = false}
+thiserror = "2.0.18"
+tokio = {version = "1.49.0", default-features = false, features = ["net"]}
+tracing = {version = "0.1.44", default-features = false, features = ["attributes", "std"]}
+tracing-futures = {version = "0.2.5", default-features = false, features = ["std-future"]}
+tungstenite = {package = "tokio-tungstenite", version = "0.26.0", features = ["connect", "native-tls", "url"]}
+url = "2.5.8"
+uuid = {version = "1.20.0", default-features = false, features = ["serde"]}
+websocket-util = "0.14.0"
 
 [dev-dependencies]
 serial_test = {version = "3.0.0", default-features = false}
@@ -67,5 +66,3 @@ _rustc_version_unused = { package = "rustc_version", version = "0.2.2" }
 _num_bigint_unused = { package = "num-bigint", version = "0.4.2" }
 # error[E0635]: unknown feature `proc_macro_span_shrink`
 _proc_macro2_unused = { package = "proc-macro2", version = "1.0.60" }
-# error: pasting "RUST_VERSION_OPENSSL_" and "(" does not give a valid preprocessing token
-_openssl_unused = {package = "openssl", version = "0.10.35"}

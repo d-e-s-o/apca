@@ -505,6 +505,24 @@ pub struct CreateReq {
   pub _non_exhaustive: (),
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CloseReq {
+  /// Symbol or asset ID to identify the asset to trade.
+  #[serde(rename = "symbol")]
+  pub symbol: asset::Symbol,
+  /// Amount of shares to trade.
+  #[serde(rename = "qty")]
+  pub qty: Option<Num>,
+  /// Amount of shares to trade.
+  #[serde(rename = "percentage")]
+  pub percentage: Option<Num>,
+
+  //TODO
+  // /// The type is non-exhaustive and open to extension.
+  // #[doc(hidden)]
+  // #[serde(skip)]
+  // pub _non_exhaustive: (),
+}
 
 /// A PATCH request to be made to the /v2/orders/{order-id} endpoint.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -725,6 +743,34 @@ Endpoint! {
   }
 }
 
+Endpoint! {
+  /// The representation of a POST request to the /v2/orders endpoint.
+  pub Close(CloseReq),
+  Ok => Order, [
+    /// The order was submitted successfully.
+    /* 200 */ OK,
+  ],
+  Err => CloseError, [
+    /// Some data in the request was invalid.
+    /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
+  ]
+
+  #[inline]
+  fn method() -> Method {
+    Method::DELETE
+  }
+
+  #[inline]
+  fn path(input: &Self::Input) -> Str {
+    format!("/v2/positions/{}", input.symbol).into()
+  }
+
+  fn body(input: &Self::Input) -> Result<Option<Bytes>, Self::ConversionError> {
+    let json = to_json(input)?;
+    let bytes = Bytes::from(json);
+    Ok(Some(bytes))
+  }
+}
 
 Endpoint! {
   /// The representation of a PATCH request to the /v2/orders/{order-id}

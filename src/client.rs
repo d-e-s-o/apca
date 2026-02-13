@@ -151,7 +151,7 @@ impl Default for Builder {
 
 /// A `Client` is the entity used by clients of this module for
 /// interacting with the Alpaca API.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Client {
   api_info: ApiInfo,
   client: HttpClient<HttpsConnector<HttpConnector>, Full<Bytes>>,
