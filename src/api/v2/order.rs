@@ -496,7 +496,7 @@ pub struct CreateReq {
   /// passed along by Alpaca. It can be used for associating additional
   /// information with an order, from the client.
   ///
-  /// The documented maximum length is 48 characters.
+  /// The documented maximum length is 128 characters.
   #[serde(rename = "client_order_id")]
   pub client_order_id: Option<String>,
   /// The type is non-exhaustive and open to extension.
