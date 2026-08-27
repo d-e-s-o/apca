@@ -1,3 +1,8 @@
+Unreleased
+----------
+- Removed `api::v2::order::Account::{day_trader,daytrade_count}` members
+
+
 0.30.0
 ------
 - Added `weighted_average` member to `data::v2::bars::Bar` type

@@ -80,10 +80,6 @@ pub struct Account {
   /// Cash balance.
   #[serde(rename = "cash")]
   pub cash: Num,
-  /// Whether or not the account has been flagged as a pattern day
-  /// trader.
-  #[serde(rename = "pattern_day_trader")]
-  pub day_trader: bool,
   /// Whether or not the user has suspended trading operations.
   #[serde(rename = "trade_suspended_by_user")]
   pub trading_suspended: bool,
@@ -139,10 +135,6 @@ pub struct Account {
   /// Maintenance margin requirement (this value is continuously updated).
   #[serde(rename = "maintenance_margin")]
   pub maintenance_margin: Num,
-  /// The current number of day trades that have been made in the last
-  /// five trading days (including today).
-  #[serde(rename = "daytrade_count")]
-  pub daytrade_count: u64,
   /// The type is non-exhaustive and open to extension.
   #[doc(hidden)]
   #[serde(skip)]
@@ -194,7 +186,6 @@ mod tests {
   "buying_power": "0.0",
   "cash": "1000.00",
   "portfolio_value": "5000.00",
-  "pattern_day_trader": false,
   "trade_suspended_by_user": false,
   "trading_blocked": false,
   "transfers_blocked": false,
@@ -208,7 +199,6 @@ mod tests {
   "last_equity": "5000.00",
   "initial_margin": "5000.00",
   "maintenance_margin": "3000.00",
-  "daytrade_count": 0,
   "sma": "0.0"
 }"#;
 
@@ -230,7 +220,6 @@ mod tests {
     assert_eq!(acc.equity, Num::from(5000));
     assert_eq!(acc.last_equity, Num::from(5000));
     assert_eq!(acc.maintenance_margin, Num::from(3000));
-    assert_eq!(acc.daytrade_count, 0);
   }
 
   /// Test that we can retrieve information about the account.
