@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 The apca Developers
+// Copyright (C) 2019-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::fmt::Debug;
@@ -56,7 +56,7 @@ impl Display for HttpBody {
   fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
     match from_utf8(&self.0) {
       Ok(s) => fmt.write_str(s)?,
-      Err(..) => write!(fmt, "{:?}", &self.0)?,
+      Err(..) => write!(fmt, "{:?}", self.0)?,
     }
     Ok(())
   }

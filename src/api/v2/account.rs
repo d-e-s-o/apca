@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 The apca Developers
+// Copyright (C) 2019-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -120,10 +120,10 @@ pub struct Account {
   /// classification. Valid values are:
   /// - 1: the standard limited margin account with 1x buying power
   /// - 2: regular margin account with 2x intra day and overnight buying
-  ///      power (the default for all non-pattern-day-trader accounts
-  ///      with USD 2000 or more equity),
+  ///   power (the default for all non-pattern-day-trader accounts with
+  ///   USD 2000 or more equity)
   /// - 4: pattern day trader account with 4x intra day buying power and
-  ///      2x regular overnight buying power
+  ///   2x regular overnight buying power
   #[serde(rename = "multiplier")]
   pub multiplier: Num,
   /// The currently available buying power. Calculated based on the
