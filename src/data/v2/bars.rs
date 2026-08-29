@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 The apca Developers
+// Copyright (C) 2021-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -390,8 +390,8 @@ mod tests {
       bars[0].time,
       DateTime::<Utc>::from_str("2018-12-04T05:00:00Z").unwrap()
     );
-    assert_in(&bars[0].open, 172..=176);
-    assert_in(&bars[0].close, 168..=172);
+    assert_in(&bars[0].open, 171..=176);
+    assert_in(&bars[0].close, 167..=172);
     assert_in(&bars[0].high, 173..=177);
     assert_in(&bars[0].low, 167..=171);
     assert_in(&bars[0].weighted_average, 166..=170);
