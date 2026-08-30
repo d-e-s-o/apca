@@ -1114,10 +1114,6 @@ mod tests {
     let order = client.issue::<Create>(&request).await.unwrap();
     client.issue::<Delete>(&order.id).await.unwrap();
 
-    for leg in &order.legs {
-      client.issue::<Delete>(&leg.id).await.unwrap();
-    }
-
     assert_eq!(order.symbol, "SPY");
     assert_eq!(order.amount, Amount::quantity(1));
     assert_eq!(order.side, Side::Buy);
