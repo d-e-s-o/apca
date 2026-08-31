@@ -1,4 +1,4 @@
-// Copyright (C) 2021-2024 The apca Developers
+// Copyright (C) 2021-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::BTreeMap;
@@ -101,6 +101,9 @@ EndpointNoParse! {
     /// The provided symbol was invalid or not found or the data feed is
     /// not supported.
     /* 400 */ BAD_REQUEST => InvalidInput,
+    /// The request was not permitted. Possible reasons include usage of
+    /// the SIP feed without having the corresponding subscription.
+    /* 403 */ FORBIDDEN => NotPermitted,
   ]
 
   fn base_url() -> Option<Str> {

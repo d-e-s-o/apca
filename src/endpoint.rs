@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::Deserialize;
@@ -45,19 +45,8 @@ macro_rules! EndpointNoParse {
       $(#[$docs])* $pub $name($in),
       Ok => $out, [$($ok_status,)*],
       Err => $err, [
-        // Every request can result in an authentication failure or fall
-        // prey to the rate limit and so we include these variants into
-        // all our error definitions.
-        /// The request was not permitted.
-        ///
-        /// This can have a multitude of reasons, including invalid
-        /// credentials or the (potentially implicit) request of SIP
-        /// data through the data APIs when only an IEX subscription is
-        /// available.
-        /// Order submission/change failure (e.g., due to insufficient
-        /// funds or time constraint violations) is also expressed this
-        /// way.
-        /* 403 */ FORBIDDEN => NotPermitted,
+        /// Authentication failed for the request.
+        /* 401 */ UNAUTHORIZED => AuthenticationFailed,
         /// The rate limit was exceeded, causing the request to be
         /// denied.
         /* 429 */ TOO_MANY_REQUESTS => RateLimitExceeded,

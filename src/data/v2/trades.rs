@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024 The apca Developers
+// Copyright (C) 2022-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use chrono::DateTime;
@@ -132,6 +132,9 @@ Endpoint! {
   Err => ListError, [
     /// A query parameter was invalid.
     /* 400 */ BAD_REQUEST => InvalidInput,
+    /// The request was not permitted. Possible reasons include usage of
+    /// the SIP feed without having the corresponding subscription.
+    /* 403 */ FORBIDDEN => NotPermitted,
   ]
 
   fn base_url() -> Option<Str> {

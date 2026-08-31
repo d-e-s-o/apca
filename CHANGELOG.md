@@ -1,5 +1,7 @@
 Unreleased
 ----------
+- Introduced `AuthenticationFailed` variant of endpoint errors to
+  `NotPermitted`
 - Removed `api::v2::order::Account::{day_trader,daytrade_count}` members
 
 

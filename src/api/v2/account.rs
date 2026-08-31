@@ -250,7 +250,7 @@ mod tests {
 
     let err = result.unwrap_err();
     match err {
-      RequestError::Endpoint(GetError::NotPermitted(_)) => (),
+      RequestError::Endpoint(GetError::AuthenticationFailed(_)) => (),
       e => panic!("received unexpected error: {e:?}"),
     }
   }

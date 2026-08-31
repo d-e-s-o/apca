@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2024 The apca Developers
+// Copyright (C) 2019-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::ops::Deref;
@@ -704,6 +704,14 @@ Endpoint! {
     /* 200 */ OK,
   ],
   Err => CreateError, [
+    /// The order submission was not permitted. That can have multiple
+    /// reasons, including (but not necessarily limited to):
+    /// - not enough funds are available
+    /// - the order is of a certain order type that cannot be submitted
+    ///   at this time of day (e.g., market-open orders must be
+    ///   submitted after 7:00pm and before 9:28am and will be rejected
+    ///   at other times)
+    /* 403 */ FORBIDDEN => NotPermitted,
     /// Some data in the request was invalid.
     /* 422 */ UNPROCESSABLE_ENTITY => InvalidInput,
   ]
@@ -735,6 +743,14 @@ Endpoint! {
     /* 200 */ OK,
   ],
   Err => ChangeError, [
+    /// The order change was not permitted. That can have multiple
+    /// reasons, including (but not necessarily limited to):
+    /// - not enough funds are available
+    /// - the order is of a certain order type that cannot be submitted
+    ///   at this time of day (e.g., market-open orders must be
+    ///   submitted after 7:00pm and before 9:28am and will be rejected
+    ///   at other times)
+    /* 403 */ FORBIDDEN => NotPermitted,
     /// No order was found with the given ID.
     /* 404 */ NOT_FOUND => NotFound,
     /// Some data in the request was invalid.
