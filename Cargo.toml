@@ -8,6 +8,7 @@ license = "GPL-3.0-or-later"
 homepage = "https://github.com/d-e-s-o/apca"
 repository = "https://github.com/d-e-s-o/apca.git"
 readme = "README.md"
+documentation = "https://docs.rs/apca"
 categories = [
   "api-bindings",
   "asynchronous",
