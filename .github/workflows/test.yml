@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024 The apca Developers
+# Copyright (C) 2022-2026 The apca Developers
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 name: Test
@@ -97,7 +97,7 @@ jobs:
         with:
           components: rustfmt
       - run: cargo +nightly fmt -- --check
-  cargo-doc:
+  rustdoc:
     name: Generate documentation
     runs-on: ubuntu-latest
     env:
@@ -107,6 +107,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: |
-          cargo doc --no-deps
+          cargo doc --workspace --no-deps --document-private-items
           # Explicitly run doc tests as cargo-llvm-cov currently does not.
           cargo test --doc

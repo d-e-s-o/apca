@@ -1,4 +1,4 @@
-// Copyright (C) 2019-2023 The apca Developers
+// Copyright (C) 2019-2026 The apca Developers
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::env::var_os;
@@ -58,8 +58,8 @@ impl ApiInfo {
   /// URL provided.
   ///
   /// # Errors
-  /// - [`Error::Url`](crate::Error::Url) If `api_base_url` cannot be parsed
-  ///   into a [`url::Url`](url::Url).
+  /// - [`Error::Url`] If `api_base_url` cannot be parsed into a
+  ///   [`url::Url`].
   pub fn from_parts(
     api_base_url: impl AsRef<str>,
     key_id: impl ToString,
